@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FH6 Tune Lab</title>
+    <link rel="stylesheet" href="styles.css?v=20260608f" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Unofficial Forza Horizon 6 tuner</p>
+          <h1>FH6 Tune Lab</h1>
+        </div>
+        <div class="topbar-meta" aria-label="Current tune summary">
+          <span id="summaryRace">多彎賽道</span>
+          <span id="summaryEngine">平坦扭力型</span>
+          <span id="summaryDrive">四驅 AWD</span>
+        </div>
+      </header>
+
+      <section class="config-page" id="configPage" aria-label="Tune configuration">
+        <div class="config-intro">
+          <div>
+            <p class="eyebrow">Step 1</p>
+            <h2>先選你的車輛配置</h2>
+          </div>
+          <p>
+            選好目標比賽、引擎曲線和驅動類型後，按下確認才會產生完整的基礎改車數值。
+          </p>
+        </div>
+
+        <div class="config-layout">
+          <section class="choice-panel" aria-label="Race type">
+            <div class="panel-heading">
+              <span class="step-badge">01</span>
+              <h3>目標比賽</h3>
+            </div>
+            <div class="option-grid" id="raceOptions"></div>
+          </section>
+
+          <section class="choice-panel" aria-label="Engine curve">
+            <div class="panel-heading">
+              <span class="step-badge">02</span>
+              <h3>引擎曲線</h3>
+            </div>
+            <div class="option-grid compact" id="engineOptions"></div>
+          </section>
+
+          <section class="choice-panel" aria-label="Drive type">
+            <div class="panel-heading">
+              <span class="step-badge">03</span>
+              <h3>驅動類型</h3>
+            </div>
+            <div class="option-grid drive-grid" id="driveOptions"></div>
+          </section>
+        </div>
+
+        <div class="config-footer">
+          <div class="selection-preview" id="selectionPreview"></div>
+          <button class="primary-button" id="confirmButton" type="button">產生基礎數值</button>
+        </div>
+      </section>
+
+      <section class="result-page is-hidden" id="resultPage" aria-label="Recommended tune">
+        <div class="result-toolbar">
+          <button class="utility-button ghost" id="backButton" type="button">返回配置</button>
+          <div class="toolbar-actions">
+            <button class="primary-button" id="startTestButton" type="button">開始試車</button>
+            <button class="utility-button" id="copyButton" type="button">複製數值</button>
+            <button class="utility-button ghost" id="resetButton" type="button">重置</button>
+          </div>
+        </div>
+
+        <section class="tune-stage" aria-label="Recommended tune values">
+          <div class="stage-header">
+            <div>
+              <p class="eyebrow">Step 2</p>
+              <h2 id="setupTitle">多彎賽道基礎值</h2>
+            </div>
+            <div class="selected-tags" id="resultTags"></div>
+          </div>
+
+          <div class="visual-band">
+            <div class="meter-grid" id="meterGrid"></div>
+          </div>
+
+          <div class="principle-strip" id="principleStrip"></div>
+          <div class="setup-grid" id="setupGrid"></div>
+        </section>
+      </section>
+
+      <section class="symptom-page is-hidden" id="symptomPage" aria-label="Road test symptoms">
+        <div class="result-toolbar">
+          <button class="utility-button ghost" id="backToResultButton" type="button">返回基礎數值</button>
+          <div class="selected-tags" id="symptomTags"></div>
+        </div>
+        <section class="feedback-stage" aria-label="Road test feedback">
+          <div class="stage-header">
+            <div>
+              <p class="eyebrow">Step 3</p>
+              <h2>試車狀況</h2>
+            </div>
+            <button class="utility-button ghost" id="clearIssuesButton" type="button">清除狀況</button>
+          </div>
+
+          <div class="symptom-picker">
+            <div class="symptom-sidebar">
+              <p class="picker-label">症狀大項</p>
+              <div class="category-grid" id="issueCategoryGrid"></div>
+            </div>
+            <div class="symptom-detail">
+              <div class="symptom-detail-header">
+                <div>
+                  <p class="picker-label" id="activeCategoryLabel">轉向類症狀</p>
+                  <h3 id="activeCategoryDescription">先選大項，再勾選你試車時遇到的小項。</h3>
+                </div>
+                <span class="selected-count" id="selectedIssueCount">已選 0</span>
+              </div>
+              <div class="issue-grid" id="issueGrid"></div>
+            </div>
+            <div class="symptom-advice">
+              <div class="symptom-detail-header">
+                <div>
+                  <p class="picker-label">修改方向</p>
+                  <h3>勾選症狀後，這裡會立即顯示調整建議。</h3>
+                </div>
+              </div>
+              <div class="selected-issues" id="selectedIssues"></div>
+              <div class="advice-list" id="adviceList"></div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js?v=20260608f"></script>
+  </body>
+</html>
