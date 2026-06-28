@@ -147,6 +147,7 @@ h3 {
 
 .config-page,
 .result-page,
+.gear-page,
 .symptom-page {
   display: grid;
   gap: 12px;
@@ -158,8 +159,10 @@ h3 {
 
 .config-intro,
 .config-footer,
+.inline-config,
 .choice-panel,
 .tune-stage,
+.gear-stage,
 .feedback-stage,
 .result-toolbar {
   border: 1px solid var(--line);
@@ -184,7 +187,7 @@ h3 {
 
 .config-layout {
   display: grid;
-  grid-template-columns: 1.15fr 1fr 0.8fr;
+  grid-template-columns: 1.15fr 1fr 0.8fr 0.85fr;
   gap: 16px;
   align-items: start;
 }
@@ -266,6 +269,11 @@ h3 {
 
 .option-card input:focus-visible + label,
 .issue-card input:focus-visible + label,
+.spec-field input:focus-visible,
+.adjustment-field input:focus-visible,
+.gear-field input:focus-visible,
+.config-control select:focus-visible,
+.range-control input:focus-visible,
 .primary-button:focus-visible,
 .utility-button:focus-visible {
   outline: 2px solid var(--orange);
@@ -286,6 +294,182 @@ h3 {
   color: inherit;
   font-size: 0.78rem;
   opacity: 0.78;
+}
+
+.vehicle-input-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.spec-field {
+  display: grid;
+  gap: 7px;
+}
+
+.spec-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.spec-control {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: linear-gradient(180deg, #ffffff, #f7fbff);
+}
+
+.spec-control input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 950;
+  outline: 0;
+}
+
+.spec-unit {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.spec-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.spec-note.compact {
+  margin: 0;
+}
+
+.inline-config {
+  padding: 14px;
+}
+
+.tune-config-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.config-control {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+}
+
+.config-control select {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 36px 7px 10px;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%) right 15px center / 7px 7px no-repeat,
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%) right 10px center / 7px 7px no-repeat,
+    linear-gradient(180deg, #ffffff, #f7fbff);
+  color: var(--ink);
+  font-weight: 900;
+  outline: 0;
+  appearance: none;
+}
+
+.recommendation-hint {
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #dc2626;
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.recommendation-help {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid #dc2626;
+  border-radius: 999px;
+  color: #dc2626;
+  background: #fff7f7;
+  font-size: 0.72rem;
+  font-weight: 950;
+  cursor: help;
+}
+
+.recommendation-help::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 3;
+  width: min(260px, 70vw);
+  padding: 8px 10px;
+  border: 1px solid rgba(220, 38, 38, 0.24);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.recommendation-help:hover::after,
+.recommendation-help:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.balance-control {
+  grid-column: span 1;
+}
+
+.range-control {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(46px, auto);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: linear-gradient(180deg, #ffffff, #f7fbff);
+}
+
+.range-control input {
+  width: 100%;
+  accent-color: var(--blue);
+}
+
+.range-control output {
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 950;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .config-footer {
@@ -327,6 +511,10 @@ h3 {
   padding: 10px 12px;
 }
 
+.result-toolbar .toolbar-actions {
+  margin-left: auto;
+}
+
 .toolbar-actions,
 .stage-header {
   display: flex;
@@ -336,6 +524,7 @@ h3 {
 }
 
 .tune-stage,
+.gear-stage,
 .feedback-stage {
   padding: 14px;
 }
@@ -391,6 +580,211 @@ h3 {
   background: linear-gradient(90deg, var(--cyan), var(--yellow), var(--orange));
 }
 
+.adjustment-range-panel {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: linear-gradient(180deg, #ffffff, #f8fbff);
+}
+
+.adjustment-range-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.adjustment-range-heading h3,
+.adjustment-range-heading .eyebrow {
+  margin-bottom: 0;
+}
+
+.compact-button {
+  min-height: 34px;
+  padding: 6px 10px;
+}
+
+.adjustment-range-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.adjustment-range-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--panel);
+}
+
+.adjustment-range-title {
+  color: #0f172a;
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.adjustment-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.adjustment-field {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.adjustment-field span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.adjustment-field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 900;
+  outline: 0;
+}
+
+.gear-final-chip {
+  align-self: start;
+  border: 1px solid rgba(37, 99, 235, 0.22);
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.82rem;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.gear-calculator-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) minmax(420px, 1fr);
+  gap: 12px;
+}
+
+.gear-input-panel,
+.gear-output-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #f8fbff;
+}
+
+.gear-input-panel {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.gear-field {
+  display: grid;
+  gap: 7px;
+}
+
+.gear-field > input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: linear-gradient(180deg, #ffffff, #f7fbff);
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 950;
+  outline: 0;
+}
+
+.gear-output-panel {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.gear-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gear-summary-card,
+.gear-ratio-card,
+.gear-empty {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.gear-summary-card {
+  min-height: 72px;
+  display: grid;
+  align-content: space-between;
+  gap: 6px;
+  padding: 9px 10px;
+}
+
+.gear-summary-card.wide {
+  grid-column: span 1;
+}
+
+.gear-summary-card span,
+.gear-ratio-card span,
+.gear-ratio-card small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.gear-summary-card strong {
+  color: var(--ink);
+  font-size: 0.96rem;
+  line-height: 1.25;
+}
+
+.gear-ratio-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gear-ratio-card {
+  min-height: 82px;
+  display: grid;
+  align-content: space-between;
+  gap: 5px;
+  padding: 9px 10px;
+}
+
+.gear-ratio-card strong {
+  color: #0f172a;
+  font-size: 1.22rem;
+  font-weight: 950;
+}
+
+.gear-empty {
+  grid-column: 1 / -1;
+  padding: 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 850;
+  line-height: 1.5;
+}
+
 .principle-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -437,7 +831,8 @@ h3 {
 
 .setting-value {
   display: flex;
-  align-items: baseline;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 7px;
   color: #0f172a;
   font-size: clamp(0.92rem, 1.25vw, 1.12rem);
@@ -449,6 +844,61 @@ h3 {
   color: var(--muted);
   font-size: 0.76rem;
   font-weight: 900;
+}
+
+.setting-help {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid rgba(37, 99, 235, 0.48);
+  border-radius: 999px;
+  color: var(--blue);
+  background: #eff6ff;
+  font-size: 0.72rem;
+  font-weight: 950;
+  line-height: 1;
+  cursor: help;
+}
+
+.setting-help::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 4;
+  width: min(300px, 76vw);
+  padding: 8px 10px;
+  border: 1px solid rgba(37, 99, 235, 0.22);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.setting-help:hover::after,
+.setting-help:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.setting-help:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.35);
+  outline-offset: 2px;
 }
 
 .setting-note {
@@ -660,7 +1110,15 @@ h3 {
     grid-template-columns: minmax(150px, 180px) minmax(280px, 1fr) minmax(260px, 0.9fr);
   }
 
+  .gear-calculator-layout {
+    grid-template-columns: 1fr;
+  }
+
   .meter-grid,
+  .tune-config-grid,
+  .adjustment-range-grid,
+  .gear-summary-grid,
+  .gear-ratio-grid,
   .setup-grid,
   .issue-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -677,6 +1135,7 @@ h3 {
   .config-intro,
   .config-footer,
   .result-toolbar,
+  .adjustment-range-heading,
   .stage-header {
     align-items: stretch;
     flex-direction: column;
@@ -697,6 +1156,9 @@ h3 {
   .symptom-picker,
   .meter-grid,
   .principle-strip,
+  .adjustment-range-grid,
+  .gear-summary-grid,
+  .gear-ratio-grid,
   .setup-grid,
   .issue-grid {
     grid-template-columns: 1fr;
@@ -713,10 +1175,22 @@ h3 {
   }
 
   .tune-stage,
+  .gear-stage,
   .feedback-stage,
+  .inline-config,
   .choice-panel,
   .config-intro,
   .config-footer {
     padding: 14px;
+  }
+
+  .tune-config-grid,
+  .adjustment-field-grid,
+  .range-control {
+    grid-template-columns: 1fr;
+  }
+
+  .range-control output {
+    text-align: left;
   }
 }

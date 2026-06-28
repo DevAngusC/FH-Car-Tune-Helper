@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FH6 Tune Lab</title>
-    <link rel="stylesheet" href="styles.css?v=20260608f" />
+    <link rel="stylesheet" href="styles.css?v=20260628d" />
   </head>
   <body>
     <main class="app-shell">
@@ -15,12 +15,14 @@
         </div>
         <div class="topbar-meta" aria-label="Current tune summary">
           <span id="summaryRace">多彎賽道</span>
+          <span id="summaryFocus">平衡基準</span>
           <span id="summaryEngine">平坦扭力型</span>
           <span id="summaryDrive">四驅 AWD</span>
+          <span id="summaryVehicle">車重 1500 kg / 前配重 52%</span>
         </div>
       </header>
 
-      <section class="config-page" id="configPage" aria-label="Tune configuration">
+      <section class="config-page is-hidden" id="configPage" aria-label="Tune configuration">
         <div class="config-intro">
           <div>
             <p class="eyebrow">Step 1</p>
@@ -55,6 +57,30 @@
             </div>
             <div class="option-grid drive-grid" id="driveOptions"></div>
           </section>
+
+          <section class="choice-panel vehicle-panel" aria-label="Vehicle weight and balance">
+            <div class="panel-heading">
+              <span class="step-badge">04</span>
+              <h3>車重與重心</h3>
+            </div>
+            <div class="vehicle-input-grid">
+              <label class="spec-field" for="carWeightInput">
+                <span class="spec-label">車重</span>
+                <span class="spec-control">
+                  <input id="carWeightInput" type="text" min="600" max="3000" step="10" value="1500" inputmode="numeric" pattern="[0-9]*" />
+                  <span class="spec-unit">kg</span>
+                </span>
+              </label>
+              <label class="spec-field" for="frontWeightInput">
+                <span class="spec-label">重心 / 前配重</span>
+                <span class="spec-control">
+                  <input id="frontWeightInput" type="number" min="35" max="65" step="1" value="52" inputmode="numeric" />
+                  <span class="spec-unit">%</span>
+                </span>
+              </label>
+            </div>
+            <p class="spec-note">以車頭承重比例輸入，例如 52 代表前 52% / 後 48%。</p>
+          </section>
         </div>
 
         <div class="config-footer">
@@ -63,15 +89,76 @@
         </div>
       </section>
 
-      <section class="result-page is-hidden" id="resultPage" aria-label="Recommended tune">
+      <section class="result-page" id="resultPage" aria-label="Recommended tune">
         <div class="result-toolbar">
-          <button class="utility-button ghost" id="backButton" type="button">返回配置</button>
+          <button class="utility-button ghost is-hidden" id="backButton" type="button">返回配置</button>
           <div class="toolbar-actions">
             <button class="primary-button" id="startTestButton" type="button">開始試車</button>
+            <button class="utility-button" id="gearButton" type="button">齒比計算器</button>
             <button class="utility-button" id="copyButton" type="button">複製數值</button>
             <button class="utility-button ghost" id="resetButton" type="button">重置</button>
           </div>
         </div>
+
+        <section class="inline-config" aria-label="Live tune configuration">
+          <div class="stage-header">
+            <div>
+              <p class="eyebrow">Step 1</p>
+              <h2>基礎配置</h2>
+            </div>
+            <div class="selected-tags" id="liveConfigTags"></div>
+          </div>
+
+          <div class="tune-config-grid">
+            <label class="config-control" for="raceSelect">
+              <span class="spec-label">目標比賽</span>
+              <select id="raceSelect"></select>
+            </label>
+            <label class="config-control" for="tuneFocusSelect">
+              <span class="spec-label">調校取向</span>
+              <select id="tuneFocusSelect"></select>
+            </label>
+            <label class="config-control" for="engineSelect">
+              <span class="spec-label">引擎曲線</span>
+              <select id="engineSelect"></select>
+              <span class="recommendation-hint" id="engineRecommendation"></span>
+            </label>
+            <label class="config-control" for="driveSelect">
+              <span class="spec-label">驅動類型</span>
+              <select id="driveSelect"></select>
+              <span class="recommendation-hint" id="driveRecommendation"></span>
+            </label>
+            <label class="config-control" for="inlineCarWeightInput">
+              <span class="spec-label">車重</span>
+              <span class="spec-control">
+                <input id="inlineCarWeightInput" type="text" min="600" max="3000" step="10" value="1500" inputmode="numeric" pattern="[0-9]*" />
+                <span class="spec-unit">kg</span>
+              </span>
+            </label>
+            <label class="config-control" for="powerKwInput">
+              <span class="spec-label">馬力</span>
+              <span class="spec-control">
+                <input id="powerKwInput" type="text" min="50" max="1500" step="10" value="400" inputmode="numeric" pattern="[0-9]*" />
+                <span class="spec-unit">kW</span>
+              </span>
+            </label>
+            <label class="config-control" for="torqueNmInput">
+              <span class="spec-label">扭力</span>
+              <span class="spec-control">
+                <input id="torqueNmInput" type="text" min="100" max="2500" step="10" value="650" inputmode="numeric" pattern="[0-9]*" />
+                <span class="spec-unit">N.m</span>
+              </span>
+            </label>
+            <label class="config-control balance-control" for="frontWeightSlider">
+              <span class="spec-label">重心 / 前配重</span>
+              <span class="range-control">
+                <input id="frontWeightSlider" type="range" min="35" max="65" step="1" value="52" />
+                <output id="frontWeightOutput" for="frontWeightSlider">52%</output>
+              </span>
+              <span class="spec-note compact" id="rearWeightOutput">後配重 48%</span>
+            </label>
+          </div>
+        </section>
 
         <section class="tune-stage" aria-label="Recommended tune values">
           <div class="stage-header">
@@ -86,8 +173,75 @@
             <div class="meter-grid" id="meterGrid"></div>
           </div>
 
+          <div class="adjustment-range-panel" aria-label="Tune adjustment ranges">
+            <div class="adjustment-range-heading">
+              <div>
+                <p class="eyebrow">Range</p>
+                <h3>可調範圍</h3>
+              </div>
+              <button class="utility-button ghost compact-button" id="resetAdjustmentRangesButton" type="button">重設範圍</button>
+            </div>
+            <div class="adjustment-range-grid" id="adjustmentRangeGrid"></div>
+          </div>
+
           <div class="principle-strip" id="principleStrip"></div>
           <div class="setup-grid" id="setupGrid"></div>
+        </section>
+      </section>
+
+      <section class="gear-page is-hidden" id="gearPage" aria-label="Gear ratio calculator">
+        <div class="result-toolbar">
+          <button class="utility-button ghost" id="backFromGearButton" type="button">返回基礎數值</button>
+          <div class="selected-tags" id="gearTags"></div>
+        </div>
+
+        <section class="gear-stage" aria-label="Recommended gear ratios">
+          <div class="stage-header">
+            <div>
+              <p class="eyebrow">Gearbox</p>
+              <h2>齒比計算器</h2>
+            </div>
+            <div class="gear-final-chip" id="gearFinalChip">終傳比 --</div>
+          </div>
+
+          <div class="gear-calculator-layout">
+            <div class="gear-input-panel">
+              <label class="gear-field" for="gearCountInput">
+                <span class="spec-label">總共有幾個檔位</span>
+                <input id="gearCountInput" type="text" inputmode="numeric" pattern="[0-9]*" value="6" />
+              </label>
+              <label class="gear-field" for="gearTopSpeedInput">
+                <span class="spec-label">目前車輛極速</span>
+                <span class="spec-control">
+                  <input id="gearTopSpeedInput" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="例如 312" />
+                  <span class="spec-unit">km/h</span>
+                </span>
+              </label>
+              <label class="gear-field" for="gearAccel97Input">
+                <span class="spec-label">1-97 km/h 加速</span>
+                <span class="spec-control">
+                  <input id="gearAccel97Input" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="例如 3.4" />
+                  <span class="spec-unit">秒</span>
+                </span>
+              </label>
+              <label class="gear-field" for="gearAccel161Input">
+                <span class="spec-label">0-161 km/h 加速</span>
+                <span class="spec-control">
+                  <input id="gearAccel161Input" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="例如 7.8" />
+                  <span class="spec-unit">秒</span>
+                </span>
+              </label>
+              <label class="gear-field" for="gearFinalDriveInput">
+                <span class="spec-label">終傳比</span>
+                <input id="gearFinalDriveInput" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" />
+              </label>
+            </div>
+
+            <div class="gear-output-panel">
+              <div class="gear-summary-grid" id="gearSummaryGrid"></div>
+              <div class="gear-ratio-grid" id="gearRatioGrid"></div>
+            </div>
+          </div>
         </section>
       </section>
 
@@ -135,6 +289,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=20260608f"></script>
+    <script src="app.js?v=20260628d"></script>
   </body>
 </html>
