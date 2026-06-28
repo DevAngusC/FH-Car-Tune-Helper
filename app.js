@@ -29,10 +29,10 @@ const BASE_TUNE = {
 };
 
 const DEFAULT_ADJUSTMENT_RANGES = {
-  arb: { frontMin: 1, frontMax: 100, rearMin: 1, rearMax: 100 },
+  arb: { frontMin: 1, frontMax: 65, rearMin: 1, rearMax: 65 },
   spring: { frontMin: 1, frontMax: 100, rearMin: 1, rearMax: 100 },
-  rebound: { frontMin: 1, frontMax: 100, rearMin: 1, rearMax: 100 },
-  bump: { frontMin: 1, frontMax: 100, rearMin: 1, rearMax: 100 },
+  rebound: { frontMin: 1, frontMax: 20, rearMin: 1, rearMax: 20 },
+  bump: { frontMin: 1, frontMax: 20, rearMin: 1, rearMax: 20 },
   aero: { frontMin: 0, frontMax: 100, rearMin: 0, rearMax: 100 },
 };
 
@@ -43,6 +43,11 @@ const adjustmentRangeGroups = [
   { id: "bump", label: "壓縮阻尼", frontKey: "bumpFront", rearKey: "bumpRear" },
   { id: "aero", label: "空力", frontKey: "aeroFront", rearKey: "aeroRear" },
 ];
+
+const configurableAdjustmentRangeIds = new Set(["spring", "aero"]);
+const configurableAdjustmentRangeGroups = adjustmentRangeGroups.filter((group) =>
+  configurableAdjustmentRangeIds.has(group.id),
+);
 
 const adjustmentRangeFields = [
   ["frontMin", "前最低"],
@@ -70,6 +75,7 @@ const state = {
   frontWeightPercent: 52,
   powerKw: 400,
   torqueNm: 650,
+  theme: "light",
   gearbox: {
     gearCount: 6,
     topSpeedKmh: "",
@@ -1101,11 +1107,11 @@ const settingCards = [
   ["外傾角", "camber", "deg", "前輪通常比後輪更負"],
   ["前後束", "toe", "deg", "前外八提升反應，後內八提升穩定"],
   ["主銷後傾", "caster", "deg", "高角度提升回正與彎中支撐"],
-  ["防傾桿", "arb", "%", "百分比是滑桿起點，非固定車種數值"],
+  ["防傾桿", "arb", "", "統一換算為 1 到 65 的遊戲可調數值"],
   ["彈簧", "spring", "%", "越野偏軟，公路與高速偏硬"],
   ["車高", "ride", "%", "公路越低越穩，越野需要行程"],
-  ["回彈阻尼", "rebound", "%", "控制車身轉移速度"],
-  ["壓縮阻尼", "bump", "%", "通常低於回彈，避免車身太硬"],
+  ["回彈阻尼", "rebound", "", "統一換算為 1 到 20，控制車身轉移速度"],
+  ["壓縮阻尼", "bump", "", "統一換算為 1 到 20，通常低於回彈"],
   ["空力", "aero", "%", "下壓越高越穩，但會吃尾速"],
   ["煞車", "brake", "", "前煞比與壓力先保守，再依鎖死調整"],
   ["差速器", "diff", "%", "加速鎖定控制出彎牽引與旋轉"],
@@ -1195,6 +1201,12 @@ function adjustmentRangeSummary(groupId) {
   return `前 ${formatAdjustmentNumber(range.frontMin)}-${formatAdjustmentNumber(range.frontMax)} / 後 ${formatAdjustmentNumber(
     range.rearMin,
   )}-${formatAdjustmentNumber(range.rearMax)}`;
+}
+
+function adjustmentRangeText(groupId) {
+  if (!adjustableSettingIds.has(groupId)) return "";
+  const label = configurableAdjustmentRangeIds.has(groupId) ? "可調範圍" : "固定範圍";
+  return `，已依${label} ${adjustmentRangeSummary(groupId)} 換算`;
 }
 
 function mappedAdjustmentValue(tuneKey, value) {
@@ -1561,13 +1573,66 @@ function vehicleSpecCopyLines() {
   ];
 }
 
+const THEME_STORAGE_KEY = "fh6-tune-lab-theme";
+
+function preferredTheme() {
+  try {
+    const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (savedTheme === "dark" || savedTheme === "light") return savedTheme;
+  } catch {
+    // Ignore storage access errors and fall back to the system preference.
+  }
+
+  return window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light";
+}
+
+function applyTheme(theme) {
+  const normalizedTheme = theme === "dark" ? "dark" : "light";
+  state.theme = normalizedTheme;
+  document.body.dataset.theme = normalizedTheme;
+
+  const toggle = document.getElementById("themeToggle");
+  if (!toggle) return;
+
+  const isDark = normalizedTheme === "dark";
+  toggle.checked = isDark;
+  toggle.title = isDark ? "切換淺色模式" : "切換深色模式";
+  toggle.setAttribute("aria-label", isDark ? "切換淺色模式" : "切換深色模式");
+}
+
+function setTheme(theme) {
+  applyTheme(theme);
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, state.theme);
+  } catch {
+    // Theme persistence is optional; the UI can still switch immediately.
+  }
+}
+
+function bindThemeToggle() {
+  applyTheme(preferredTheme());
+
+  const toggle = document.getElementById("themeToggle");
+  if (!toggle) return;
+
+  toggle.addEventListener("change", () => {
+    setTheme(toggle.checked ? "dark" : "light");
+  });
+}
+
 function renderSummary() {
   const { race, tuneFocus, engine, drive } = selectedOptions();
-  document.getElementById("summaryRace").textContent = race.label;
-  document.getElementById("summaryFocus").textContent = tuneFocus.label;
-  document.getElementById("summaryEngine").textContent = engine.label;
-  document.getElementById("summaryDrive").textContent = `${drive.label} ${drive.subtitle}`;
-  document.getElementById("summaryVehicle").textContent = vehicleSpecLabel();
+  const summaryValues = {
+    summaryRace: race.label,
+    summaryFocus: tuneFocus.label,
+    summaryEngine: engine.label,
+    summaryDrive: `${drive.label} ${drive.subtitle}`,
+    summaryVehicle: vehicleSpecLabel(),
+  };
+  Object.entries(summaryValues).forEach(([id, text]) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = text;
+  });
   document.getElementById("setupTitle").textContent = race.title;
 }
 
@@ -1622,7 +1687,7 @@ function renderAdjustmentRangeControls() {
   const grid = document.getElementById("adjustmentRangeGrid");
   if (!grid) return;
 
-  grid.innerHTML = adjustmentRangeGroups
+  grid.innerHTML = configurableAdjustmentRangeGroups
     .map((group) => {
       const range = normalizeAdjustmentRange(group.id, true);
       const fields = adjustmentRangeFields
@@ -1657,7 +1722,7 @@ function renderAdjustmentRangeControls() {
 }
 
 function syncAdjustmentRangeInputs(skipInputId = "") {
-  adjustmentRangeGroups.forEach((group) => {
+  configurableAdjustmentRangeGroups.forEach((group) => {
     const range = normalizeAdjustmentRange(group.id, true);
     if (!range) return;
 
@@ -2128,7 +2193,7 @@ function settingExplanation(card, tune) {
   const context = `${race.label}、${tuneFocus.label}、${engine.label}、${drive.label}${drive.subtitle ? ` ${drive.subtitle}` : ""}`;
   const specs = `車重 ${Math.round(state.carWeight)} kg、前配重 ${formatSpecPercent(state.frontWeightPercent)}%、${state.powerKw} kW、${state.torqueNm} N.m`;
   const unit = settingUnit(card);
-  const rangeText = adjustableSettingIds.has(key) ? `，已依可調範圍 ${adjustmentRangeSummary(key)} 換算` : "";
+  const rangeText = adjustmentRangeText(key);
   const value = `${settingValue(card, tune)}${unit ? ` ${unit}` : ""}${rangeText}，目前調校取向為 ${tuneFocus.label}`;
 
   switch (key) {
@@ -2565,6 +2630,7 @@ function resetAll() {
 }
 
 function init() {
+  bindThemeToggle();
   renderOptions("raceOptions", raceTypes, "race");
   renderOptions("engineOptions", engineCurves, "engine");
   renderOptions("driveOptions", driveTypes, "drive");

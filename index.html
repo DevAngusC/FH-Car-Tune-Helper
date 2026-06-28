@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FH6 Tune Lab</title>
-    <link rel="stylesheet" href="styles.css?v=20260628d" />
+    <link rel="stylesheet" href="styles.css?v=20260628h" />
   </head>
   <body>
     <main class="app-shell">
@@ -13,13 +13,14 @@
           <p class="eyebrow">Unofficial Forza Horizon 6 tuner</p>
           <h1>FH6 Tune Lab</h1>
         </div>
-        <div class="topbar-meta" aria-label="Current tune summary">
-          <span id="summaryRace">多彎賽道</span>
-          <span id="summaryFocus">平衡基準</span>
-          <span id="summaryEngine">平坦扭力型</span>
-          <span id="summaryDrive">四驅 AWD</span>
-          <span id="summaryVehicle">車重 1500 kg / 前配重 52%</span>
-        </div>
+        <label class="theme-toggle" for="themeToggle" title="切換深色模式">
+          <input id="themeToggle" type="checkbox" aria-label="切換深色模式" />
+          <span class="theme-toggle-track" aria-hidden="true">
+            <span class="theme-toggle-symbol">☀</span>
+            <span class="theme-toggle-symbol">☾</span>
+            <span class="theme-toggle-thumb"></span>
+          </span>
+        </label>
       </header>
 
       <section class="config-page is-hidden" id="configPage" aria-label="Tune configuration">
@@ -177,7 +178,7 @@
             <div class="adjustment-range-heading">
               <div>
                 <p class="eyebrow">Range</p>
-                <h3>可調範圍</h3>
+                <h3>彈簧 / 空力範圍</h3>
               </div>
               <button class="utility-button ghost compact-button" id="resetAdjustmentRangesButton" type="button">重設範圍</button>
             </div>
@@ -289,6 +290,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=20260628d"></script>
+    <script src="app.js?v=20260628h"></script>
   </body>
 </html>
