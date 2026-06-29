@@ -22,6 +22,8 @@
     linear-gradient(180deg, #f7fbff 0%, #eef6ff 42%, #f9fbfd 100%);
   --field-bg: linear-gradient(180deg, #ffffff, #f7fbff);
   --field-selected-bg: linear-gradient(180deg, #eff6ff, #e0f2fe);
+  --field-option-bg: #ffffff;
+  --field-option-ink: #1f2937;
   --chip-bg: rgba(255, 255, 255, 0.76);
   --chip-ink: #334155;
   --blue-soft: #eff6ff;
@@ -65,6 +67,8 @@ body[data-theme="dark"] {
     linear-gradient(180deg, #08111f 0%, #0c1728 44%, #09111f 100%);
   --field-bg: linear-gradient(180deg, #142136, #0f1a2c);
   --field-selected-bg: linear-gradient(180deg, rgba(37, 99, 235, 0.28), rgba(6, 182, 212, 0.2));
+  --field-option-bg: #0f1a2c;
+  --field-option-ink: #e5edf7;
   --chip-bg: rgba(30, 41, 59, 0.78);
   --chip-ink: #dbeafe;
   --blue-soft: rgba(37, 99, 235, 0.2);
@@ -93,8 +97,20 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
+}
+
+select,
+select option {
+  background-color: var(--field-option-bg);
+  color: var(--field-option-ink);
+}
+
+select option:checked {
+  background-color: var(--blue);
+  color: #ffffff;
 }
 
 button {
@@ -113,6 +129,38 @@ button {
   justify-content: space-between;
   gap: 20px;
   margin-bottom: 22px;
+}
+
+.topbar-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.language-toggle {
+  display: inline-flex;
+  align-items: center;
+}
+
+.language-toggle select {
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 34px 0 14px;
+  background: var(--panel-alpha);
+  color: var(--strong);
+  font-weight: 900;
+  box-shadow: var(--shadow);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
 }
 
 body[data-view="result"] .app-shell,
@@ -472,15 +520,34 @@ h3 {
 
 .tune-config-grid {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 10px;
 }
 
 .config-control {
+  grid-column: span 3;
   min-width: 0;
   display: grid;
   align-content: start;
   gap: 7px;
+}
+
+.config-control[for="raceSelect"],
+.config-control[for="tuneFocusSelect"],
+.focus-intensity-control {
+  grid-column: span 2;
+}
+
+.config-control[for="engineSelect"],
+.config-control[for="driveSelect"] {
+  grid-column: span 3;
+}
+
+.config-control[for="inlineCarWeightInput"],
+.config-control[for="powerKwInput"],
+.config-control[for="torqueNmInput"],
+.balance-control {
+  grid-column: span 3;
 }
 
 .config-control select {
@@ -529,6 +596,7 @@ h3 {
 
 .recommendation-help::after {
   content: attr(data-tooltip);
+  display: none;
   position: absolute;
   left: 50%;
   bottom: calc(100% + 8px);
@@ -553,12 +621,9 @@ h3 {
 
 .recommendation-help:hover::after,
 .recommendation-help:focus-visible::after {
+  display: block;
   opacity: 1;
   transform: translate(-50%, 0);
-}
-
-.balance-control {
-  grid-column: span 1;
 }
 
 .range-control {
@@ -726,7 +791,7 @@ h3 {
 
 .adjustment-range-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -814,7 +879,8 @@ h3 {
   gap: 7px;
 }
 
-.gear-field > input {
+.gear-field > input,
+.gear-field > select {
   width: 100%;
   min-height: 48px;
   border: 1px solid var(--line);
@@ -825,6 +891,25 @@ h3 {
   font-size: 1.05rem;
   font-weight: 950;
   outline: 0;
+}
+
+.gear-field > select {
+  padding-right: 36px;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%) right 15px center / 7px 7px no-repeat,
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%) right 10px center / 7px 7px no-repeat,
+    var(--field-bg);
+  appearance: none;
+}
+
+.gear-corner-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.gear-corner-fields.is-hidden {
+  display: none;
 }
 
 .gear-output-panel {
@@ -921,12 +1006,14 @@ h3 {
 
 .setup-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 8px;
 }
 
 .setting-card {
-  min-height: 62px;
+  grid-column: span 3;
+  min-width: 0;
+  min-height: 72px;
   display: grid;
   align-content: space-between;
   gap: 6px;
@@ -937,7 +1024,7 @@ h3 {
 }
 
 .setting-card.wide {
-  grid-column: span 2;
+  grid-column: span 6;
 }
 
 .setting-label {
@@ -947,6 +1034,7 @@ h3 {
 }
 
 .setting-value {
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -955,6 +1043,11 @@ h3 {
   font-size: clamp(0.92rem, 1.25vw, 1.12rem);
   font-weight: 950;
   line-height: 1;
+}
+
+.setting-value > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .setting-unit {
@@ -983,6 +1076,7 @@ h3 {
 
 .setting-help::after {
   content: attr(data-tooltip);
+  display: none;
   position: absolute;
   left: 50%;
   bottom: calc(100% + 8px);
@@ -1009,6 +1103,7 @@ h3 {
 
 .setting-help:hover::after,
 .setting-help:focus-visible::after {
+  display: block;
   opacity: 1;
   transform: translate(-50%, 0);
 }
@@ -1233,12 +1328,32 @@ h3 {
 
   .meter-grid,
   .tune-config-grid,
-  .adjustment-range-grid,
+  .gear-corner-fields,
   .gear-summary-grid,
   .gear-ratio-grid,
-  .setup-grid,
   .issue-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .adjustment-range-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .setup-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tune-config-grid > .config-control {
+    grid-column: span 1;
+  }
+
+  .setting-card,
+  .setting-card.wide {
+    grid-column: span 1;
+  }
+
+  .setting-card.wide {
+    grid-column: 1 / -1;
   }
 }
 
@@ -1280,8 +1395,9 @@ h3 {
     grid-template-columns: 1fr;
   }
 
+  .setting-card,
   .setting-card.wide {
-    grid-column: auto;
+    grid-column: 1 / -1;
   }
 
   .symptom-sidebar,
@@ -1304,6 +1420,10 @@ h3 {
   .adjustment-field-grid,
   .range-control {
     grid-template-columns: 1fr;
+  }
+
+  .tune-config-grid > .config-control {
+    grid-column: 1 / -1;
   }
 
   .range-control output {
