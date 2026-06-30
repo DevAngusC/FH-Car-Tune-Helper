@@ -592,7 +592,7 @@ h3 {
 
 .availability-toggle-title {
   color: var(--ink);
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-weight: 950;
   line-height: 1.15;
 }
@@ -614,27 +614,31 @@ h3 {
 
 .tune-config-grid {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
 .config-control {
-  grid-column: span 3;
   min-width: 0;
   display: grid;
   align-content: start;
   gap: 7px;
 }
 
-.config-control[for="raceSelect"],
-.config-control[for="tuneFocusSelect"],
-.focus-intensity-control {
-  grid-column: span 2;
+.track-type-control .range-control {
+  grid-template-columns: auto minmax(86px, 1fr) auto auto;
+  gap: 8px;
+}
+
+.range-edge-label {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .config-control[for="engineSelect"],
 .config-control[for="driveSelect"] {
-  grid-column: span 3;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   column-gap: 8px;
@@ -655,13 +659,6 @@ h3 {
   white-space: nowrap;
 }
 
-.config-control[for="inlineCarWeightInput"],
-.config-control[for="powerKwInput"],
-.config-control[for="torqueNmInput"],
-.balance-control {
-  grid-column: span 3;
-}
-
 .config-control select {
   width: 100%;
   min-height: 48px;
@@ -676,6 +673,12 @@ h3 {
   font-weight: 900;
   outline: 0;
   appearance: none;
+}
+
+.config-control > select,
+.config-control > .spec-control,
+.config-control > .range-control {
+  align-self: stretch;
 }
 
 .recommendation-hint {
@@ -1296,20 +1299,35 @@ h3 {
 }
 
 .principle-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 8px;
+  border: 1px solid rgba(6, 182, 212, 0.16);
+  border-left: 4px solid var(--cyan);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: rgba(6, 182, 212, 0.08);
 }
 
 .principle {
-  border-left: 4px solid var(--cyan);
-  border-radius: 0 8px 8px 0;
-  padding: 7px 9px;
-  background: var(--cyan-bg);
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 10px;
   color: var(--chip-ink);
-  font-size: 0.78rem;
-  line-height: 1.3;
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.principle:first-child {
+  padding-left: 0;
+}
+
+.principle + .principle {
+  border-left: 1px solid rgba(125, 211, 252, 0.25);
 }
 
 .setup-grid {
@@ -1804,6 +1822,7 @@ h3 {
   .symptom-picker,
   .meter-grid,
   .availability-grid,
+  .tune-config-grid,
   .principle-strip,
   .adjustment-range-grid,
   .gear-summary-grid,
@@ -1817,6 +1836,14 @@ h3 {
   .setting-card.wide,
   .gear-summary-card.wide {
     grid-column: 1 / -1;
+  }
+
+  .track-type-control .range-control {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .track-type-control .range-edge-label {
+    display: none;
   }
 
   .symptom-sidebar,

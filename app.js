@@ -171,7 +171,9 @@ function createAvailability() {
 
 const state = {
   view: "config",
-  race: "technical",
+  race: "road",
+  trackType: 55,
+  cornerProfile: "mixed",
   tuneFocus: "balanced",
   tuneFocusIntensity: 100,
   engine: "flatTorque",
@@ -199,6 +201,10 @@ const vehicleSpecLimits = {
   torqueNm: [100, 2500],
 };
 
+const routeShapeLimits = {
+  trackType: [0, 100],
+};
+
 const gearboxLimits = {
   gearCount: [4, 10],
   topSpeedKmh: [80, 600],
@@ -222,6 +228,8 @@ const translations = {
     configIntroTitle: "先選你的車輛配置",
     configIntroCopy: "選好目標比賽、引擎曲線和驅動類型後，按下確認才會產生完整的基礎改車數值。",
     labelRace: "目標比賽",
+    labelTrackType: "賽道型態",
+    labelCornerProfile: "彎型分布",
     labelEngine: "引擎曲線",
     labelDrive: "驅動類型",
     labelWeightBalance: "車重與重心",
@@ -299,6 +307,12 @@ const translations = {
     vehicleSpecPower: "馬力",
     vehicleSpecTorque: "扭力",
     tuneFocusCopyIntensity: "調校取向強度",
+    routeShapeCopy: "賽道型態",
+    cornerProfileCopy: "彎型分布",
+    cornerProfileStraight: "直線",
+    trackTypeValue: "彎道 {value}%",
+    trackTypeStraight: "直線多",
+    trackTypeCorner: "彎道多",
     copySuccess: "已複製",
     copyFail: "複製失敗",
     copyUnavailable: "無法調整",
@@ -328,7 +342,7 @@ const translations = {
     gearSummarySpread: "齒比跨度",
     gearSummaryGoal: "優化目標",
     gearSummaryDecision: "判斷",
-    gearDecisionSuffix: "{race}策略：{raceNote} {engine}引擎曲線已計入。",
+    gearDecisionSuffix: "{race}策略：{raceNote} 路線：{route} / {corner} 已計入。{engine}引擎曲線已計入。",
     gearLabel: "第 {gear} 檔",
     gearShift: "約 {speed} km/h 換檔",
     gearRatioSuggested: "建議 {value}",
@@ -375,6 +389,8 @@ const translations = {
     configIntroTitle: "Choose Your Car Setup",
     configIntroCopy: "Pick the target event, engine curve, and drivetrain, then generate a base tune.",
     labelRace: "Target Event",
+    labelTrackType: "Route Shape",
+    labelCornerProfile: "Corner Mix",
     labelEngine: "Engine Curve",
     labelDrive: "Drivetrain",
     labelWeightBalance: "Weight & Balance",
@@ -452,6 +468,12 @@ const translations = {
     vehicleSpecPower: "Power",
     vehicleSpecTorque: "Torque",
     tuneFocusCopyIntensity: "Tune focus strength",
+    routeShapeCopy: "Route shape",
+    cornerProfileCopy: "Corner mix",
+    cornerProfileStraight: "Straight-line",
+    trackTypeValue: "{value}% corners",
+    trackTypeStraight: "More straights",
+    trackTypeCorner: "More corners",
     copySuccess: "Copied",
     copyFail: "Copy failed",
     copyUnavailable: "locked",
@@ -481,7 +503,7 @@ const translations = {
     gearSummarySpread: "Ratio Spread",
     gearSummaryGoal: "Optimization Goal",
     gearSummaryDecision: "Decision",
-    gearDecisionSuffix: "{race} strategy: {raceNote} {engine} engine curve is included.",
+    gearDecisionSuffix: "{race} strategy: {raceNote} Route: {route} / {corner} is included. {engine} engine curve is included.",
     gearLabel: "Gear {gear}",
     gearShift: "Shift around {speed} km/h",
     gearRatioSuggested: "Suggested {value}",
@@ -526,17 +548,11 @@ const translations = {
 const optionTranslations = {
   en: {
     raceTypes: {
-      technical: {
-        label: "Technical Circuit",
-        subtitle: "Low-mid speed linked corners",
-        title: "Technical Circuit Base Tune",
-        principles: ["Shorter low gears keep the car in the power band after corner exits."],
-      },
-      fast: {
-        label: "High-Speed Circuit",
-        subtitle: "Fast bends and long straights",
-        title: "High-Speed Circuit Base Tune",
-        principles: ["Longer upper gears reserve speed so the car does not hit redline too early."],
+      road: {
+        label: "Road",
+        subtitle: "Asphalt / street / highway mix",
+        title: "Road Base Tune",
+        principles: ["A road setup keeps a usable balance between corner grip, exit traction, and speed reserve."],
       },
       rally: {
         label: "Rally",
@@ -544,17 +560,23 @@ const optionTranslations = {
         title: "Rally Base Tune",
         principles: ["Softer suspension and usable low-end response help the tires stay connected."],
       },
-      crossCountry: {
-        label: "Cross Country",
+      offroad: {
+        label: "Offroad",
         subtitle: "Grass, dirt, and big elevation",
-        title: "Cross Country Base Tune",
+        title: "Offroad Base Tune",
         principles: ["Longer low gears and extra travel make throttle easier on rough surfaces."],
       },
-      drag: {
-        label: "Drag",
-        subtitle: "Launch and shift efficiency",
-        title: "Drag Base Tune",
-        principles: ["Dense low gears prioritize launch and the 1-2 shift."],
+      dragQuarter: {
+        label: "Drag Quarter Mile",
+        subtitle: "Launch and short sprint",
+        title: "Quarter Mile Drag Base Tune",
+        principles: ["Dense low gears prioritize launch, traction, and the 1-2 shift."],
+      },
+      dragHalf: {
+        label: "Drag Half Mile",
+        subtitle: "Mid-long acceleration",
+        title: "Half Mile Drag Base Tune",
+        principles: ["Longer upper gears reserve more speed while keeping launch traction usable."],
       },
       drift: {
         label: "Drift",
@@ -563,15 +585,35 @@ const optionTranslations = {
         principles: ["Shorter low-mid gears make throttle angle and recovery more immediate."],
       },
     },
+    cornerProfileTypes: {
+      mixed: {
+        label: "Mixed",
+        subtitle: "Balanced corner spread",
+        principle: "Mixed corners keep the setup neutral so it can handle different corner speeds.",
+      },
+      large: {
+        label: "More Big Corners",
+        subtitle: "High-speed sweepers",
+        principle: "Big corners need stability, aero support, and a little more top-speed reserve.",
+      },
+      medium: {
+        label: "More Medium Corners",
+        subtitle: "Mid-speed bends",
+        principle: "Medium corners reward balanced rotation and low-mid gear recovery.",
+      },
+      small: {
+        label: "More Small Corners",
+        subtitle: "Hairpins / tight turns",
+        principle: "Small corners need stronger turn-in and shorter recovery gearing.",
+      },
+    },
     tuneFocusTypes: {
       balanced: { label: "Balanced Baseline", subtitle: "General setup" },
-      exitAcceleration: { label: "Corner-Exit Accel", subtitle: "Early throttle in slow corners" },
-      brakeReLaunch: { label: "Brake-to-Throttle", subtitle: "Recover after heavy braking" },
-      launch: { label: "Launch Focus", subtitle: "0-100 / short sprint" },
+      stability: { label: "Stability", subtitle: "High-speed and braking confidence" },
+      agility: { label: "Agility", subtitle: "Faster turn-in response" },
+      exit: { label: "Corner Exit", subtitle: "Earlier throttle application" },
       topSpeed: { label: "Top-Speed Focus", subtitle: "Long straights" },
-      highSpeedStability: { label: "High-Speed Stability", subtitle: "Fast bends / high power" },
-      turnIn: { label: "Turn-In Focus", subtitle: "Reduce understeer" },
-      wetBumpyGrip: { label: "Wet / Bumpy Grip", subtitle: "Low-grip surfaces" },
+      grip: { label: "Grip", subtitle: "Low-grip / bumpy stability" },
     },
     engineCurves: {
       flatTorque: {
@@ -700,11 +742,11 @@ const optionTranslations = {
       stability: "High-Speed Stability",
     },
     raceGearNotes: {
-      technical: "Tightens low gears and 1st-3rd density for better corner-exit recovery.",
-      fast: "Stretches 1st and upper gears while reserving more top-speed room.",
+      road: "Keeps low-mid response and upper-gear reserve balanced for mixed road routes.",
       rally: "Keeps low-mid response without making 1st too short on loose surfaces.",
-      crossCountry: "Slightly lengthens low gears and keeps upper stretch for rough terrain.",
-      drag: "Targets a lower 1st-gear redline and denser low gears for launch priority.",
+      offroad: "Slightly lengthens low gears and keeps upper stretch for rough terrain.",
+      dragQuarter: "Targets a lower 1st-gear redline and denser low gears for launch priority.",
+      dragHalf: "Adds upper-gear reserve so the car can keep accelerating deeper into the run.",
       drift: "Shortens low-mid gears and reduces top-speed reserve for throttle rhythm.",
     },
   },
@@ -933,25 +975,25 @@ const symptomLabelTranslations = {
 
 const recommendationReasonTranslations = {
   en: {
-    technical: {
-      engineWhy: "Technical circuits reward a broad torque band so exits recover without constant shifting.",
-      driveWhy: "AWD keeps traction consistent through repeated low-mid speed exits.",
-    },
-    fast: {
-      engineWhy: "High-speed routes can use a high-rpm power curve because the car stays loaded for longer.",
-      driveWhy: "RWD reduces drivetrain drag and keeps high-speed rotation cleaner.",
+    road: {
+      engineWhy: "Road routes mix straights and corners, so a broad torque band stays predictable across more speeds.",
+      driveWhy: "AWD gives a safe baseline for mixed road layouts and repeated corner exits.",
     },
     rally: {
       engineWhy: "Loose mixed surfaces need early torque and quick recovery after bumps.",
       driveWhy: "AWD gives the most consistent traction when surface grip changes.",
     },
-    crossCountry: {
-      engineWhy: "Cross country needs low-end torque to recover from grass, dirt, jumps, and elevation.",
+    offroad: {
+      engineWhy: "Offroad routes need low-end torque to recover from grass, dirt, jumps, and elevation.",
       driveWhy: "AWD gives control over uneven surfaces and landing traction.",
     },
-    drag: {
+    dragQuarter: {
       engineWhy: "A turbo-hit curve prioritizes hard acceleration once boost is loaded.",
       driveWhy: "AWD launches harder and reduces wheelspin during the first shift.",
+    },
+    dragHalf: {
+      engineWhy: "High-rpm power keeps pulling deeper into the half-mile run.",
+      driveWhy: "RWD reduces drivetrain loss once launch traction is under control.",
     },
     drift: {
       engineWhy: "Linear supercharged delivery makes throttle angle easier to hold.",
@@ -983,65 +1025,41 @@ function localizedRecommendationReason(reasonKey, fallbackReason) {
 
 const raceTypes = [
   {
-    id: "technical",
-    label: "多彎賽道",
-    subtitle: "低中速連續彎",
-    title: "多彎賽道基礎值",
+    id: "road",
+    label: "公路",
+    subtitle: "柏油 / 街道 / 高速混合",
+    title: "公路基礎值",
+    defaultTrackType: 55,
+    defaultCornerProfile: "mixed",
     mods: {
-      tireFront: -0.2,
-      tireRear: -0.1,
-      finalDrive: 0.24,
-      camberFront: -0.35,
-      camberRear: -0.2,
-      toeFront: 0.02,
-      caster: 0.2,
-      arbFront: -4,
-      arbRear: 3,
-      springFront: -3,
-      springRear: -2,
+      tireFront: -0.12,
+      tireRear: -0.08,
+      finalDrive: 0.06,
+      camberFront: -0.16,
+      camberRear: -0.1,
+      toeRear: 0.01,
+      caster: 0.12,
+      arbFront: -1,
+      arbRear: 1,
+      springFront: 1,
+      springRear: 1,
       rideFront: -3,
-      rideRear: -2,
-      reboundFront: -1,
-      bumpFront: -1,
-      aeroFront: 13,
-      aeroRear: 12,
-      diffRearAccel: 4,
-      diffRearDecel: 2,
+      rideRear: -3,
+      reboundFront: 1,
+      reboundRear: 1,
+      aeroFront: 2,
+      aeroRear: 3,
+      brakePressure: 1,
     },
-    principles: ["短終傳讓出彎轉速回到馬力帶", "前端抓地優先，後端保留一點旋轉", "高下壓換取連續彎穩定性"],
-  },
-  {
-    id: "fast",
-    label: "少彎高速",
-    subtitle: "高速彎與長直線",
-    title: "少彎高速基礎值",
-    mods: {
-      tireFront: 0.1,
-      tireRear: 0.2,
-      finalDrive: -0.28,
-      camberFront: 0.2,
-      camberRear: 0.15,
-      toeFront: -0.01,
-      toeRear: 0.03,
-      arbFront: 2,
-      arbRear: -1,
-      springFront: 3,
-      springRear: 2,
-      rideFront: -4,
-      rideRear: -4,
-      reboundFront: 2,
-      reboundRear: 2,
-      aeroFront: -12,
-      aeroRear: -10,
-      brakePressure: 2,
-    },
-    principles: ["較長終傳保留尾速", "低車高與較少下壓降低阻力", "後輪微內八維持高速穩定"],
+    principles: ["公路設定先保留平衡基準", "賽道型態拉桿決定直線與彎道權重", "彎型分布再細分高速彎或低速彎需求"],
   },
   {
     id: "rally",
-    label: "拉力賽",
-    subtitle: "混合路面與跳躍",
-    title: "拉力賽基礎值",
+    label: "拉力",
+    subtitle: "柏油 / 砂石混合",
+    title: "拉力基礎值",
+    defaultTrackType: 65,
+    defaultCornerProfile: "medium",
     mods: {
       tireFront: -1.0,
       tireRear: -0.9,
@@ -1071,10 +1089,12 @@ const raceTypes = [
     principles: ["軟懸吊吸收碎震與落地", "較高車身保留懸吊行程", "差速器給更多鎖定換取鬆散路面推進"],
   },
   {
-    id: "crossCountry",
-    label: "越野賽",
+    id: "offroad",
+    label: "越野",
     subtitle: "草地、泥地、大落差",
-    title: "越野賽基礎值",
+    title: "越野基礎值",
+    defaultTrackType: 45,
+    defaultCornerProfile: "mixed",
     mods: {
       tireFront: -1.4,
       tireRear: -1.3,
@@ -1104,14 +1124,16 @@ const raceTypes = [
     principles: ["胎壓與彈簧偏低，讓輪胎吃住地面", "車高優先於空力效率", "差速器鎖定偏高，避免單輪空轉"],
   },
   {
-    id: "drag",
-    label: "直線加速",
-    subtitle: "起步與換檔效率",
-    title: "直線加速基礎值",
+    id: "dragQuarter",
+    label: "直線 Quarter Mile",
+    subtitle: "短直線 / 起步優先",
+    title: "直線 Quarter Mile 基礎值",
+    defaultTrackType: 0,
+    defaultCornerProfile: "mixed",
     mods: {
       tireFront: 1.0,
-      tireRear: -1.6,
-      finalDrive: 0.34,
+      tireRear: -1.8,
+      finalDrive: 0.42,
       camberFront: 1.8,
       camberRear: 1.25,
       toeFront: 0,
@@ -1130,16 +1152,52 @@ const raceTypes = [
       aeroFront: -28,
       aeroRear: -24,
       brakePressure: -8,
-      diffRearAccel: 30,
+      diffRearAccel: 34,
       diffRearDecel: -8,
     },
-    principles: ["驅動輪低胎壓換起步抓地", "接近零外傾減少直線摩擦損失", "空力阻力壓低，差速器加速鎖定提高"],
+    principles: ["起步與 1-2 檔銜接優先", "驅動輪低胎壓換起步抓地", "空力阻力壓低，差速器加速鎖定提高"],
+  },
+  {
+    id: "dragHalf",
+    label: "直線 Half Mile",
+    subtitle: "中後段延伸",
+    title: "直線 Half Mile 基礎值",
+    defaultTrackType: 0,
+    defaultCornerProfile: "mixed",
+    mods: {
+      tireFront: 0.8,
+      tireRear: -1.25,
+      finalDrive: -0.02,
+      camberFront: 1.55,
+      camberRear: 1.05,
+      toeFront: 0,
+      toeRear: -0.03,
+      caster: -0.35,
+      arbFront: -4,
+      arbRear: -10,
+      springFront: 7,
+      springRear: -6,
+      rideFront: -2,
+      rideRear: -6,
+      reboundFront: 7,
+      reboundRear: -6,
+      bumpFront: -4,
+      bumpRear: -6,
+      aeroFront: -32,
+      aeroRear: -28,
+      brakePressure: -5,
+      diffRearAccel: 26,
+      diffRearDecel: -6,
+    },
+    principles: ["中後段拉伸與尾速優先", "低阻力與穩定直線姿態比短齒更重要", "驅動輪仍保留起步抓地餘量"],
   },
   {
     id: "drift",
     label: "甩尾",
     subtitle: "角度、油門、回正",
     title: "甩尾基礎值",
+    defaultTrackType: 60,
+    defaultCornerProfile: "mixed",
     mods: {
       tireFront: 1.0,
       tireRear: 1.8,
@@ -1170,24 +1228,100 @@ const raceTypes = [
   },
 ];
 
-const raceGearMods = {
-  technical: {
-    firstRange: [64, 82],
-    firstTarget: -2,
-    topTargetMultiplier: 1.01,
-    topRatio: 0.03,
-    curvePower: -0.04,
-    finalDriveBias: 0.06,
-    note: "多彎賽道會縮短低檔並提高 1-3 檔密度，讓出彎後更快回到可用轉速。",
+const cornerProfileTypes = [
+  {
+    id: "mixed",
+    label: "混合",
+    subtitle: "大中小彎平均",
+    mods: {},
+    gearMods: {},
+    principle: "彎型混合時保留中性配置，讓賽道型態拉桿主導直線與彎道取捨。",
   },
-  fast: {
-    firstRange: [78, 95],
-    firstTarget: 4,
-    topTargetMultiplier: 1.08,
-    topRatio: -0.07,
-    curvePower: 0.08,
-    finalDriveBias: -0.08,
-    note: "少彎高速會拉長一檔與高檔，最高檔多保留一點尾速空間。",
+  {
+    id: "large",
+    label: "大彎多",
+    subtitle: "高速長彎",
+    mods: {
+      finalDrive: -0.08,
+      camberFront: -0.08,
+      camberRear: -0.08,
+      toeFront: -0.01,
+      toeRear: 0.03,
+      caster: 0.15,
+      arbFront: 2,
+      arbRear: 1,
+      springFront: 3,
+      springRear: 3,
+      rideFront: -2,
+      rideRear: -2,
+      reboundFront: 2,
+      reboundRear: 2,
+      aeroFront: 4,
+      aeroRear: 8,
+      diffRearAccel: -2,
+      diffCenter: 2,
+    },
+    gearMods: { firstTarget: 3, topTargetMultiplier: 1.04, topRatio: -0.03, curvePower: 0.04, finalDriveBias: -0.04 },
+    principle: "大彎多時優先高速穩定、長時間側向支撐與尾速延伸。",
+  },
+  {
+    id: "medium",
+    label: "中彎多",
+    subtitle: "中速連續彎",
+    mods: {
+      tireFront: -0.1,
+      tireRear: -0.08,
+      finalDrive: 0.04,
+      camberFront: -0.12,
+      camberRear: -0.08,
+      toeFront: 0.01,
+      caster: 0.12,
+      arbFront: -1,
+      arbRear: 1,
+      aeroFront: 3,
+      aeroRear: 4,
+      diffRearAccel: 1,
+    },
+    gearMods: { firstTarget: -1, topTargetMultiplier: 1.01, topRatio: 0.01, curvePower: -0.02, finalDriveBias: 0.02 },
+    principle: "中彎多時維持轉向、彎中抓地與出彎牽引的平均平衡。",
+  },
+  {
+    id: "small",
+    label: "小彎多",
+    subtitle: "低速急彎 / 髮夾彎",
+    mods: {
+      tireFront: -0.22,
+      tireRear: -0.12,
+      finalDrive: 0.18,
+      camberFront: -0.22,
+      toeFront: 0.03,
+      caster: 0.22,
+      arbFront: -3,
+      arbRear: 3,
+      springFront: -2,
+      reboundFront: -1,
+      aeroFront: 3,
+      aeroRear: 2,
+      brakeBalance: -1,
+      brakePressure: -2,
+      diffRearAccel: -3,
+      diffFrontAccel: -3,
+      diffCenter: -3,
+    },
+    gearMods: { firstTarget: -5, topTargetMultiplier: 0.99, topRatio: 0.04, curvePower: -0.08, finalDriveBias: 0.06 },
+    principle: "小彎多時優先入彎反應、低速旋轉與出彎回速。",
+  },
+];
+
+const raceGearMods = {
+  road: {
+    firstRange: [70, 86],
+    firstTarget: 0,
+    topTargetMultiplier: 1.03,
+    topRatio: -0.01,
+    curvePower: 0,
+    finalDriveBias: 0.01,
+    note: "公路會保留平衡齒比，再依賽道型態與彎型分布決定低檔密度和高檔延伸。",
   },
   rally: {
     firstRange: [68, 84],
@@ -1196,25 +1330,34 @@ const raceGearMods = {
     topRatio: 0.03,
     curvePower: -0.02,
     finalDriveBias: 0.05,
-    note: "拉力賽需要低中檔反應，但一檔不會太短，避免鬆散路面補油空轉。",
+    note: "拉力需要低中檔反應，但一檔不會太短，避免鬆散路面補油空轉。",
   },
-  crossCountry: {
+  offroad: {
     firstRange: [72, 88],
     firstTarget: 3,
     topTargetMultiplier: 1,
     topRatio: 0.04,
     curvePower: 0.06,
     finalDriveBias: 0.03,
-    note: "越野賽會略放長低檔並保留高檔延展，減少草地、泥地和跳躍後的扭力突兀感。",
+    note: "越野會略放長低檔並保留高檔延展，減少草地、泥地和跳躍後的扭力突兀感。",
   },
-  drag: {
-    firstRange: [58, 74],
-    firstTarget: -6,
-    topTargetMultiplier: 1.04,
-    topRatio: 0.02,
-    curvePower: -0.12,
-    finalDriveBias: 0.1,
-    note: "直線加速會讓一檔紅線目標偏低，低檔更密，讓起步與 1-2 檔銜接優先。",
+  dragQuarter: {
+    firstRange: [56, 72],
+    firstTarget: -8,
+    topTargetMultiplier: 1.02,
+    topRatio: 0.04,
+    curvePower: -0.14,
+    finalDriveBias: 0.14,
+    note: "Quarter Mile 會讓一檔紅線目標偏低，低檔更密，讓起步與 1-2 檔銜接優先。",
+  },
+  dragHalf: {
+    firstRange: [70, 88],
+    firstTarget: 3,
+    topTargetMultiplier: 1.1,
+    topRatio: -0.09,
+    curvePower: 0.1,
+    finalDriveBias: -0.09,
+    note: "Half Mile 會拉長高檔並提高尾速預留，中後段延伸比短距離起步更重要。",
   },
   drift: {
     firstRange: [56, 76],
@@ -1283,20 +1426,62 @@ const gearOptimizationTypes = [
 const tuneFocusTypes = [
   {
     id: "balanced",
-    label: "平衡基準",
+    label: "平衡",
     subtitle: "泛用設定",
     mods: {},
     gearMods: {},
     reason: "不特別偏向某一項能力，適合先建立穩定基準後再依試車狀況微調。",
   },
   {
-    id: "exitAcceleration",
-    label: "出彎加速特化",
-    subtitle: "慢彎早補油",
+    id: "stability",
+    label: "穩定",
+    subtitle: "高速與重煞容錯",
     mods: {
-      tireRear: -0.25,
+      finalDrive: -0.04,
+      toeFront: -0.01,
+      toeRear: 0.04,
+      caster: 0.18,
+      arbRear: -3,
+      springRear: -1,
+      aeroFront: 3,
+      aeroRear: 8,
+      brakeBalance: 1,
+      brakePressure: -2,
+      diffRearAccel: -4,
+      diffRearDecel: -3,
+      diffCenter: 3,
+    },
+    gearMods: { firstTarget: 3, topTargetMultiplier: 1.03, topRatio: -0.02, curvePower: 0.04, finalDriveBias: -0.03 },
+    reason: "提高高速、重煞和補油時的容錯，適合大馬力或原本容易飄的車。",
+  },
+  {
+    id: "agility",
+    label: "靈活",
+    subtitle: "轉向反應",
+    mods: {
+      tireFront: -0.22,
+      camberFront: -0.22,
+      toeFront: 0.03,
+      caster: 0.25,
+      arbFront: -3,
+      arbRear: 4,
+      springFront: -2,
+      aeroFront: 3,
+      brakeBalance: -1,
+      diffFrontAccel: -3,
+      diffRearDecel: -2,
+    },
+    gearMods: { firstTarget: -3, topRatio: 0.02, curvePower: -0.05, finalDriveBias: 0.03 },
+    reason: "讓前端更願意進彎並提升變向反應，適合小彎或原本轉向偏鈍的車。",
+  },
+  {
+    id: "exit",
+    label: "出彎",
+    subtitle: "早補油牽引",
+    mods: {
+      tireRear: -0.28,
       finalDrive: 0.1,
-      arbRear: -2,
+      arbRear: -3,
       springRear: -2,
       reboundRear: -1,
       bumpRear: -1,
@@ -1309,48 +1494,8 @@ const tuneFocusTypes = [
     reason: "讓中低速出彎更容易把動力落地，適合髮夾彎後需要早補油的賽道。",
   },
   {
-    id: "brakeReLaunch",
-    label: "減速後再加速特化",
-    subtitle: "重煞後補油",
-    mods: {
-      tireFront: -0.1,
-      tireRear: -0.15,
-      finalDrive: 0.08,
-      camberFront: -0.15,
-      toeFront: 0.01,
-      caster: 0.15,
-      brakeBalance: -1,
-      brakePressure: -2,
-      diffRearAccel: -3,
-      diffRearDecel: -3,
-      diffFrontAccel: -2,
-      reboundFront: 1,
-      bumpFront: -1,
-    },
-    gearMods: { firstTarget: -4, curvePower: -0.05 },
-    reason: "重煞後重新補油時需要前端肯轉、後端不突然打滑，適合山路與急減速彎。",
-  },
-  {
-    id: "launch",
-    label: "起步彈射特化",
-    subtitle: "0-100 / 短衝刺",
-    mods: {
-      tireFront: -0.2,
-      tireRear: -0.45,
-      finalDrive: 0.22,
-      arbRear: -3,
-      springRear: -3,
-      bumpRear: -2,
-      diffFrontAccel: -5,
-      diffRearAccel: -8,
-      diffCenter: -5,
-    },
-    gearMods: { firstTarget: -8, topRatio: 0.04, curvePower: -0.08 },
-    reason: "優先讓一、二檔動力不要空轉，適合 Drag、短衝刺和起步取向車。",
-  },
-  {
     id: "topSpeed",
-    label: "高速尾速特化",
+    label: "極速",
     subtitle: "長直線",
     mods: {
       finalDrive: -0.32,
@@ -1368,50 +1513,13 @@ const tuneFocusTypes = [
     reason: "降低阻力並拉長高檔，適合高速公路、長直線與最高速挑戰。",
   },
   {
-    id: "highSpeedStability",
-    label: "高速穩定特化",
-    subtitle: "高速彎 / 高馬力",
-    mods: {
-      finalDrive: -0.08,
-      toeRear: 0.04,
-      caster: 0.2,
-      aeroFront: 4,
-      aeroRear: 10,
-      reboundRear: 2,
-      bumpRear: 1,
-      brakeBalance: 1,
-      diffRearAccel: -3,
-      diffCenter: 3,
-    },
-    gearMods: { firstTarget: 4, topTargetMultiplier: 1.05, curvePower: 0.04 },
-    reason: "提高高速彎和大馬力車的穩定容錯，避免齒比與底盤太激進。",
-  },
-  {
-    id: "turnIn",
-    label: "入彎轉向特化",
-    subtitle: "改善推頭",
-    mods: {
-      tireFront: -0.25,
-      camberFront: -0.25,
-      toeFront: 0.03,
-      caster: 0.3,
-      arbFront: -3,
-      springFront: -2,
-      aeroFront: 4,
-      brakeBalance: -1,
-      diffRearDecel: -2,
-    },
-    gearMods: { firstTarget: -3, curvePower: -0.02 },
-    reason: "讓前輪更願意咬進彎心，適合技術彎多或原本容易推頭的車。",
-  },
-  {
-    id: "wetBumpyGrip",
-    label: "濕滑/顛簸抓地特化",
-    subtitle: "低抓地路面",
+    id: "grip",
+    label: "抓地",
+    subtitle: "低抓地 / 顛簸容錯",
     mods: {
       tireFront: -0.35,
       tireRear: -0.45,
-      finalDrive: -0.05,
+      finalDrive: -0.03,
       arbFront: -7,
       arbRear: -7,
       springFront: -9,
@@ -1995,7 +2103,7 @@ const contextualAdviceStepTranslations = {
     ],
     "賽道取捨|多彎賽道不要一次犧牲太多尾速或下壓，先用小幅調整測試。": [
       "Track tradeoff",
-      "On technical circuits, do not sacrifice too much top speed or downforce at once; test with small steps first.",
+      "On corner-heavy road routes, do not sacrifice too much top speed or downforce at once; test with small steps first.",
     ],
     "模式確認|若目標不是甩尾，先只小幅調胎壓與前束，避免破壞正賽穩定。": [
       "Mode check",
@@ -2507,6 +2615,7 @@ function refreshLanguageUi() {
   bindAdjustmentRangeInputs();
   syncAdjustmentRangeInputs();
   syncGearOptimizationControls();
+  syncTrackTypeControls();
   syncVehicleInputs();
   syncTuneFocusIntensityInput();
   renderIssueCategories();
@@ -2540,17 +2649,11 @@ function bindLanguageSelect() {
 }
 
 const raceRecommendations = {
-  technical: {
+  road: {
     engine: "flatTorque",
-    engineWhy: "多彎路線需要彎中與出彎都可控，平坦扭力比較不會突然破壞抓地。",
+    engineWhy: "公路路線會同時遇到直線、彎道與連續出彎，平坦扭力能提供最穩定的泛用基準。",
     drive: "awd",
-    driveWhy: "AWD 能提高低速出彎牽引，適合頻繁加減速與連續彎。",
-  },
-  fast: {
-    engine: "highRpm",
-    engineWhy: "高速路線需要延伸轉速與尾速，高轉型設定比較容易守住長直線速度。",
-    drive: "rwd",
-    driveWhy: "RWD 傳動損失較低，車身也更輕快，適合高速公路型配置。",
+    driveWhy: "AWD 能提供混合路線較穩定的出彎牽引，也能降低高馬力車突然打滑的風險。",
   },
   rally: {
     engine: "lowEnd",
@@ -2558,17 +2661,23 @@ const raceRecommendations = {
     drive: "awd",
     driveWhy: "AWD 在砂石、泥地和跳躍落地後最穩，能減少單軸打滑。",
   },
-  crossCountry: {
+  offroad: {
     engine: "lowEnd",
     engineWhy: "越野路面阻力大，低轉扭力能處理爬坡、落地後再加速和長行程懸吊帶來的速度損失。",
     drive: "awd",
     driveWhy: "AWD 能分散扭力到四輪，越野起伏和混合路面更容易維持牽引。",
   },
-  drag: {
+  dragQuarter: {
     engine: "turboHit",
-    engineWhy: "直線加速可以利用渦輪爆發換取中後段推力，但需要用胎壓與差速器壓住打滑。",
+    engineWhy: "Quarter Mile 更重視起步到中段的爆發，渦輪型輸出可以提供短距離加速衝刺。",
     drive: "awd",
-    driveWhy: "AWD 起步抓地較好，能把高馬力更快轉成直線加速。",
+    driveWhy: "AWD 起步抓地較好，能把高馬力更快轉成短距離直線加速。",
+  },
+  dragHalf: {
+    engine: "highRpm",
+    engineWhy: "Half Mile 需要中後段延伸，高轉型輸出比較容易在較長距離維持速度成長。",
+    drive: "rwd",
+    driveWhy: "RWD 傳動損失較低，當起步已能控制時，中後段加速和尾速會更乾淨。",
   },
   drift: {
     engine: "supercharged",
@@ -2612,6 +2721,100 @@ function scaledGearMods(gearMods = {}, multiplier = 1) {
   );
 }
 
+const dragRaceIds = new Set(["dragQuarter", "dragHalf"]);
+
+function routeShapeEnabled(raceId = state.race) {
+  return !dragRaceIds.has(raceId);
+}
+
+function normalizeTrackType() {
+  const value = Number(state.trackType);
+  const normalized = Number.isFinite(value) ? value : 55;
+  if (!routeShapeEnabled()) {
+    state.trackType = 0;
+    return 0;
+  }
+  state.trackType = Math.round(clampNumber(normalized, ...routeShapeLimits.trackType) / 5) * 5;
+  return state.trackType;
+}
+
+function trackTypeRatio() {
+  return normalizeTrackType() / 100;
+}
+
+function formatTrackTypeLabel() {
+  return routeShapeEnabled() ? t("trackTypeValue", { value: normalizeTrackType() }) : t("trackTypeStraight");
+}
+
+function selectedCornerProfile() {
+  return optionById(cornerProfileTypes, state.cornerProfile) ?? cornerProfileTypes[0];
+}
+
+function formatCornerProfileLabel() {
+  return routeShapeEnabled() ? localizedOption("cornerProfileTypes", selectedCornerProfile()).label : t("cornerProfileStraight");
+}
+
+function trackTypeMods() {
+  if (!routeShapeEnabled()) {
+    state.trackType = 0;
+    return {};
+  }
+  const ratio = trackTypeRatio();
+  const corner = clampNumber((ratio - 0.5) * 2, 0, 1);
+  const straight = clampNumber((0.5 - ratio) * 2, 0, 1);
+
+  return {
+    tireFront: -0.25 * corner + 0.08 * straight,
+    tireRear: -0.15 * corner + 0.12 * straight,
+    finalDrive: 0.24 * corner - 0.24 * straight,
+    camberFront: -0.3 * corner + 0.18 * straight,
+    camberRear: -0.16 * corner + 0.12 * straight,
+    toeFront: 0.025 * corner - 0.012 * straight,
+    toeRear: 0.025 * straight,
+    caster: 0.18 * corner,
+    arbFront: -3 * corner + 2 * straight,
+    arbRear: 3 * corner - 1 * straight,
+    springFront: -2 * corner + 3 * straight,
+    springRear: -1 * corner + 2 * straight,
+    rideFront: -2 * straight,
+    rideRear: -2 * straight,
+    reboundFront: -1 * corner + 2 * straight,
+    reboundRear: -1 * corner + 2 * straight,
+    aeroFront: 9 * corner - 10 * straight,
+    aeroRear: 10 * corner - 12 * straight,
+    brakePressure: -2 * corner + 1 * straight,
+    diffFrontAccel: -3 * corner,
+    diffRearAccel: -3 * corner,
+    diffCenter: -2 * corner,
+  };
+}
+
+function trackTypeGearMods() {
+  if (!routeShapeEnabled()) {
+    state.trackType = 0;
+    return {};
+  }
+  const ratio = trackTypeRatio();
+  const corner = clampNumber((ratio - 0.5) * 2, 0, 1);
+  const straight = clampNumber((0.5 - ratio) * 2, 0, 1);
+
+  return {
+    firstTarget: -5 * corner + 5 * straight,
+    topTargetMultiplier: 1 + 0.03 * straight - 0.015 * corner,
+    topRatio: 0.035 * corner - 0.055 * straight,
+    curvePower: -0.07 * corner + 0.07 * straight,
+    finalDriveBias: 0.08 * corner - 0.08 * straight,
+  };
+}
+
+function cornerProfileMods() {
+  return routeShapeEnabled() ? selectedCornerProfile().mods ?? {} : {};
+}
+
+function cornerProfileGearMods() {
+  return routeShapeEnabled() ? selectedCornerProfile().gearMods ?? {} : {};
+}
+
 function formatTuneFocusIntensity() {
   return `${normalizeTuneFocusIntensity()}%`;
 }
@@ -2626,8 +2829,7 @@ function tuneFocusIntensityHint() {
 }
 
 function tuneFocusUsesIntensity(tuneFocus = optionById(tuneFocusTypes, state.tuneFocus)) {
-  const option = typeof tuneFocus === "string" ? optionById(tuneFocusTypes, tuneFocus) : tuneFocus;
-  return (option?.id ?? "balanced") !== "balanced";
+  return false;
 }
 
 function formatTuneFocusLabel(tuneFocus = optionById(tuneFocusTypes, state.tuneFocus)) {
@@ -2894,6 +3096,8 @@ function buildTune() {
   const drive = optionById(driveTypes, state.drive);
   const focusIntensity = tuneFocusIntensityMultiplier();
   addMods(tune, race.mods);
+  addMods(tune, trackTypeMods());
+  addMods(tune, cornerProfileMods());
   addMods(tune, scaledMods(tuneFocus.mods, focusIntensity));
   addMods(tune, engine.mods);
   addMods(tune, drive.mods);
@@ -2906,7 +3110,7 @@ function buildTune() {
     if (state.drive === "awd") tune.diffCenter = 82;
   }
 
-  if (state.race === "drag") {
+  if (dragRaceIds.has(state.race)) {
     tune.camberFront = Math.max(-0.3, tune.camberFront);
     tune.camberRear = Math.max(-0.2, tune.camberRear);
     tune.toeFront = 0;
@@ -2917,7 +3121,7 @@ function buildTune() {
     }
   }
 
-  if ((state.race === "rally" || state.race === "crossCountry") && state.drive !== "awd") {
+  if ((state.race === "rally" || state.race === "offroad") && state.drive !== "awd") {
     tune.diffRearAccel += state.drive === "rwd" ? 4 : 0;
     tune.diffFrontAccel += state.drive === "fwd" ? 4 : 0;
   }
@@ -3226,9 +3430,11 @@ function renderConfigSelect(selectId, options, selectedId, groupKey) {
 
 function syncConfigControls() {
   renderConfigSelect("raceSelect", raceTypes, state.race, "raceTypes");
+  renderConfigSelect("cornerProfileSelect", cornerProfileTypes, state.cornerProfile, "cornerProfileTypes");
   renderConfigSelect("tuneFocusSelect", tuneFocusTypes, state.tuneFocus, "tuneFocusTypes");
   renderConfigSelect("engineSelect", engineCurves, state.engine, "engineCurves");
   renderConfigSelect("driveSelect", driveTypes, state.drive, "driveTypes");
+  syncTrackTypeControls();
   syncTuneFocusIntensityInput();
   syncVehicleInputs();
 }
@@ -3263,9 +3469,35 @@ function bindTuneFocusIntensityInput() {
   });
 }
 
+function syncTrackTypeControls(skipInputId = "") {
+  const value = normalizeTrackType();
+  const slider = document.getElementById("trackTypeSlider");
+  const output = document.getElementById("trackTypeOutput");
+  const cornerSelect = document.getElementById("cornerProfileSelect");
+  const disabled = !routeShapeEnabled();
+
+  if (slider && skipInputId !== "trackTypeSlider") slider.value = value;
+  if (slider) slider.disabled = disabled;
+  if (output) output.textContent = formatTrackTypeLabel();
+  if (cornerSelect) cornerSelect.disabled = disabled;
+}
+
+function bindTrackTypeInput() {
+  const slider = document.getElementById("trackTypeSlider");
+  if (!slider) return;
+
+  slider.addEventListener("input", () => {
+    state.trackType = Number(slider.value);
+    syncTrackTypeControls("trackTypeSlider");
+    resetManualGearRatios();
+    updateLiveTune();
+  });
+}
+
 function bindConfigSelects() {
   [
     ["raceSelect", "race"],
+    ["cornerProfileSelect", "cornerProfile"],
     ["tuneFocusSelect", "tuneFocus"],
     ["engineSelect", "engine"],
     ["driveSelect", "drive"],
@@ -3275,7 +3507,14 @@ function bindConfigSelects() {
 
     select.addEventListener("change", () => {
       state[stateKey] = select.value;
+      if (stateKey === "race") {
+        const race = optionById(raceTypes, state.race);
+        state.trackType = race?.defaultTrackType ?? state.trackType;
+        state.cornerProfile = race?.defaultCornerProfile ?? state.cornerProfile;
+        syncConfigControls();
+      }
       if (stateKey === "tuneFocus") syncTuneFocusIntensityInput();
+      if (["race", "cornerProfile", "tuneFocus", "engine", "drive"].includes(stateKey)) resetManualGearRatios();
       updateLiveTune();
     });
   });
@@ -3390,6 +3629,7 @@ function renderSelectedIssues() {
 function selectedOptions() {
   return {
     race: localizedOption("raceTypes", optionById(raceTypes, state.race)),
+    cornerProfile: localizedOption("cornerProfileTypes", selectedCornerProfile()),
     tuneFocus: localizedOption("tuneFocusTypes", optionById(tuneFocusTypes, state.tuneFocus)),
     engine: localizedOption("engineCurves", optionById(engineCurves, state.engine)),
     drive: localizedOption("driveTypes", optionById(driveTypes, state.drive)),
@@ -3415,6 +3655,8 @@ function vehicleSpecCopyLines() {
     `${t("vehicleSpecRear")}: ${formatSpecPercent(100 - state.frontWeightPercent)}%`,
     `${t("vehicleSpecPower")}: ${state.powerKw} kW`,
     `${t("vehicleSpecTorque")}: ${state.torqueNm} N.m`,
+    `${t("routeShapeCopy")}: ${formatTrackTypeLabel()}`,
+    `${t("cornerProfileCopy")}: ${formatCornerProfileLabel()}`,
   ];
   if (tuneFocusUsesIntensity()) lines.push(`${t("tuneFocusCopyIntensity")}: ${formatTuneFocusIntensity()}`);
   return lines;
@@ -3489,7 +3731,16 @@ function renderSummary() {
 
 function renderSelectionPreview() {
   const { race, tuneFocus, engine, drive } = selectedOptions();
-  const html = [race.label, formatTuneFocusLabel(tuneFocus), engine.label, `${drive.label} ${drive.subtitle}`, vehicleSpecLabel()]
+  const routeLabel = formatTrackTypeLabel();
+  const html = [
+    race.label,
+    routeLabel,
+    formatCornerProfileLabel(),
+    formatTuneFocusLabel(tuneFocus),
+    engine.label,
+    `${drive.label} ${drive.subtitle}`,
+    vehicleSpecLabel(),
+  ]
     .map((text) => `<span>${text}</span>`)
     .join("");
   document.getElementById("selectionPreview").innerHTML = html;
@@ -3861,23 +4112,47 @@ function combinedGearMultiplier(baseValue, name, ...sources) {
   }, baseValue);
 }
 
-function usableTopSpeedRatio({ highPullIndex, gearCount, raceGearMod, focusGearMods, engineGearMods, gearGoalMods }) {
+function usableTopSpeedRatio({
+  highPullIndex,
+  gearCount,
+  raceGearMod,
+  trackGearMods,
+  cornerGearMods,
+  focusGearMods,
+  engineGearMods,
+  gearGoalMods,
+}) {
   const reserveIntent =
-    combinedGearMultiplier(1, "topTargetMultiplier", raceGearMod, focusGearMods, engineGearMods, gearGoalMods) - 1;
+    combinedGearMultiplier(
+      1,
+      "topTargetMultiplier",
+      raceGearMod,
+      trackGearMods,
+      cornerGearMods,
+      focusGearMods,
+      engineGearMods,
+      gearGoalMods,
+    ) - 1;
   const highGearPullPenalty = clampNumber((highPullIndex - 1.05) * 0.045, -0.025, 0.055);
   const gearCountBias = gearCount <= 5 ? -0.015 : gearCount >= 8 ? 0.012 : 0;
   return clampNumber(0.94 - highGearPullPenalty + gearCountBias + reserveIntent * 0.45, 0.86, 0.995);
 }
 
 function raceGearProfile(raceId) {
-  return raceGearMods[raceId] ?? raceGearMods.technical;
+  return raceGearMods[raceId] ?? raceGearMods.road;
 }
 
 function recommendedGearFinalDrive(tune = buildTune()) {
   const raceGearMod = raceGearProfile(state.race);
+  const trackGearMod = trackTypeGearMods();
+  const cornerGearMod = cornerProfileGearMods();
   const gearGoalMod = scaledGearOptimizationMods();
   return clampNumber(
-    tune.finalDrive + (Number(raceGearMod.finalDriveBias) || 0) + (Number(gearGoalMod.finalDriveBias) || 0),
+    tune.finalDrive +
+      (Number(raceGearMod.finalDriveBias) || 0) +
+      (Number(trackGearMod.finalDriveBias) || 0) +
+      (Number(cornerGearMod.finalDriveBias) || 0) +
+      (Number(gearGoalMod.finalDriveBias) || 0),
     ...gearboxLimits.finalDrive,
   );
 }
@@ -3898,13 +4173,11 @@ function prepareGearCalculator() {
 function focusFirstGearRange(focusId, raceGearMod = {}, intensityMultiplier = 1, gearGoalMod = {}) {
   const ranges = {
     balanced: [70, 84],
-    exitAcceleration: [70, 85],
-    brakeReLaunch: [65, 80],
-    launch: [60, 75],
+    stability: [76, 90],
+    agility: [66, 82],
+    exit: [66, 82],
     topSpeed: [80, 95],
-    highSpeedStability: [76, 90],
-    turnIn: [66, 82],
-    wetBumpyGrip: [72, 86],
+    grip: [72, 86],
   };
   const balancedRange = ranges.balanced;
   const focusRange = ranges[focusId] ?? balancedRange;
@@ -3928,6 +4201,8 @@ function estimateFirstGearTarget({
   accel97,
   highPullIndex,
   raceGearMod,
+  trackGearMods,
+  cornerGearMods,
   focusGearMods,
   engineGearMods,
   gearGoalMods,
@@ -3937,7 +4212,15 @@ function estimateFirstGearTarget({
   const midpoint = (minTarget + maxTarget) / 2;
   const launchPaceAdjust = clampNumber((3.8 - accel97) * 3, -8, 8);
   const highPullAdjust = clampNumber((1.05 - highPullIndex) * 4, -7, 5);
-  const profileAdjust = combinedGearMod("firstTarget", raceGearMod, focusGearMods, engineGearMods, gearGoalMods);
+  const profileAdjust = combinedGearMod(
+    "firstTarget",
+    raceGearMod,
+    trackGearMods,
+    cornerGearMods,
+    focusGearMods,
+    engineGearMods,
+    gearGoalMods,
+  );
   const engineWindowAdjust = engine.id === "highRpm" ? -2 : engine.id === "lowEnd" ? 2 : 0;
   return clampNumber(midpoint + launchPaceAdjust + highPullAdjust + profileAdjust + engineWindowAdjust, minTarget, maxTarget);
 }
@@ -4164,6 +4447,8 @@ function calculateGearRatios() {
   const engine = optionById(engineCurves, state.engine) ?? engineCurves[0];
   const gearGoal = gearOptimizationProfile();
   const raceGearMod = raceGearProfile(race.id);
+  const trackGearMods = trackTypeGearMods();
+  const cornerGearMods = cornerProfileGearMods();
   const focusIntensity = tuneFocusIntensityMultiplier();
   const focusGearMods = scaledGearMods(tuneFocus.gearMods ?? {}, focusIntensity);
   const engineGearMods = engine.gearMods ?? {};
@@ -4182,6 +4467,8 @@ function calculateGearRatios() {
     highPullIndex,
     gearCount,
     raceGearMod,
+    trackGearMods,
+    cornerGearMods,
     focusGearMods,
     engineGearMods,
     gearGoalMods,
@@ -4193,6 +4480,8 @@ function calculateGearRatios() {
     accel97,
     highPullIndex,
     raceGearMod,
+    trackGearMods,
+    cornerGearMods,
     focusGearMods,
     engineGearMods,
     gearGoalMods,
@@ -4201,12 +4490,14 @@ function calculateGearRatios() {
   const spread = clampNumber(topTarget / firstGearTarget + gearCountAdjust * 0.08, 3.05, 5.35);
   const topRatio = clampNumber(
     (3.05 / finalDrive) * Math.pow(260 / topTarget, 0.32) +
-      combinedGearMod("topRatio", raceGearMod, focusGearMods, engineGearMods, gearGoalMods),
+      combinedGearMod("topRatio", raceGearMod, trackGearMods, cornerGearMods, focusGearMods, engineGearMods, gearGoalMods),
     0.56,
     1.28,
   );
   const curvePower = clampNumber(
-    1 + highGearAdjust * 0.45 + combinedGearMod("curvePower", raceGearMod, focusGearMods, engineGearMods, gearGoalMods),
+    1 +
+      highGearAdjust * 0.45 +
+      combinedGearMod("curvePower", raceGearMod, trackGearMods, cornerGearMods, focusGearMods, engineGearMods, gearGoalMods),
     0.78,
     1.35,
   );
@@ -4234,6 +4525,8 @@ function calculateGearRatios() {
     firstGearTarget,
     raceLabel: localizedOption("raceTypes", race).label,
     raceNote: localizedRaceGearNote(race.id, raceGearMod.note),
+    trackTypeLabel: formatTrackTypeLabel(),
+    cornerProfileLabel: formatCornerProfileLabel(),
     engineLabel: localizedOption("engineCurves", engine).label,
     tuneFocusLabel: formatTuneFocusLabel(tuneFocus),
     tuneFocusIntensity: formatTuneFocusIntensity(),
@@ -4325,6 +4618,8 @@ function renderGearCalculator(tune = buildTune()) {
       <strong>${t("gearUsableNote", { percent: Math.round(plan.topSpeedUseRatio * 100) })} ${plan.note} ${t("gearDecisionSuffix", {
         race: plan.raceLabel,
         raceNote: plan.raceNote,
+        route: plan.trackTypeLabel,
+        corner: plan.cornerProfileLabel,
         engine: plan.engineLabel,
       })}</strong>
     </article>
@@ -4825,8 +5120,13 @@ function renderMeters(tune) {
 }
 
 function renderPrinciples() {
-  const { race, engine, drive } = selectedOptions();
-  const principles = [race.principles[0], engine.principle, drive.principle];
+  const { race, cornerProfile, engine, drive } = selectedOptions();
+  const principles = [
+    race.principles[0],
+    routeShapeEnabled() ? cornerProfile.principle : "",
+    engine.principle,
+    drive.principle,
+  ].filter(Boolean);
   document.getElementById("principleStrip").innerHTML = principles.map((principle) => `<div class="principle">${principle}</div>`).join("");
 }
 
@@ -4873,7 +5173,7 @@ function contextualSteps(issue) {
     steps.push(["前驅補救", "若入彎仍推，前差減速降低 2% 到 4%，讓收油時前輪更願意轉。"]);
   }
 
-  if (issue.id === "top-speed" && state.race === "technical") {
+  if (issue.id === "top-speed" && state.race === "road" && trackTypeRatio() >= 0.65) {
     steps.push(["賽道取捨", "多彎賽道不要一次降太多終傳，先用 -0.08 小步測。"]);
   }
 
@@ -4938,7 +5238,9 @@ function openSymptomPage(mode) {
 function resetAll() {
   state.view = "result";
   state.symptomMode = "linked";
-  state.race = "technical";
+  state.race = "road";
+  state.trackType = 55;
+  state.cornerProfile = "mixed";
   state.tuneFocus = "balanced";
   state.tuneFocusIntensity = 100;
   state.engine = "flatTorque";
@@ -4975,6 +5277,7 @@ function init() {
   renderOptions("engineOptions", engineCurves, "engine");
   renderOptions("driveOptions", driveTypes, "drive");
   bindConfigSelects();
+  bindTrackTypeInput();
   bindTuneFocusIntensityInput();
   bindVehicleInputs();
   bindGearboxInputs();
@@ -5194,7 +5497,7 @@ function contextualSteps(issue) {
       steps.push(["前驅補救", "若入彎仍推，前差減速降低 2% 到 4%，讓收油時前輪更願意轉。"]);
     }
 
-    if (issue.id.includes("highspeed") && state.race === "technical") {
+    if (issue.id.includes("highspeed") && state.race === "road" && trackTypeRatio() >= 0.65) {
       steps.push(["賽道取捨", "多彎賽道不要一次犧牲太多尾速或下壓，先用小幅調整測試。"]);
     }
 
@@ -5243,7 +5546,9 @@ function copyTune(tune) {
 
 function resetAll() {
   state.view = "result";
-  state.race = "technical";
+  state.race = "road";
+  state.trackType = 55;
+  state.cornerProfile = "mixed";
   state.tuneFocus = "balanced";
   state.tuneFocusIntensity = 100;
   state.engine = "flatTorque";
@@ -5285,6 +5590,7 @@ function init() {
   renderOptions("engineOptions", engineCurves, "engine");
   renderOptions("driveOptions", driveTypes, "drive");
   bindConfigSelects();
+  bindTrackTypeInput();
   bindTuneFocusIntensityInput();
   bindVehicleInputs();
   bindGearboxInputs();

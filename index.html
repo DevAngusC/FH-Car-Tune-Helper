@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FH6 Tune Lab</title>
-    <link rel="stylesheet" href="styles.css?v=20260630d" />
+    <link rel="stylesheet" href="styles.css?v=20260630e" />
   </head>
   <body>
     <main class="app-shell">
@@ -121,17 +121,22 @@
               <span class="spec-label" data-i18n="labelRace">目標比賽</span>
               <select id="raceSelect"></select>
             </label>
+            <label class="config-control track-type-control" id="trackTypeField" for="trackTypeSlider">
+              <span class="spec-label" data-i18n="labelTrackType">賽道型態</span>
+              <span class="range-control">
+                <span class="range-edge-label" data-i18n="trackTypeStraight">直線多</span>
+                <input id="trackTypeSlider" type="range" min="0" max="100" step="5" value="55" />
+                <span class="range-edge-label" data-i18n="trackTypeCorner">彎道多</span>
+                <output id="trackTypeOutput" for="trackTypeSlider">彎道 55%</output>
+              </span>
+            </label>
+            <label class="config-control" for="cornerProfileSelect">
+              <span class="spec-label" data-i18n="labelCornerProfile">彎型分布</span>
+              <select id="cornerProfileSelect"></select>
+            </label>
             <label class="config-control" for="tuneFocusSelect">
               <span class="spec-label" data-i18n="labelTuneFocus">調校取向</span>
               <select id="tuneFocusSelect"></select>
-            </label>
-            <label class="config-control focus-intensity-control" id="tuneFocusIntensityField" for="tuneFocusIntensitySlider">
-              <span class="spec-label" data-i18n="labelFocusIntensity">取向強度</span>
-              <span class="range-control">
-                <input id="tuneFocusIntensitySlider" type="range" min="0" max="150" step="5" value="100" />
-                <output id="tuneFocusIntensityOutput" for="tuneFocusIntensitySlider">100%</output>
-              </span>
-              <span class="spec-note compact" id="tuneFocusIntensityHint">標準取向</span>
             </label>
             <label class="config-control" for="engineSelect">
               <span class="spec-label" data-i18n="labelEngine">引擎曲線</span>
@@ -337,6 +342,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=20260630d"></script>
+    <script src="app.js?v=20260630e"></script>
   </body>
 </html>
