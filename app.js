@@ -28,6 +28,26 @@ const BASE_TUNE = {
   diffCenter: 65,
 };
 
+const DEFAULT_GEARBOX = {
+  gearGoal: "balanced",
+  gearGoalIntensity: 100,
+  gearCount: 6,
+  topSpeedKmh: 312,
+  accel97: 3.4,
+  accel161: 7.8,
+  finalDrive: BASE_TUNE.finalDrive,
+  cornerExitSpeedKmh: 80,
+  cornerGear: 3,
+};
+
+function createDefaultGearbox(overrides = {}) {
+  return {
+    ...DEFAULT_GEARBOX,
+    manualRatios: {},
+    ...overrides,
+  };
+}
+
 const DEFAULT_ADJUSTMENT_RANGES = {
   arb: { frontMin: 1, frontMax: 65, rearMin: 1, rearMax: 65 },
   spring: { frontMin: 1, frontMax: 100, rearMin: 1, rearMax: 100 },
@@ -65,6 +85,90 @@ const adjustableTuneKeyMeta = Object.fromEntries(
   ]),
 );
 
+const availabilityGroups = [
+  {
+    id: "alignment",
+    label: "定位角",
+    tuneKeys: ["camberFront", "camberRear", "toeFront", "toeRear", "caster"],
+    settingKeys: ["camber", "toe", "caster"],
+    fallbackTargets: ["tire", "antiRoll", "aero"],
+  },
+  {
+    id: "frontArb",
+    label: "前防傾桿",
+    tuneKeys: ["arbFront"],
+    settingKeys: ["arb"],
+    fallbackTargets: ["tire", "suspension", "aero"],
+  },
+  {
+    id: "rearArb",
+    label: "後防傾桿",
+    tuneKeys: ["arbRear"],
+    settingKeys: ["arb"],
+    fallbackTargets: ["tire", "suspension", "aero", "diff"],
+  },
+  {
+    id: "suspension",
+    label: "懸吊",
+    tuneKeys: ["springFront", "springRear", "rideFront", "rideRear", "reboundFront", "reboundRear", "bumpFront", "bumpRear"],
+    settingKeys: ["spring", "ride", "rebound", "bump"],
+    fallbackTargets: ["tire", "antiRoll", "aero"],
+  },
+  {
+    id: "aero",
+    label: "空力",
+    tuneKeys: ["aeroFront", "aeroRear"],
+    settingKeys: ["aero"],
+    fallbackTargets: ["suspension", "antiRoll", "alignment"],
+  },
+  {
+    id: "brake",
+    label: "煞車",
+    tuneKeys: ["brakeBalance", "brakePressure"],
+    settingKeys: ["brake"],
+    fallbackTargets: ["tire", "suspension", "diff"],
+  },
+  {
+    id: "diff",
+    label: "差速器",
+    tuneKeys: ["diffFrontAccel", "diffFrontDecel", "diffRearAccel", "diffRearDecel", "diffCenter"],
+    settingKeys: ["diff"],
+    fallbackTargets: ["tire", "antiRoll", "suspension", "gearbox"],
+  },
+  {
+    id: "gearbox",
+    label: "齒輪箱",
+    tuneKeys: ["finalDrive"],
+    settingKeys: ["finalDrive"],
+    fallbackTargets: ["tire", "diff", "antiRoll", "aero", "suspension"],
+  },
+];
+
+const availabilityById = Object.fromEntries(availabilityGroups.map((group) => [group.id, group]));
+const tuneKeyAvailabilityGroup = Object.fromEntries(
+  availabilityGroups.flatMap((group) => group.tuneKeys.map((key) => [key, group.id])),
+);
+const settingAvailabilityGroups = availabilityGroups.reduce((groups, group) => {
+  group.settingKeys.forEach((key) => {
+    groups[key] = [...(groups[key] ?? []), group.id];
+  });
+  return groups;
+}, {});
+const compensationTargetGroups = {
+  tire: [],
+  alignment: ["alignment"],
+  antiRoll: ["frontArb", "rearArb"],
+  suspension: ["suspension"],
+  aero: ["aero"],
+  brake: ["brake"],
+  diff: ["diff"],
+  gearbox: ["gearbox"],
+};
+
+function createAvailability() {
+  return Object.fromEntries(availabilityGroups.map((group) => [group.id, true]));
+}
+
 const state = {
   view: "config",
   race: "technical",
@@ -78,20 +182,14 @@ const state = {
   torqueNm: 650,
   theme: "light",
   language: "zh",
-  gearbox: {
-    gearGoal: "balanced",
-    gearGoalIntensity: 100,
-    gearCount: 6,
-    topSpeedKmh: "",
-    accel97: "",
-    accel161: "",
-    finalDrive: BASE_TUNE.finalDrive,
-    cornerExitSpeedKmh: "",
-    cornerGear: 3,
-  },
+  gearbox: createDefaultGearbox(),
   adjustmentRanges: createAdjustmentRanges(),
+  availability: createAvailability(),
+  symptomMode: "linked",
   activeIssueCategory: "steering",
   issues: new Set(),
+  solutionActiveIssueCategory: "steering",
+  solutionIssues: new Set(),
 };
 
 const vehicleSpecLimits = {
@@ -136,14 +234,20 @@ const translations = {
     configSpecNote: "以車頭承重比例輸入，例如 52 代表前 52% / 後 48%。",
     buttonGenerate: "產生基礎數值",
     buttonBackConfig: "返回配置",
-    buttonStartTest: "開始試車",
+    buttonStartTest: "車況調校",
+    buttonTuneSolutions: "調校應對方案",
     buttonGearCalculator: "齒比計算器",
     buttonCopy: "複製數值",
     buttonReset: "重置",
     buttonResetRange: "重設範圍",
+    buttonResetAvailability: "全部可調",
     buttonBackBase: "返回基礎數值",
     buttonClearIssues: "清除狀況",
     baseConfigTitle: "基礎配置",
+    availabilityTitle: "可調項目",
+    availabilityHint: "關閉遊戲中無法調整的項目，工具會改用其他可調項目做保守補償。",
+    availabilityOn: "可調",
+    availabilityOff: "無法調整",
     rangeTitle: "彈簧 / 空力範圍",
     gearTitle: "齒比計算器",
     labelGearGoal: "齒比優化目標",
@@ -156,10 +260,14 @@ const translations = {
     labelAccel161: "0-161 km/h 加速",
     labelFinalDrive: "終傳比",
     unitSecond: "秒",
-    roadTestTitle: "試車狀況",
+    roadTestTitle: "車況調校",
+    solutionTitle: "調校應對方案",
+    solutionModeChip: "獨立應對方案",
     symptomGroupLabel: "症狀大項",
     adjustmentDirectionLabel: "修改方向",
-    symptomAdviceHint: "勾選症狀後，這裡會立即顯示調整建議。",
+    linkedTunePanelLabel: "優化建議數值",
+    symptomAdviceHint: "勾選症狀後，這裡會顯示依目前基礎數值優化後的建議。",
+    solutionAdviceHint: "勾選你遇到的狀況，這裡會顯示通用調整方向。",
     placeholderExample80: "例如 80",
     placeholderExample312: "例如 312",
     placeholderExample34: "例如 3.4",
@@ -193,9 +301,22 @@ const translations = {
     tuneFocusCopyIntensity: "調校取向強度",
     copySuccess: "已複製",
     copyFail: "複製失敗",
+    copyUnavailable: "無法調整",
+    settingUnavailable: "無法調整",
+    settingPartUnavailable: "部分無法調整",
+    settingUnavailableExplanation: "目前標記為無法調整，工具已改用其他可調項目做保守補償。",
+    compensationPrefix: "已改用",
+    compensationSuffix: "保守補償",
+    compensationLimited: "目前可補償項目有限，建議值只能作為保守起點。",
     selectedCount: "已選 {count}",
     adviceEmpty: "選取試車狀況後，這裡會整理成調整順序。",
+    linkedTuneEmpty: "勾選車況後，這裡會顯示依目前基礎數值優化後的建議數值。",
+    linkedTuneAdjusted: "已優化",
+    adviceAlternativeTarget: "替代：{target}",
+    adviceAlternativeText: "原本可調整「{target}」，但目前標記為不可調。先改用 {fallbacks} 小幅補償，試車後再微調。",
     gearFinalDriveChip: "終傳比 {value}",
+    gearboxUnavailableChip: "齒輪箱無法調整",
+    gearboxUnavailableMessage: "齒輪箱目前標記為不可調，無法產生終傳比或各檔齒比。請先使用其他仍可調項目做保守補償。",
     gearCornerPrompt: "彎道回速模式還需要填入常用出彎速度，並選擇主要回速檔位。",
     gearTopSpeedNote: "使用 Forza 車輛數據頁顯示的理論極速，計算器會自動折算成可實跑的最高檔目標。",
     gearEmpty: "填入檔位數、車輛卡理論極速、1-97 km/h 和 0-161 km/h 秒數後，這裡會先折算可用最高檔目標，再重新計算各檔齒比。{extra}",
@@ -210,6 +331,36 @@ const translations = {
     gearDecisionSuffix: "{race}策略：{raceNote} {engine}引擎曲線已計入。",
     gearLabel: "第 {gear} 檔",
     gearShift: "約 {speed} km/h 換檔",
+    gearRatioSuggested: "建議 {value}",
+    gearRatioCurrent: "目前 {value}",
+    gearRatioManual: "已手動調整",
+    gearRatioSynced: "同步更新",
+    gearRatioOutOfRange: "超出安全區間",
+    gearRatioReset: "重置",
+    gearRatioSafeRange: "安全試調 {min} - {max}",
+    gearBandLonger: "較長 / 較穩",
+    gearBandShorter: "較短 / 較衝",
+    gearBandLowLabel: "偏低",
+    gearBandHighLabel: "偏高",
+    gearBandTarget: "回速目標",
+    gearBandRoleLaunch: "起步抓地",
+    gearBandRoleCornerTarget: "指定回速檔",
+    gearBandRoleLowMid: "出彎回速",
+    gearBandRoleMid: "檔位銜接",
+    gearBandRoleHigh: "中高速拉伸",
+    gearBandRoleTop: "尾速保留",
+    gearBandLowLaunch: "再低會拉長 1 檔，起步更穩但可能拖轉。",
+    gearBandHighLaunch: "再高會讓起步更衝，高馬力或 RWD 可能更容易打滑。",
+    gearBandLowCorner: "再低會讓出彎轉速偏低，補油可能慢半拍。",
+    gearBandHighCorner: "再高會讓出彎轉速更高，但油門太早可能破壞抓地。",
+    gearBandLowLowMid: "再低會拉長低中檔，出彎後可能掉出有效轉速。",
+    gearBandHighLowMid: "再高會縮短低中檔，回速更快但換檔更密。",
+    gearBandLowMid: "再低會讓相鄰檔距拉大，換檔後轉速掉更多。",
+    gearBandHighMid: "再高會讓檔位更密，反應更快但可能增加換檔次數。",
+    gearBandLowHigh: "再低會保留高速延伸，但高檔可能拉不動。",
+    gearBandHighHigh: "再高會強化中高速加速，但直線尾段可能太早接近紅線。",
+    gearBandLowTop: "再低會保留尾速，但若馬力不足可能拉不上去。",
+    gearBandHighTop: "再高會讓最高檔更有力，但容易犧牲尾速或撞紅線。",
     gearCornerNote: "彎道回速以 {speed} km/h、{gear} 檔為核心，目標約 {rev}% 紅線區。",
     gearUsableNote: "已將車輛卡極速視為理論值，最高檔目標抓在理論值約 {percent}%。",
     gearSlowHighPull: "中高速加速偏慢，高檔齒比會排得更密。",
@@ -236,14 +387,20 @@ const translations = {
     configSpecNote: "Use front weight percentage, for example 52 means 52% front / 48% rear.",
     buttonGenerate: "Generate Base Tune",
     buttonBackConfig: "Back to Setup",
-    buttonStartTest: "Road Test",
+    buttonStartTest: "Condition Tuning",
+    buttonTuneSolutions: "Tune Response Guide",
     buttonGearCalculator: "Gear Calculator",
     buttonCopy: "Copy Values",
     buttonReset: "Reset",
     buttonResetRange: "Reset Range",
+    buttonResetAvailability: "All Adjustable",
     buttonBackBase: "Back to Base Tune",
     buttonClearIssues: "Clear Issues",
     baseConfigTitle: "Base Setup",
+    availabilityTitle: "Adjustable Items",
+    availabilityHint: "Turn off parts that cannot be adjusted in-game; the tool will compensate conservatively with other adjustable items.",
+    availabilityOn: "Adjustable",
+    availabilityOff: "Locked",
     rangeTitle: "Spring / Aero Range",
     gearTitle: "Gear Ratio Calculator",
     labelGearGoal: "Gear Goal",
@@ -256,10 +413,14 @@ const translations = {
     labelAccel161: "0-161 km/h Accel",
     labelFinalDrive: "Final Drive",
     unitSecond: "sec",
-    roadTestTitle: "Road Test Issues",
+    roadTestTitle: "Condition Tuning",
+    solutionTitle: "Tune Response Guide",
+    solutionModeChip: "Standalone Guide",
     symptomGroupLabel: "Issue Group",
     adjustmentDirectionLabel: "Adjustment Direction",
-    symptomAdviceHint: "Select issues to show adjustment suggestions immediately.",
+    linkedTunePanelLabel: "Optimized Values",
+    symptomAdviceHint: "Select issues to show optimized values based on the current base tune.",
+    solutionAdviceHint: "Select the issue you are seeing to show general adjustment responses.",
     placeholderExample80: "e.g. 80",
     placeholderExample312: "e.g. 312",
     placeholderExample34: "e.g. 3.4",
@@ -293,9 +454,22 @@ const translations = {
     tuneFocusCopyIntensity: "Tune focus strength",
     copySuccess: "Copied",
     copyFail: "Copy failed",
+    copyUnavailable: "locked",
+    settingUnavailable: "Locked",
+    settingPartUnavailable: "Partially locked",
+    settingUnavailableExplanation: "This item is marked as locked, so the tool is compensating conservatively through other adjustable items.",
+    compensationPrefix: "Compensating with",
+    compensationSuffix: "",
+    compensationLimited: "Available compensation is limited, so use this as a conservative starting point.",
     selectedCount: "{count} selected",
     adviceEmpty: "Select road-test issues and the adjustment order will appear here.",
+    linkedTuneEmpty: "Select conditions to show optimized values based on the current base tune.",
+    linkedTuneAdjusted: "Optimized",
+    adviceAlternativeTarget: "Alternative: {target}",
+    adviceAlternativeText: "{target} is currently locked. Start by compensating lightly with {fallbacks}, then road-test again.",
     gearFinalDriveChip: "Final Drive {value}",
+    gearboxUnavailableChip: "Gearbox locked",
+    gearboxUnavailableMessage: "The gearbox is marked as locked, so final drive and per-gear ratios cannot be generated. Use other adjustable items for conservative compensation.",
     gearCornerPrompt: "Corner recovery mode also needs common exit speed and the main recovery gear.",
     gearTopSpeedNote: "Use the theoretical top speed shown on the Forza car stats page; the calculator converts it into a usable top-gear target.",
     gearEmpty: "Enter gear count, listed theoretical top speed, 1-97 km/h, and 0-161 km/h times. The calculator will convert theory speed into a usable top-gear target before rebuilding the ratios. {extra}",
@@ -310,6 +484,36 @@ const translations = {
     gearDecisionSuffix: "{race} strategy: {raceNote} {engine} engine curve is included.",
     gearLabel: "Gear {gear}",
     gearShift: "Shift around {speed} km/h",
+    gearRatioSuggested: "Suggested {value}",
+    gearRatioCurrent: "Current {value}",
+    gearRatioManual: "Manual",
+    gearRatioSynced: "Synced",
+    gearRatioOutOfRange: "Outside safe range",
+    gearRatioReset: "Reset",
+    gearRatioSafeRange: "Safe trial {min} - {max}",
+    gearBandLonger: "Longer / steadier",
+    gearBandShorter: "Shorter / punchier",
+    gearBandLowLabel: "Lower",
+    gearBandHighLabel: "Higher",
+    gearBandTarget: "Recovery target",
+    gearBandRoleLaunch: "Launch grip",
+    gearBandRoleCornerTarget: "Target recovery gear",
+    gearBandRoleLowMid: "Corner-exit recovery",
+    gearBandRoleMid: "Gear-to-gear spacing",
+    gearBandRoleHigh: "Mid-high pull",
+    gearBandRoleTop: "Top-speed reserve",
+    gearBandLowLaunch: "Lower lengthens 1st gear, improving launch stability but risking bogging.",
+    gearBandHighLaunch: "Higher makes launch punchier, but high-power or RWD builds may spin more easily.",
+    gearBandLowCorner: "Lower drops exit rpm, so throttle pickup may feel delayed.",
+    gearBandHighCorner: "Higher raises exit rpm, but early throttle can upset grip.",
+    gearBandLowLowMid: "Lower lengthens low-mid gears and may drop the car out of the useful rev range.",
+    gearBandHighLowMid: "Higher shortens low-mid gears for faster recovery, but shifts come closer together.",
+    gearBandLowMid: "Lower widens adjacent spacing and drops more rpm after shifts.",
+    gearBandHighMid: "Higher tightens spacing for quicker response, but may add extra shifts.",
+    gearBandLowHigh: "Lower preserves high-speed stretch, but upper gears may struggle to pull.",
+    gearBandHighHigh: "Higher strengthens mid-high acceleration, but may approach redline too early.",
+    gearBandLowTop: "Lower preserves top speed, but weak power may not pull it.",
+    gearBandHighTop: "Higher makes top gear pull harder, but can sacrifice speed or hit redline.",
     gearCornerNote: "Corner recovery centers on {speed} km/h in gear {gear}, targeting about {rev}% of redline.",
     gearUsableNote: "The listed car-card top speed is treated as theoretical, so top gear targets about {percent}% of that value.",
     gearSlowHighPull: "Mid-high speed acceleration is slow, so upper gears are packed tighter.",
@@ -440,6 +644,26 @@ const optionTranslations = {
         note: "Adds top-gear speed reserve and stretches upper gears to avoid early redline.",
       },
     },
+    availabilityGroups: {
+      alignment: "Alignment",
+      frontArb: "Front Anti-Roll Bar",
+      rearArb: "Rear Anti-Roll Bar",
+      suspension: "Suspension",
+      aero: "Aero",
+      brake: "Brakes",
+      diff: "Differential",
+      gearbox: "Gearbox",
+    },
+    compensationTargets: {
+      tire: "tire pressure",
+      alignment: "alignment",
+      antiRoll: "anti-roll bars",
+      suspension: "suspension",
+      aero: "aero",
+      brake: "brakes",
+      diff: "differential",
+      gearbox: "gearbox",
+    },
     adjustmentRangeGroups: {
       arb: "Anti-Roll Bars",
       spring: "Springs",
@@ -527,6 +751,186 @@ const symptomCategoryTranslations = {
   },
 };
 
+const symptomChipTranslations = {
+  en: {
+    入彎: "Entry",
+    彎中: "Mid-corner",
+    出彎: "Exit",
+    高速: "High speed",
+    反應: "Response",
+    敏感: "Sensitive",
+    修正: "Correction",
+    過度: "Oversteer",
+    推頭: "Understeer",
+    車尾: "Rear",
+    漂浮: "Float",
+    晃動: "Sway",
+    穩定: "Stability",
+    收油: "Lift-off",
+    補油: "Throttle",
+    抓地: "Grip",
+    突然: "Snap",
+    協調: "Balance",
+    前輪: "Front",
+    後輪: "Rear",
+    整體: "Overall",
+    煞車: "Brake",
+    路肩: "Curb",
+    顛簸: "Bumpy",
+    雨天: "Wet",
+    輪胎: "Tire",
+    跳動: "Bounce",
+    過坡: "Crest",
+    觸底: "Bottoming",
+    落地: "Landing",
+    側傾: "Roll",
+    俯仰: "Pitch",
+    死硬: "Stiff",
+    行程: "Travel",
+    反彈: "Rebound",
+    離地: "Airtime",
+    甩尾: "Drift",
+    距離: "Distance",
+    重煞: "Heavy brake",
+    鎖死: "Lock-up",
+    起步: "Launch",
+    全油門: "Full throttle",
+    動力: "Power",
+    方向: "Direction",
+    切線: "Line",
+    換線: "Lane change",
+    大彎: "Fast bend",
+    山路: "Mountain",
+    下坡: "Downhill",
+    連續彎: "Linked corners",
+    爛路: "Rough",
+    坡道: "Ramp",
+    跳台: "Jump",
+    草地: "Grass",
+    高低差: "Elevation",
+    路面切換: "Surface change",
+    AWD: "AWD",
+    Trail: "Trail",
+  },
+};
+
+const symptomLabelTranslations = {
+  en: {
+    "steering-entry-understeer": "Entry understeer",
+    "steering-entry-slow": "Slow turn-in response",
+    "steering-entry-push": "Entry push",
+    "steering-mid-push": "Mid-corner understeer",
+    "steering-exit-push": "Exit understeer",
+    "steering-fast-corner-not-turning": "Won't rotate in fast bends",
+    "steering-dull": "Steering feels dull",
+    "steering-nervous": "Steering feels nervous",
+    "steering-small-correction-hard": "Small corrections are difficult",
+    "steering-small-angle-weak": "Small steering inputs feel weak",
+    "steering-highspeed-float": "High-speed steering float",
+    "steering-highspeed-unsafe": "High-speed steering feels unsafe",
+    "steering-mid-sudden-oversteer": "Sudden mid-corner oversteer",
+    "steering-mid-constant-correction": "Constant mid-corner corrections",
+    "steering-delay": "Delayed steering response",
+    "steering-too-sensitive": "Steering is too sensitive",
+    "steering-front-not-follow": "Front end will not follow steering",
+    "steering-understeer": "Understeer",
+    "steering-oversteer": "Oversteer",
+    "rear-fishtail": "Rear fishtailing",
+    "rear-floating": "Floating rear feel",
+    "rear-sway": "Rear swaying side to side",
+    "rear-unstable": "Unstable rear end",
+    "rear-too-active": "Rear is too active",
+    "rear-exit-drift": "Exit oversteer",
+    "rear-lift-off-drift": "Lift-off oversteer",
+    "rear-highspeed-snap": "High-speed rear snap",
+    "rear-highspeed-direction-unstable": "Unstable high-speed direction changes",
+    "rear-mid-slide": "Rear keeps sliding mid-corner",
+    "rear-throttle-slide": "Rear slides after throttle",
+    "rear-loses-grip": "Rear loses grip easily",
+    "rear-wiggle": "Rear wiggle",
+    "rear-snap-death": "Sudden rear snap",
+    "rear-too-quick": "Rear reacts too quickly",
+    "rear-lags-front": "Rear lags behind the front",
+    "grip-front-low": "Low front grip",
+    "grip-rear-low": "Low rear grip",
+    "grip-all-low": "Low overall grip",
+    "grip-exit-low": "Poor exit grip",
+    "grip-highspeed-low": "Low high-speed grip",
+    "grip-mid-low": "Low mid-corner grip",
+    "grip-throttle-low": "Poor throttle grip",
+    "grip-brake-low": "Poor braking grip",
+    "grip-curb-low": "Poor curb grip",
+    "grip-bumpy-low": "Poor bumpy-road grip",
+    "grip-rain-low": "Poor wet grip",
+    "grip-tire-slide": "Tires slide easily",
+    "grip-limit-low": "Tire limit feels too low",
+    "suspension-boat": "Boat-like body motion",
+    "suspension-body-roll-too-much": "Too much body roll",
+    "suspension-jumpy": "Car keeps bouncing",
+    "suspension-curb-fly": "Car flies off curbs",
+    "suspension-bump-kick": "Bumps kick the car away",
+    "suspension-crest-unstable": "Unstable over crests",
+    "suspension-highspeed-bottom": "High-speed bottoming out",
+    "suspension-landing-lost": "Loss of control on landing",
+    "suspension-roll-large": "Excessive body roll",
+    "suspension-left-right": "Body sways left and right",
+    "suspension-up-down": "Body bounces up and down",
+    "suspension-pitch": "Excessive pitch",
+    "suspension-corner-stiff": "Cornering posture feels too stiff",
+    "suspension-too-stiff": "Body feels too stiff",
+    "suspension-travel-low": "Not enough suspension travel",
+    "suspension-landing-rebound": "Too much rebound after landing",
+    "suspension-lift-easy": "Car gets airborne too easily",
+    "brake-unstable": "Unstable braking",
+    "brake-understeer": "Brake understeer",
+    "brake-oversteer": "Brake oversteer",
+    "brake-distance-long": "Braking distance is too long",
+    "brake-entry-not-turning": "Won't turn while braking into corners",
+    "brake-body-wobble": "Body wobbles under braking",
+    "brake-heavy-unstable": "Unstable under heavy braking",
+    "brake-lock": "Brake lock-up",
+    "brake-trail-unstable": "Unstable trail braking",
+    "brake-rear-move": "Rear moves around after braking",
+    "brake-highspeed-unstable": "Unstable high-speed braking",
+    "accel-launch-unstable": "Unstable launch",
+    "launch-spin": "Launch wheelspin",
+    "accel-exit-slide": "Too much exit slide",
+    "accel-throttle-understeer": "Understeer on throttle",
+    "accel-throttle-oversteer": "Oversteer on throttle",
+    "accel-full-throttle-hard": "Full throttle is hard to control",
+    "accel-highspeed-float": "High-speed acceleration float",
+    "accel-direction-pull": "Car pulls under acceleration",
+    "accel-power-rough": "Rough power delivery",
+    "accel-cannot-early-throttle": "Cannot get on throttle early",
+    "accel-body-unstable": "Body unstable on throttle",
+    "accel-front-push-out": "Front pushes wide after throttle",
+    "highspeed-left-right-float": "High-speed left-right float",
+    "highspeed-steering-light": "Steering feels light at speed",
+    "highspeed-floating": "Car feels like it is floating",
+    "highspeed-road-jump": "Car hops over high-speed bumps",
+    "highspeed-line-unstable": "Unstable high-speed line",
+    "highspeed-fast-corner-unstable": "Unstable in fast bends",
+    "highspeed-lane-change-unstable": "Unstable lane changes",
+    "highspeed-crest-unstable": "Unstable over high-speed crests",
+    "highspeed-curb-unstable": "Unstable over high-speed curbs",
+    "highspeed-correction-hard": "Hard to correct at high speed",
+    "highspeed-body-wobble": "High-speed body wobble",
+    "highspeed-float-feel": "High-speed floating feel",
+    "fh-mountain-lost": "Easy to lose control on mountain roads",
+    "fh-downhill-brake-hard": "Hard to brake downhill",
+    "fh-s-corner-slow-correct": "Slow corrections through linked corners",
+    "fh-mountain-jump": "Car jumps too much on mountain roads",
+    "fh-rough-road-unstable": "Unstable on rough FH roads",
+    "fh-ramp-fly": "Car launches off ramps",
+    "fh-jump-landing-unstable": "Unstable after jump landings",
+    "fh-grass-lost": "Loses control on grass",
+    "fh-elevation-unstable": "Unstable over elevation changes",
+    "fh-tarmac-dirt-unstable": "Unstable from tarmac to dirt",
+    "fh-mountain-throttle-unstable": "Unstable throttle on mountain roads",
+    "fh-mountain-highspeed-push": "High-speed mountain understeer",
+  },
+};
+
 const recommendationReasonTranslations = {
   en: {
     technical: {
@@ -563,7 +967,14 @@ function localizedSymptomCategory(category) {
 }
 
 function localizedSymptom(issue) {
-  return issue;
+  const language = currentLanguage();
+  if (language !== "en") return issue;
+
+  return {
+    ...issue,
+    label: symptomLabelTranslations.en[issue.id] ?? issue.label,
+    chip: symptomChipTranslations.en[issue.chip] ?? issue.chip,
+  };
 }
 
 function localizedRecommendationReason(reasonKey, fallbackReason) {
@@ -1413,8 +1824,198 @@ const adviceTemplates = {
   ],
 };
 
+const adviceTemplateTranslations = {
+  en: {
+    steeringUndersteer: [
+      ["Front grip", "Lower the front anti-roll bar by 3% to 6%, and add -0.1 to -0.3 deg front camber."],
+      ["Rear rotation help", "Raise the rear anti-roll bar by 2% to 4%, but back off halfway if the rear starts sliding."],
+      ["Differential", "For AWD or FWD, first lower front accel diff by 3% to 6% to reduce throttle understeer."],
+    ],
+    steeringSlow: [
+      ["Front toe", "Add +0.02 to +0.05 deg front toe-out to make the initial response clearer."],
+      ["Rebound damping", "Raise front rebound by 2% to 4% so the body accepts steering input sooner."],
+      ["Caster", "Add 0.2 to 0.4 deg caster for stronger self-aligning feel and front support."],
+    ],
+    steeringNervous: [
+      ["Front toe", "Reduce front toe-out by 0.02 to 0.05 deg, or return it to 0 if needed."],
+      ["Rear toe", "Add +0.02 to +0.05 deg rear toe-in to settle the rear."],
+      ["High-speed support", "Add 3% to 7% rear downforce; prioritize this on fast cars."],
+    ],
+    steeringOversteer: [
+      ["Rear mechanical grip", "Lower rear anti-roll bar and rear spring by 3% to 6% each."],
+      ["Rear tire pressure", "Lower 0.02 to 0.05 BAR to regain slide tolerance first."],
+      ["Differential", "Lower rear accel or decel diff by 4% to 8%, depending on whether it happens on throttle or lift-off."],
+    ],
+    rearLoose: [
+      ["Rear tire pressure", "Lower 0.02 to 0.06 BAR so the rear tires bite more easily."],
+      ["Rear anti-roll bar", "Lower 3% to 7%; prioritize this if the slide starts mid-corner."],
+      ["Rear differential", "Lower rear accel diff by 4% to 8%; for lift-off oversteer, lower rear decel diff."],
+    ],
+    rearFloat: [
+      ["Rear downforce", "Add 4% to 8%; high-speed floating should start with aero."],
+      ["Rear toe", "Add +0.02 to +0.06 deg rear toe-in for straight-line and lane-change stability."],
+      ["Rear rebound", "Lower 2% to 5% to keep the rear from bouncing after surface changes."],
+    ],
+    rearTooFast: [
+      ["Rear anti-roll bar", "Lower 3% to 6% to slow rear response."],
+      ["Rear toe", "Add +0.02 to +0.05 deg rear toe-in."],
+      ["Differential", "Lower rear accel diff by 3% to 6% so throttle does not rotate the rear too sharply."],
+    ],
+    gripFront: [
+      ["Front tire pressure", "Lower 0.01 to 0.03 BAR while keeping the warm tire target reasonable."],
+      ["Front camber", "Add -0.1 to -0.3 deg to improve mid-corner contact."],
+      ["Front anti-roll bar", "Lower 3% to 6% so the front tires stay planted mid-corner."],
+    ],
+    gripRear: [
+      ["Rear tire pressure", "Lower 0.02 to 0.05 BAR to preserve traction first."],
+      ["Rear spring and anti-roll bar", "Lower both by 3% to 6% so the rear tires stay planted."],
+      ["Rear downforce", "Add 3% to 8% on high-speed or high-power builds."],
+    ],
+    gripAll: [
+      ["Tire pressure", "Lower front and rear by 0.01 to 0.03 BAR, then watch warm tire behavior."],
+      ["Springs and anti-roll bars", "Lower front and rear by 3% to 6% to add mechanical grip."],
+      ["Aero", "Raise front and rear downforce by 3% to 7% for road racing; do not use aero as the first fix off-road."],
+    ],
+    gripBump: [
+      ["Ride height", "Raise 4% to 8% to avoid bottoming over curbs or bumps."],
+      ["Bump damping", "Lower 4% to 8% so the suspension can absorb impacts."],
+      ["Rebound damping", "Lower 3% to 6% so the tire does not skip after extending."],
+    ],
+    suspensionBoat: [
+      ["Anti-roll bars", "Raise front and rear anti-roll bars by 4% to 8% to control roll first."],
+      ["Rebound damping", "Raise front and rear rebound by 3% to 6% to reduce body movement."],
+      ["Springs", "Raise front and rear springs by 3% to 6%, but do not add too much at once on off-road builds."],
+    ],
+    suspensionBump: [
+      ["Ride height", "Raise 5% to 10% to preserve suspension travel."],
+      ["Bump damping", "Lower 5% to 10% so the car is not kicked off the surface."],
+      ["Anti-roll bars", "Lower front and rear by 5% to 10%; soften first for rough roads and curbs."],
+    ],
+    suspensionBottom: [
+      ["Ride height", "Raise 6% to 12% to stop high-speed bottoming first."],
+      ["Springs", "Raise 4% to 8% so the body has enough support."],
+      ["Bump damping", "Raise 2% to 5%, but back off if the car starts bouncing away from the surface."],
+    ],
+    suspensionHard: [
+      ["Springs", "Lower front and rear by 4% to 8% so the platform does not feel locked up."],
+      ["Anti-roll bars", "Lower 3% to 6% to improve mid-corner contact."],
+      ["Damping", "Lower bump and rebound by 2% to 5%, prioritizing bump first."],
+    ],
+    brakeUnstable: [
+      ["Brake pressure", "Lower 5% to 10% to avoid lock-up and wobble first."],
+      ["Brake balance", "Move 1% to 3% forward; if entry understeer gets worse, step it back."],
+      ["Differential decel", "Lower rear decel diff by 3% to 6%; this helps most with lift-off or braking oversteer."],
+    ],
+    brakeUndersteer: [
+      ["Brake balance", "Move 1% to 2% rearward so the front tires are not overloaded on entry."],
+      ["Front anti-roll bar", "Lower 3% to 6% to add front grip while braking into corners."],
+      ["Trail braking", "If the rear becomes unstable, move brake balance back 1 click and lower pressure."],
+    ],
+    brakeOversteer: [
+      ["Brake balance", "Move 1% to 3% forward to reduce rear lock-up risk."],
+      ["Rear diff decel", "Lower 4% to 8% so the rear does not swing on lift-off braking."],
+      ["Rear toe", "Add +0.02 to +0.05 deg rear toe-in."],
+    ],
+    brakeLock: [
+      ["Brake pressure", "Lower 8% to 15% to solve lock-up first."],
+      ["Brake balance", "Adjust toward the unlocked end: rearward for front lock-up, forward for rear lock-up."],
+      ["Tire pressure", "Lower the locking end by 0.01 to 0.03 BAR."],
+    ],
+    accelTraction: [
+      ["Driven tire pressure", "Lower 0.03 to 0.07 BAR to help the power reach the ground first."],
+      ["Differential accel", "Lower 4% to 8%; prioritize this when the car slides as soon as throttle is applied."],
+      ["Final drive", "Lower -0.08 to -0.18 so the low gears are less violent."],
+    ],
+    accelUndersteer: [
+      ["Front diff accel", "For AWD or FWD, lower front accel diff by 4% to 8%."],
+      ["Center differential", "Move AWD center balance 3% to 6% rearward to reduce throttle understeer."],
+      ["Rear anti-roll bar", "Raise 2% to 4% so the rear helps rotate on exit."],
+    ],
+    accelOversteer: [
+      ["Rear diff accel", "Lower 5% to 10% so throttle does not open the rear immediately."],
+      ["Rear tire pressure", "Lower 0.03 to 0.06 BAR."],
+      ["Rear springs", "Lower 3% to 6% so the rear tires stay loaded."],
+    ],
+    accelFloat: [
+      ["Rear downforce", "Add 4% to 8% to reduce high-speed full-throttle float."],
+      ["Rear toe", "Add +0.02 to +0.05 deg rear toe-in."],
+      ["Center differential", "Move AWD center balance 2% to 4% forward for more stable high-speed acceleration."],
+    ],
+    powerDelivery: [
+      ["Final drive", "Adjust by symptom: add +0.08 if rpm drops, or lower -0.08 if delivery is too violent."],
+      ["Low gear ratios", "Only shorten or lengthen the problem gear by 3% to 6%."],
+      ["Differential", "Lower accel lock by 3% to 6% if power delivery feels abrupt."],
+    ],
+    highSpeedFloat: [
+      ["Aero", "Add 4% to 8% front and rear downforce; stabilize first, then chase top speed."],
+      ["Ride height", "Lower road cars by 2% to 5% front and rear, but avoid going too low on bumpy routes."],
+      ["Rear toe", "Add +0.02 to +0.05 deg rear toe-in."],
+    ],
+    highSpeedBump: [
+      ["Ride height", "Raise 4% to 8% to preserve travel over high-speed curbs or crests."],
+      ["Bump damping", "Lower 4% to 8% so tires are not kicked off the surface."],
+      ["Rebound damping", "Lower 3% to 6% to reduce movement after landing."],
+    ],
+    highSpeedLine: [
+      ["Rear downforce", "Add 4% to 8% to improve lane changes and fast-bend stability."],
+      ["Front toe", "Reduce front toe-out toward 0."],
+      ["Anti-roll bars", "Raise front and rear slightly by 2% to 4%, but step back if curb behavior gets worse."],
+    ],
+    fhMountain: [
+      ["Ride height and damping", "Raise ride height 4% to 8%, and lower bump and rebound by 3% to 6%."],
+      ["Brakes", "If downhill braking is difficult, lower brake pressure 5% to 10% and move balance 1% to 2% forward."],
+      ["Final drive", "If rpm drops on mountain exits, add +0.08 to +0.15."],
+    ],
+    fhRough: [
+      ["Suspension travel", "Raise ride height 6% to 12% to avoid bottoming on slopes, rough roads, and jumps."],
+      ["Anti-roll bars", "Lower front and rear by 5% to 10% so each side can handle the surface independently."],
+      ["Damping", "Lower bump by 5% to 10%, and lower rebound by 3% to 6%."],
+    ],
+    fhTransition: [
+      ["Tire pressure", "Lower front and rear by 0.02 to 0.04 BAR to make tarmac-to-dirt transitions more forgiving."],
+      ["Differential", "For AWD, lower front and rear accel diff slightly by 3% to 6% to avoid sudden surface-change slides."],
+      ["Ride height", "Raise 3% to 6% to handle elevation changes."],
+    ],
+  },
+};
+
+const contextualAdviceStepTranslations = {
+  en: {
+    "渦輪遲滯|把終傳縮短前先試縮短低檔，避免高檔尾速被犧牲太多。": [
+      "Turbo lag",
+      "Before shortening final drive, try shortening the low gears so upper-gear top speed is not sacrificed too much.",
+    ],
+    "後驅容錯|後驅車先保住後胎胎壓與後差速器，再調防傾桿。": [
+      "RWD tolerance",
+      "On RWD cars, protect rear tire pressure and rear differential behavior first, then tune anti-roll bars.",
+    ],
+    "前驅補救|若入彎仍推，前差減速降低 2% 到 4%，讓收油時前輪更願意轉。": [
+      "FWD fix",
+      "If entry push remains, lower front decel diff by 2% to 4% so the front tires rotate better on lift-off.",
+    ],
+    "賽道取捨|多彎賽道不要一次犧牲太多尾速或下壓，先用小幅調整測試。": [
+      "Track tradeoff",
+      "On technical circuits, do not sacrifice too much top speed or downforce at once; test with small steps first.",
+    ],
+    "模式確認|若目標不是甩尾，先只小幅調胎壓與前束，避免破壞正賽穩定。": [
+      "Mode check",
+      "If the goal is not drifting, only adjust tire pressure and front toe lightly so race stability is not ruined.",
+    ],
+  },
+};
+
 function symptom(id, label, chip, templateKey) {
-  return { id, label, chip, steps: adviceTemplates[templateKey] };
+  return { id, label, chip, templateKey, steps: adviceTemplates[templateKey] };
+}
+
+function localizedAdviceStep(issue, step, index) {
+  if (currentLanguage() !== "en") return step;
+
+  const templateStep = adviceTemplateTranslations.en[issue.templateKey]?.[index];
+  if (templateStep) return templateStep;
+
+  const contextualStep = contextualAdviceStepTranslations.en[step.join("|")];
+  return contextualStep ?? step;
 }
 
 const symptomCategories = [
@@ -1804,12 +2405,76 @@ function localizedSettingCard(card) {
   return [translated[0] ?? label, key, unit, translated[1] ?? note];
 }
 
+function localizedAvailabilityGroup(group) {
+  return optionTranslations[currentLanguage()]?.availabilityGroups?.[group.id] ?? group.label;
+}
+
+function localizedCompensationTarget(targetId) {
+  const zhTargets = {
+    tire: "胎壓",
+    alignment: "定位角",
+    antiRoll: "防傾桿",
+    suspension: "懸吊",
+    aero: "空力",
+    brake: "煞車",
+    diff: "差速器",
+    gearbox: "齒輪箱",
+  };
+  return optionTranslations[currentLanguage()]?.compensationTargets?.[targetId] ?? zhTargets[targetId] ?? targetId;
+}
+
 function localizedMeterLabel(key, fallbackLabel) {
   return optionTranslations[currentLanguage()]?.meters?.[key] ?? fallbackLabel;
 }
 
 function localizedRaceGearNote(raceId, fallbackNote) {
   return optionTranslations[currentLanguage()]?.raceGearNotes?.[raceId] ?? fallbackNote;
+}
+
+function availabilityEnabled(groupId) {
+  return state.availability?.[groupId] !== false;
+}
+
+function tuneKeyAdjustable(key) {
+  const groupId = tuneKeyAvailabilityGroup[key];
+  return !groupId || availabilityEnabled(groupId);
+}
+
+function settingAvailabilityStatus(settingKey) {
+  const groupIds = settingAvailabilityGroups[settingKey] ?? [];
+  if (!groupIds.length) return "available";
+  const disabledCount = groupIds.filter((groupId) => !availabilityEnabled(groupId)).length;
+  if (!disabledCount) return "available";
+  return disabledCount === groupIds.length ? "unavailable" : "partial";
+}
+
+function compensationTargetAvailable(targetId) {
+  const groupIds = compensationTargetGroups[targetId] ?? [];
+  return groupIds.length === 0 || groupIds.some((groupId) => availabilityEnabled(groupId));
+}
+
+function fallbackTargetsForGroups(groupIds) {
+  const targetIds = [
+    ...new Set(
+      groupIds
+        .map((groupId) => availabilityById[groupId])
+        .filter(Boolean)
+        .flatMap((group) => group.fallbackTargets),
+    ),
+  ].filter(compensationTargetAvailable);
+  return targetIds.map(localizedCompensationTarget);
+}
+
+function compensationNoteForSetting(settingKey) {
+  const disabledGroups = (settingAvailabilityGroups[settingKey] ?? []).filter((groupId) => !availabilityEnabled(groupId));
+  if (!disabledGroups.length) return "";
+  const targets = fallbackTargetsForGroups(disabledGroups);
+  if (!targets.length) return t("compensationLimited");
+  return `${t("compensationPrefix")} ${targets.join(" / ")} ${t("compensationSuffix")}`.trim();
+}
+
+function unavailableLabelForStatus(status) {
+  return status === "partial" ? t("settingPartUnavailable") : t("settingUnavailable");
 }
 
 function applyStaticTranslations() {
@@ -1837,6 +2502,7 @@ function refreshLanguageUi() {
   renderOptions("engineOptions", engineCurves, "engine");
   renderOptions("driveOptions", driveTypes, "drive");
   syncConfigControls();
+  renderAvailabilityControls();
   renderAdjustmentRangeControls();
   bindAdjustmentRangeInputs();
   syncAdjustmentRangeInputs();
@@ -1959,9 +2625,14 @@ function tuneFocusIntensityHint() {
   return t("tuneFocusAggressive");
 }
 
+function tuneFocusUsesIntensity(tuneFocus = optionById(tuneFocusTypes, state.tuneFocus)) {
+  const option = typeof tuneFocus === "string" ? optionById(tuneFocusTypes, tuneFocus) : tuneFocus;
+  return (option?.id ?? "balanced") !== "balanced";
+}
+
 function formatTuneFocusLabel(tuneFocus = optionById(tuneFocusTypes, state.tuneFocus)) {
   const option = localizedOption("tuneFocusTypes", tuneFocus ?? tuneFocusTypes[0]);
-  return `${option.label} ${formatTuneFocusIntensity()}`;
+  return tuneFocusUsesIntensity(tuneFocus) ? `${option.label} ${formatTuneFocusIntensity()}` : option.label;
 }
 
 function gearOptimizationProfile(goalId = state.gearbox.gearGoal) {
@@ -2086,6 +2757,135 @@ function powertrainDynamicsMods() {
   };
 }
 
+function tuneDelta(desiredTune, key) {
+  return (Number(desiredTune[key]) || 0) - (Number(BASE_TUNE[key]) || 0);
+}
+
+function averageTuneDelta(desiredTune, keys) {
+  const values = keys.map((key) => tuneDelta(desiredTune, key));
+  if (!values.length) return 0;
+  return values.reduce((total, value) => total + value, 0) / values.length;
+}
+
+function addCompensation(tune, key, amount) {
+  if (!Number.isFinite(amount) || !tuneKeyAdjustable(key)) return;
+  tune[key] = (Number(tune[key]) || 0) + amount;
+}
+
+function applyCompensationForUnavailableGroup(tune, desiredTune, groupId) {
+  switch (groupId) {
+    case "alignment": {
+      const turnIntent = clampNumber(
+        -tuneDelta(desiredTune, "camberFront") * 1.2 + tuneDelta(desiredTune, "toeFront") * 24 + tuneDelta(desiredTune, "caster") * 0.9,
+        -5,
+        5,
+      );
+      const rearIntent = clampNumber(-tuneDelta(desiredTune, "camberRear") + tuneDelta(desiredTune, "toeRear") * 20, -4, 4);
+      addCompensation(tune, "tireFront", -turnIntent * 0.05);
+      addCompensation(tune, "tireRear", -rearIntent * 0.04);
+      addCompensation(tune, "arbFront", -turnIntent * 0.55);
+      addCompensation(tune, "arbRear", rearIntent * 0.45 + turnIntent * 0.25);
+      addCompensation(tune, "aeroFront", turnIntent * 0.8);
+      addCompensation(tune, "aeroRear", rearIntent * 0.7);
+      break;
+    }
+    case "frontArb": {
+      const delta = tuneDelta(desiredTune, "arbFront");
+      addCompensation(tune, "springFront", delta * 0.35);
+      addCompensation(tune, "reboundFront", delta * 0.18);
+      addCompensation(tune, "aeroFront", delta * 0.28);
+      addCompensation(tune, "tireFront", delta * 0.012);
+      break;
+    }
+    case "rearArb": {
+      const delta = tuneDelta(desiredTune, "arbRear");
+      addCompensation(tune, "springRear", delta * 0.35);
+      addCompensation(tune, "reboundRear", delta * 0.18);
+      addCompensation(tune, "aeroRear", delta * 0.25);
+      addCompensation(tune, "diffRearAccel", delta * 0.12);
+      addCompensation(tune, "tireRear", delta * 0.012);
+      break;
+    }
+    case "suspension": {
+      const frontSupport = averageTuneDelta(desiredTune, ["springFront", "reboundFront", "bumpFront"]);
+      const rearSupport = averageTuneDelta(desiredTune, ["springRear", "reboundRear", "bumpRear"]);
+      const heightIntent = averageTuneDelta(desiredTune, ["rideFront", "rideRear"]);
+      addCompensation(tune, "arbFront", frontSupport * 0.22);
+      addCompensation(tune, "arbRear", rearSupport * 0.22);
+      addCompensation(tune, "tireFront", -frontSupport * 0.01 - Math.max(0, heightIntent) * 0.01);
+      addCompensation(tune, "tireRear", -rearSupport * 0.01 - Math.max(0, heightIntent) * 0.01);
+      addCompensation(tune, "aeroFront", frontSupport * 0.18);
+      addCompensation(tune, "aeroRear", rearSupport * 0.18);
+      break;
+    }
+    case "aero": {
+      const front = tuneDelta(desiredTune, "aeroFront");
+      const rear = tuneDelta(desiredTune, "aeroRear");
+      addCompensation(tune, "springFront", front * 0.26);
+      addCompensation(tune, "springRear", rear * 0.26);
+      addCompensation(tune, "arbFront", front * 0.16);
+      addCompensation(tune, "arbRear", rear * 0.16);
+      addCompensation(tune, "toeRear", rear > 0 ? 0.01 : -0.005);
+      addCompensation(tune, "tireFront", -front * 0.006);
+      addCompensation(tune, "tireRear", -rear * 0.006);
+      break;
+    }
+    case "brake": {
+      const balance = tuneDelta(desiredTune, "brakeBalance");
+      const pressure = tuneDelta(desiredTune, "brakePressure");
+      addCompensation(tune, "tireFront", -pressure * 0.006 - balance * 0.01);
+      addCompensation(tune, "tireRear", -pressure * 0.004 + balance * 0.008);
+      addCompensation(tune, "reboundFront", balance * 0.25);
+      addCompensation(tune, "diffRearDecel", -balance * 0.45);
+      addCompensation(tune, "diffFrontDecel", balance * 0.25);
+      break;
+    }
+    case "diff": {
+      const rearAccel = tuneDelta(desiredTune, "diffRearAccel");
+      const frontAccel = tuneDelta(desiredTune, "diffFrontAccel");
+      const decel = averageTuneDelta(desiredTune, ["diffFrontDecel", "diffRearDecel"]);
+      addCompensation(tune, "tireRear", -rearAccel * 0.006);
+      addCompensation(tune, "tireFront", -frontAccel * 0.006);
+      addCompensation(tune, "arbRear", -rearAccel * 0.08);
+      addCompensation(tune, "arbFront", -frontAccel * 0.08);
+      addCompensation(tune, "reboundRear", -rearAccel * 0.04);
+      addCompensation(tune, "finalDrive", (rearAccel + frontAccel) * 0.002 - decel * 0.001);
+      break;
+    }
+    case "gearbox": {
+      const finalDrive = tuneDelta(desiredTune, "finalDrive");
+      addCompensation(tune, "diffRearAccel", finalDrive * 9);
+      addCompensation(tune, "diffFrontAccel", finalDrive * 5);
+      addCompensation(tune, "tireRear", -finalDrive * 0.18);
+      addCompensation(tune, "tireFront", -finalDrive * 0.08);
+      addCompensation(tune, "arbRear", -finalDrive * 1.4);
+      addCompensation(tune, "aeroRear", Math.abs(finalDrive) * 1.6);
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+function freezeUnavailableTuneKeys(tune, groupId) {
+  const group = availabilityById[groupId];
+  if (!group) return;
+  group.tuneKeys.forEach((key) => {
+    tune[key] = BASE_TUNE[key];
+  });
+}
+
+function applyAvailabilityToTune(desiredTune) {
+  const tune = { ...desiredTune };
+  availabilityGroups.forEach((group) => {
+    if (!availabilityEnabled(group.id)) applyCompensationForUnavailableGroup(tune, desiredTune, group.id);
+  });
+  availabilityGroups.forEach((group) => {
+    if (!availabilityEnabled(group.id)) freezeUnavailableTuneKeys(tune, group.id);
+  });
+  return clampTune(tune);
+}
+
 function buildTune() {
   const tune = { ...BASE_TUNE };
   const race = optionById(raceTypes, state.race);
@@ -2122,6 +2922,255 @@ function buildTune() {
     tune.diffFrontAccel += state.drive === "fwd" ? 4 : 0;
   }
 
+  return applyAvailabilityToTune(clampTune(tune));
+}
+
+const symptomTuneMods = {
+  steeringUndersteer: {
+    tireFront: -0.25,
+    camberFront: -0.15,
+    toeFront: 0.02,
+    arbFront: -3,
+    arbRear: 2,
+    aeroFront: 2,
+    diffFrontAccel: -3,
+    diffCenter: -3,
+  },
+  steeringSlow: {
+    toeFront: 0.03,
+    caster: 0.2,
+    arbFront: 2,
+    reboundFront: 2,
+  },
+  steeringNervous: {
+    toeFront: -0.03,
+    toeRear: 0.03,
+    arbFront: -2,
+    aeroRear: 3,
+    reboundFront: -1,
+  },
+  steeringOversteer: {
+    tireRear: -0.35,
+    toeRear: 0.03,
+    arbRear: -4,
+    springRear: -3,
+    aeroRear: 3,
+    diffRearAccel: -5,
+    diffRearDecel: -4,
+  },
+  rearLoose: {
+    tireRear: -0.45,
+    toeRear: 0.04,
+    arbRear: -4,
+    springRear: -3,
+    aeroRear: 4,
+    diffRearAccel: -6,
+    diffRearDecel: -3,
+  },
+  rearFloat: {
+    toeRear: 0.04,
+    aeroRear: 5,
+    reboundRear: -2,
+    bumpRear: -2,
+  },
+  rearTooFast: {
+    toeRear: 0.03,
+    arbRear: -3,
+    reboundRear: -2,
+    diffRearAccel: -4,
+  },
+  gripFront: {
+    tireFront: -0.3,
+    camberFront: -0.18,
+    arbFront: -3,
+    aeroFront: 2,
+  },
+  gripRear: {
+    tireRear: -0.45,
+    springRear: -3,
+    arbRear: -3,
+    aeroRear: 3,
+    diffRearAccel: -4,
+  },
+  gripAll: {
+    tireFront: -0.25,
+    tireRear: -0.3,
+    arbFront: -3,
+    arbRear: -3,
+    springFront: -3,
+    springRear: -3,
+    aeroFront: 2,
+    aeroRear: 2,
+  },
+  gripBump: {
+    tireFront: -0.2,
+    tireRear: -0.2,
+    rideFront: 5,
+    rideRear: 5,
+    reboundFront: -3,
+    reboundRear: -3,
+    bumpFront: -5,
+    bumpRear: -5,
+  },
+  suspensionBoat: {
+    arbFront: 5,
+    arbRear: 5,
+    springFront: 4,
+    springRear: 4,
+    reboundFront: 4,
+    reboundRear: 4,
+  },
+  suspensionBump: {
+    rideFront: 7,
+    rideRear: 7,
+    arbFront: -5,
+    arbRear: -5,
+    reboundFront: -4,
+    reboundRear: -4,
+    bumpFront: -7,
+    bumpRear: -7,
+  },
+  suspensionBottom: {
+    rideFront: 8,
+    rideRear: 8,
+    springFront: 5,
+    springRear: 5,
+    bumpFront: 3,
+    bumpRear: 3,
+  },
+  suspensionHard: {
+    tireFront: -0.15,
+    tireRear: -0.15,
+    arbFront: -4,
+    arbRear: -4,
+    springFront: -5,
+    springRear: -5,
+    reboundFront: -3,
+    reboundRear: -3,
+    bumpFront: -3,
+    bumpRear: -3,
+  },
+  brakeUnstable: {
+    brakeBalance: 2,
+    brakePressure: -8,
+    reboundFront: -2,
+    diffRearDecel: -4,
+  },
+  brakeUndersteer: {
+    brakeBalance: -2,
+    arbFront: -3,
+    diffFrontDecel: -3,
+  },
+  brakeOversteer: {
+    brakeBalance: 2,
+    toeRear: 0.03,
+    diffRearDecel: -5,
+  },
+  brakeLock: {
+    tireFront: -0.15,
+    tireRear: -0.15,
+    brakePressure: -10,
+  },
+  accelTraction: {
+    tireFront: -0.15,
+    tireRear: -0.45,
+    finalDrive: -0.08,
+    diffFrontAccel: -4,
+    diffRearAccel: -6,
+    diffCenter: -4,
+  },
+  accelUndersteer: {
+    tireFront: -0.2,
+    arbRear: 3,
+    diffFrontAccel: -6,
+    diffCenter: -5,
+  },
+  accelOversteer: {
+    tireRear: -0.45,
+    springRear: -4,
+    arbRear: -4,
+    diffRearAccel: -7,
+    aeroRear: 3,
+  },
+  accelFloat: {
+    toeRear: 0.03,
+    aeroRear: 5,
+    diffCenter: 3,
+  },
+  powerDelivery: {
+    finalDrive: 0.05,
+    diffFrontAccel: -3,
+    diffRearAccel: -4,
+  },
+  highSpeedFloat: {
+    toeRear: 0.03,
+    rideFront: -3,
+    rideRear: -3,
+    aeroFront: 5,
+    aeroRear: 6,
+  },
+  highSpeedBump: {
+    rideFront: 5,
+    rideRear: 5,
+    reboundFront: -3,
+    reboundRear: -3,
+    bumpFront: -5,
+    bumpRear: -5,
+  },
+  highSpeedLine: {
+    toeFront: -0.02,
+    arbFront: 2,
+    arbRear: 2,
+    aeroRear: 5,
+  },
+  fhMountain: {
+    finalDrive: 0.08,
+    rideFront: 5,
+    rideRear: 5,
+    reboundFront: -4,
+    reboundRear: -4,
+    bumpFront: -4,
+    bumpRear: -4,
+    brakeBalance: 1,
+    brakePressure: -6,
+  },
+  fhRough: {
+    rideFront: 8,
+    rideRear: 8,
+    arbFront: -6,
+    arbRear: -6,
+    reboundFront: -4,
+    reboundRear: -4,
+    bumpFront: -7,
+    bumpRear: -7,
+  },
+  fhTransition: {
+    tireFront: -0.3,
+    tireRear: -0.3,
+    rideFront: 4,
+    rideRear: 4,
+    diffFrontAccel: -4,
+    diffRearAccel: -4,
+  },
+};
+
+function addSymptomMod(tune, key, amount, multiplier) {
+  const value = Number(amount) * multiplier;
+  if (!Number.isFinite(value) || !tuneKeyAdjustable(key)) return;
+  tune[key] = (Number(tune[key]) || 0) + value;
+}
+
+function applySymptomTuneMods(tune, issue, multiplier) {
+  const mods = symptomTuneMods[issue.templateKey];
+  if (!mods) return;
+  Object.entries(mods).forEach(([key, amount]) => addSymptomMod(tune, key, amount, multiplier));
+}
+
+function buildSymptomOptimizedTune(selectedIssues = []) {
+  const tune = { ...buildTune() };
+  if (!selectedIssues.length) return tune;
+  const multiplier = clampNumber(1 / Math.sqrt(selectedIssues.length), 0.55, 1);
+  selectedIssues.forEach((issue) => applySymptomTuneMods(tune, issue, multiplier));
   return clampTune(tune);
 }
 
@@ -2193,10 +3242,14 @@ function syncTuneFocusIntensityInput() {
   const slider = document.getElementById("tuneFocusIntensitySlider");
   const output = document.getElementById("tuneFocusIntensityOutput");
   const hint = document.getElementById("tuneFocusIntensityHint");
+  const field = document.getElementById("tuneFocusIntensityField");
+  const usesIntensity = tuneFocusUsesIntensity();
 
   if (slider) slider.value = state.tuneFocusIntensity;
+  if (slider) slider.disabled = !usesIntensity;
   if (output) output.textContent = formatTuneFocusIntensity();
   if (hint) hint.textContent = tuneFocusIntensityHint();
+  if (field) field.classList.toggle("is-hidden", !usesIntensity);
 }
 
 function bindTuneFocusIntensityInput() {
@@ -2222,23 +3275,55 @@ function bindConfigSelects() {
 
     select.addEventListener("change", () => {
       state[stateKey] = select.value;
+      if (stateKey === "tuneFocus") syncTuneFocusIntensityInput();
       updateLiveTune();
     });
   });
 }
 
 function activeIssueCategory() {
-  return optionById(symptomCategories, state.activeIssueCategory) ?? symptomCategories[0];
+  return optionById(symptomCategories, activeIssueCategoryId()) ?? symptomCategories[0];
+}
+
+function isStandaloneSymptomMode() {
+  return state.symptomMode === "standalone";
+}
+
+function currentIssueSet() {
+  return isStandaloneSymptomMode() ? state.solutionIssues : state.issues;
+}
+
+function activeIssueCategoryId() {
+  return isStandaloneSymptomMode() ? state.solutionActiveIssueCategory : state.activeIssueCategory;
+}
+
+function setActiveIssueCategory(categoryId) {
+  if (isStandaloneSymptomMode()) {
+    state.solutionActiveIssueCategory = categoryId;
+  } else {
+    state.activeIssueCategory = categoryId;
+  }
+}
+
+function renderSymptomModeHeader() {
+  const title = document.getElementById("symptomPageTitle");
+  const label = document.getElementById("symptomAdviceLabel");
+  const hint = document.getElementById("symptomAdviceHintTitle");
+  if (title) title.textContent = isStandaloneSymptomMode() ? t("solutionTitle") : t("roadTestTitle");
+  if (label) label.textContent = isStandaloneSymptomMode() ? t("adjustmentDirectionLabel") : t("linkedTunePanelLabel");
+  if (hint) hint.textContent = isStandaloneSymptomMode() ? t("solutionAdviceHint") : t("symptomAdviceHint");
 }
 
 function renderIssueCategories() {
   const categoryGrid = document.getElementById("issueCategoryGrid");
+  renderSymptomModeHeader();
+  const selectedIssues = currentIssueSet();
   categoryGrid.innerHTML = symptomCategories
     .map((category) => {
       const localizedCategory = localizedSymptomCategory(category);
-      const selectedCount = category.symptoms.filter((issue) => state.issues.has(issue.id)).length;
+      const selectedCount = category.symptoms.filter((issue) => selectedIssues.has(issue.id)).length;
       return `
-        <button class="category-button ${category.id === state.activeIssueCategory ? "is-active" : ""}" type="button" data-category="${category.id}">
+        <button class="category-button ${category.id === activeIssueCategoryId() ? "is-active" : ""}" type="button" data-category="${category.id}">
           <span>${localizedCategory.label}</span>
           <span class="category-button-count">${selectedCount}</span>
         </button>
@@ -2248,7 +3333,7 @@ function renderIssueCategories() {
 
   categoryGrid.querySelectorAll("button").forEach((button) => {
     button.addEventListener("click", () => {
-      state.activeIssueCategory = button.dataset.category;
+      setActiveIssueCategory(button.dataset.category);
       renderIssueCategories();
       renderIssues();
     });
@@ -2259,6 +3344,7 @@ function renderIssues() {
   const category = activeIssueCategory();
   const localizedCategory = localizedSymptomCategory(category);
   const issueGrid = document.getElementById("issueGrid");
+  const selectedIssues = currentIssueSet();
   document.getElementById("activeCategoryLabel").textContent = localizedCategory.label;
   document.getElementById("activeCategoryDescription").textContent = localizedCategory.description;
   issueGrid.innerHTML = category.symptoms
@@ -2268,7 +3354,7 @@ function renderIssues() {
         return `
         <div class="issue-card">
           <input type="checkbox" id="issue-${issue.id}" value="${issue.id}" ${
-            state.issues.has(issue.id) ? "checked" : ""
+            selectedIssues.has(issue.id) ? "checked" : ""
           }>
           <label for="issue-${issue.id}">${localizedIssue.label}</label>
         </div>
@@ -2279,10 +3365,11 @@ function renderIssues() {
 
   issueGrid.querySelectorAll("input").forEach((input) => {
     input.addEventListener("change", (event) => {
+      const issues = currentIssueSet();
       if (event.target.checked) {
-        state.issues.add(event.target.value);
+        issues.add(event.target.value);
       } else {
-        state.issues.delete(event.target.value);
+        issues.delete(event.target.value);
       }
       renderIssueCategories();
       renderSelectedIssues();
@@ -2293,7 +3380,7 @@ function renderIssues() {
 
 function renderSelectedIssues() {
   const issueLookup = new Map(allIssueTypes.map((issue) => [issue.id, issue]));
-  const selected = [...state.issues].map((id) => issueLookup.get(id)).filter(Boolean);
+  const selected = [...currentIssueSet()].map((id) => issueLookup.get(id)).filter(Boolean);
   document.getElementById("selectedIssueCount").textContent = t("selectedCount", { count: selected.length });
   document.getElementById("selectedIssues").innerHTML = selected
     .map((issue) => `<span class="selected-issue-chip">${localizedSymptom(issue).label}</span>`)
@@ -2322,14 +3409,15 @@ function vehicleSpecLabel() {
 
 function vehicleSpecCopyLines() {
   normalizeVehicleSpecs();
-  return [
+  const lines = [
     `${t("vehicleSpecWeight")}: ${Math.round(state.carWeight)} kg`,
     `${t("vehicleSpecFront")}: ${formatSpecPercent(state.frontWeightPercent)}%`,
     `${t("vehicleSpecRear")}: ${formatSpecPercent(100 - state.frontWeightPercent)}%`,
     `${t("vehicleSpecPower")}: ${state.powerKw} kW`,
     `${t("vehicleSpecTorque")}: ${state.torqueNm} N.m`,
-    `${t("tuneFocusCopyIntensity")}: ${formatTuneFocusIntensity()}`,
   ];
+  if (tuneFocusUsesIntensity()) lines.push(`${t("tuneFocusCopyIntensity")}: ${formatTuneFocusIntensity()}`);
+  return lines;
 }
 
 const THEME_STORAGE_KEY = "fh6-tune-lab-theme";
@@ -2395,7 +3483,8 @@ function renderSummary() {
     const element = document.getElementById(id);
     if (element) element.textContent = text;
   });
-  document.getElementById("setupTitle").textContent = race.title;
+  const setupTitle = document.getElementById("setupTitle");
+  if (setupTitle) setupTitle.textContent = race.title;
 }
 
 function renderSelectionPreview() {
@@ -2407,7 +3496,9 @@ function renderSelectionPreview() {
   document.getElementById("resultTags").innerHTML = html;
   document.getElementById("liveConfigTags").innerHTML = html;
   document.getElementById("gearTags").innerHTML = html;
-  document.getElementById("symptomTags").innerHTML = html;
+  document.getElementById("symptomTags").innerHTML = isStandaloneSymptomMode()
+    ? `<span>${t("solutionModeChip")}</span>`
+    : html;
 }
 
 function escapeHtml(value) {
@@ -2448,6 +3539,46 @@ function renderRecommendationHints() {
       localizedOption("driveTypes", optionById(driveTypes, recommendation.drive)),
       localizedRecommendationReason("driveWhy", recommendation.driveWhy),
     );
+  }
+}
+
+function renderAvailabilityControls() {
+  const grid = document.getElementById("availabilityGrid");
+  if (!grid) return;
+
+  grid.innerHTML = availabilityGroups
+    .map((group) => {
+      const checked = availabilityEnabled(group.id);
+      const inputId = `availability-${group.id}`;
+      return `
+        <label class="availability-toggle ${checked ? "" : "is-disabled"}" for="${inputId}">
+          <input id="${inputId}" type="checkbox" ${checked ? "checked" : ""} data-availability-group="${group.id}" />
+          <span class="availability-toggle-text">
+            <span class="availability-toggle-title">${localizedAvailabilityGroup(group)}</span>
+            <span class="availability-toggle-state">${checked ? t("availabilityOn") : t("availabilityOff")}</span>
+          </span>
+        </label>
+      `;
+    })
+    .join("");
+
+  grid.querySelectorAll("input").forEach((input) => {
+    input.addEventListener("change", () => {
+      state.availability[input.dataset.availabilityGroup] = input.checked;
+      renderAvailabilityControls();
+      renderResult();
+      renderGearCalculator();
+    });
+  });
+
+  const resetButton = document.getElementById("resetAvailabilityButton");
+  if (resetButton) {
+    resetButton.onclick = () => {
+      state.availability = createAvailability();
+      renderAvailabilityControls();
+      renderResult();
+      renderGearCalculator();
+    };
   }
 }
 
@@ -2617,10 +3748,9 @@ function bindVehicleInputs() {
 }
 
 function gearboxDefaultValue(key) {
-  if (key === "gearCount") return 6;
   if (key === "finalDrive") return Number(recommendedGearFinalDrive(buildTune()).toFixed(2));
-  if (key === "cornerGear") return 3;
-  return "";
+  const defaults = createDefaultGearbox();
+  return defaults[key] ?? "";
 }
 
 function gearNumber(key) {
@@ -2691,12 +3821,16 @@ function syncGearOptimizationControls(skipInputId = "") {
   const slider = document.getElementById("gearGoalIntensitySlider");
   const output = document.getElementById("gearGoalIntensityOutput");
   const hint = document.getElementById("gearGoalIntensityHint");
+  const intensityField = document.getElementById("gearGoalIntensityField");
   const cornerFields = document.getElementById("gearCornerFields");
   const cornerSpeedInput = document.getElementById("gearCornerSpeedInput");
+  const usesIntensity = state.gearbox.gearGoal !== "balanced";
 
   if (slider) slider.value = state.gearbox.gearGoalIntensity;
+  if (slider) slider.disabled = !usesIntensity;
   if (output) output.textContent = formatGearGoalIntensity();
   if (hint) hint.textContent = gearGoalIntensityHint();
+  if (intensityField) intensityField.classList.toggle("is-hidden", !usesIntensity);
   if (cornerFields) cornerFields.classList.toggle("is-hidden", state.gearbox.gearGoal !== "cornerRecovery");
   if (cornerSpeedInput && skipInputId !== "gearCornerSpeedInput") {
     const value = state.gearbox.cornerExitSpeedKmh;
@@ -2754,6 +3888,7 @@ function refreshRecommendedGearFinalDrive() {
 
 function prepareGearCalculator() {
   const tune = buildTune();
+  resetManualGearRatios();
   state.gearbox.finalDrive = Number(recommendedGearFinalDrive(tune).toFixed(2));
   syncGearboxInputs();
   syncGearOptimizationControls();
@@ -2870,6 +4005,159 @@ function applyCornerRecoveryBias(ratios, { gearCount, topTarget, topRatio, engin
   };
 }
 
+function gearRatioBandProfile(gear, gearCount, isCornerTarget = false) {
+  if (isCornerTarget) {
+    return {
+      roleKey: "gearBandRoleCornerTarget",
+      lowPct: 0.05,
+      highPct: 0.045,
+      lowNoteKey: "gearBandLowCorner",
+      highNoteKey: "gearBandHighCorner",
+    };
+  }
+
+  if (gear === 1) {
+    return {
+      roleKey: "gearBandRoleLaunch",
+      lowPct: 0.065,
+      highPct: 0.05,
+      lowNoteKey: "gearBandLowLaunch",
+      highNoteKey: "gearBandHighLaunch",
+    };
+  }
+
+  if (gear === gearCount) {
+    return {
+      roleKey: "gearBandRoleTop",
+      lowPct: 0.035,
+      highPct: 0.028,
+      lowNoteKey: "gearBandLowTop",
+      highNoteKey: "gearBandHighTop",
+    };
+  }
+
+  if (gear >= gearCount - 1) {
+    return {
+      roleKey: "gearBandRoleHigh",
+      lowPct: 0.04,
+      highPct: 0.035,
+      lowNoteKey: "gearBandLowHigh",
+      highNoteKey: "gearBandHighHigh",
+    };
+  }
+
+  if (gear <= 3) {
+    return {
+      roleKey: "gearBandRoleLowMid",
+      lowPct: 0.05,
+      highPct: 0.045,
+      lowNoteKey: "gearBandLowLowMid",
+      highNoteKey: "gearBandHighLowMid",
+    };
+  }
+
+  return {
+    roleKey: "gearBandRoleMid",
+    lowPct: 0.045,
+    highPct: 0.04,
+    lowNoteKey: "gearBandLowMid",
+    highNoteKey: "gearBandHighMid",
+  };
+}
+
+function gearRatioSafetyBand(ratio, plan) {
+  const isCornerTarget = plan.gearGoalId === "cornerRecovery" && ratio.gear === plan.cornerTargetGear;
+  const profile = gearRatioBandProfile(ratio.gear, plan.gearCount, isCornerTarget);
+  const suggestedRatio = Number.isFinite(ratio.suggestedRatio) ? ratio.suggestedRatio : ratio.ratio;
+  const currentRatio = Number.isFinite(ratio.ratio) ? ratio.ratio : suggestedRatio;
+  const safeMin = suggestedRatio * (1 - profile.lowPct);
+  const safeMax = suggestedRatio * (1 + profile.highPct);
+  const displayMin = suggestedRatio * (1 - profile.lowPct * 2.35);
+  const displayMax = suggestedRatio * (1 + profile.highPct * 2.35);
+  const displaySpan = Math.max(0.01, displayMax - displayMin);
+  const safeLeft = ((safeMin - displayMin) / displaySpan) * 100;
+  const safeWidth = ((safeMax - safeMin) / displaySpan) * 100;
+  const markerLeft = ((currentRatio - displayMin) / displaySpan) * 100;
+  const suggestedLeft = ((suggestedRatio - displayMin) / displaySpan) * 100;
+
+  return {
+    isCornerTarget,
+    safeMin,
+    safeMax,
+    displayMin,
+    displayMax,
+    isOutOfRange: currentRatio < safeMin || currentRatio > safeMax,
+    safeLeft: clampNumber(safeLeft, 0, 100).toFixed(2),
+    safeWidth: clampNumber(safeWidth, 0, 100).toFixed(2),
+    markerLeft: clampNumber(markerLeft, 0, 100).toFixed(2),
+    suggestedLeft: clampNumber(suggestedLeft, 0, 100).toFixed(2),
+    role: t(profile.roleKey),
+    lowNote: t(profile.lowNoteKey),
+    highNote: t(profile.highNoteKey),
+  };
+}
+
+function resetManualGearRatios() {
+  state.gearbox.manualRatios = {};
+}
+
+function manualGearRatioEntries(gearCount) {
+  return Object.entries(state.gearbox.manualRatios ?? {})
+    .map(([gear, ratio]) => [Number(gear), Number(ratio)])
+    .filter(([gear, ratio]) => Number.isInteger(gear) && gear >= 1 && gear <= gearCount && Number.isFinite(ratio));
+}
+
+function applyManualGearRatios(baseRatios, { topTarget, topRatio }) {
+  const gearCount = baseRatios.length;
+  const manualEntries = manualGearRatioEntries(gearCount);
+  const manualGears = new Set(manualEntries.map(([gear]) => gear));
+
+  if (!manualEntries.length) {
+    return baseRatios.map((ratio) => ({
+      ...ratio,
+      suggestedRatio: ratio.ratio,
+      isManual: false,
+      isSynchronized: false,
+    }));
+  }
+
+  const anchorMap = new Map([
+    [1, baseRatios[0].ratio],
+    [gearCount, baseRatios[gearCount - 1].ratio],
+    ...manualEntries,
+  ]);
+  const anchors = Array.from(anchorMap.entries())
+    .map(([gear, ratio]) => ({ gear, ratio }))
+    .sort((a, b) => a.gear - b.gear);
+
+  for (let index = 1; index < anchors.length; index += 1) {
+    anchors[index].ratio = Math.min(anchors[index].ratio, anchors[index - 1].ratio * 0.94);
+  }
+
+  for (let index = anchors.length - 2; index >= 0; index -= 1) {
+    anchors[index].ratio = Math.max(anchors[index].ratio, anchors[index + 1].ratio * 1.06);
+  }
+
+  return baseRatios.map((ratio) => {
+    const leftAnchor = [...anchors].reverse().find((anchor) => anchor.gear <= ratio.gear) ?? anchors[0];
+    const rightAnchor = anchors.find((anchor) => anchor.gear >= ratio.gear) ?? anchors[anchors.length - 1];
+    const segment = Math.max(1, rightAnchor.gear - leftAnchor.gear);
+    const progress = (ratio.gear - leftAnchor.gear) / segment;
+    const logRatio =
+      Math.log(leftAnchor.ratio) * (1 - progress) + Math.log(rightAnchor.ratio) * progress;
+    const currentRatio = leftAnchor.gear === rightAnchor.gear ? leftAnchor.ratio : Math.exp(logRatio);
+
+    return {
+      ...ratio,
+      suggestedRatio: ratio.ratio,
+      ratio: currentRatio,
+      shiftKmh: topTarget * (topRatio / currentRatio),
+      isManual: manualGears.has(ratio.gear),
+      isSynchronized: !manualGears.has(ratio.gear),
+    };
+  });
+}
+
 function calculateGearRatios() {
   const race = optionById(raceTypes, state.race) ?? raceTypes[0];
   const tuneFocus = optionById(tuneFocusTypes, state.tuneFocus) ?? tuneFocusTypes[0];
@@ -2933,11 +4221,13 @@ function calculateGearRatios() {
 
   const cornerPlan = applyCornerRecoveryBias(ratios, { gearCount, topTarget, topRatio, engine, gearGoalMods });
   ratios = cornerPlan.ratios;
+  ratios = applyManualGearRatios(ratios, { topTarget, topRatio });
+  const currentSpread = ratios[0].ratio / ratios[ratios.length - 1].ratio;
 
   return {
     gearCount,
     finalDrive,
-    spread,
+    spread: currentSpread,
     listedTopSpeed: topSpeed,
     topSpeedUseRatio,
     topTarget,
@@ -2949,6 +4239,9 @@ function calculateGearRatios() {
     tuneFocusIntensity: formatTuneFocusIntensity(),
     gearGoalLabel: localizedOption("gearOptimizationTypes", gearGoal).label,
     gearGoalIntensity: formatGearGoalIntensity(),
+    gearGoalId: gearGoal.id,
+    cornerTargetGear: Math.round(clampNumber(Number(state.gearbox.cornerGear) || 3, 1, gearCount)),
+    hasManualRatios: manualGearRatioEntries(gearCount).length > 0,
     ratios,
     note:
       cornerPlan.note
@@ -2971,6 +4264,17 @@ function renderGearCalculator(tune = buildTune()) {
   const finalChip = document.getElementById("gearFinalChip");
   if (!summaryGrid || !ratioGrid || !finalChip) return;
 
+  if (!availabilityEnabled("gearbox")) {
+    finalChip.textContent = t("gearboxUnavailableChip");
+    summaryGrid.innerHTML = `
+      <div class="gear-empty">
+        ${t("gearboxUnavailableMessage")}
+      </div>
+    `;
+    ratioGrid.innerHTML = "";
+    return;
+  }
+
   const finalDrive = Number.isFinite(gearNumber("finalDrive")) ? gearNumber("finalDrive") : recommendedGearFinalDrive(tune);
   finalChip.textContent = t("gearFinalDriveChip", { value: formatGearRatio(finalDrive) });
 
@@ -2989,6 +4293,8 @@ function renderGearCalculator(tune = buildTune()) {
   }
 
   const plan = calculateGearRatios();
+  const gearGoalSummary =
+    plan.gearGoalId === "balanced" ? plan.gearGoalLabel : `${plan.gearGoalLabel} ${plan.gearGoalIntensity}`;
   summaryGrid.innerHTML = `
     <article class="gear-summary-card">
       <span>${t("gearSummaryFinal")}</span>
@@ -3012,7 +4318,7 @@ function renderGearCalculator(tune = buildTune()) {
     </article>
     <article class="gear-summary-card">
       <span>${t("gearSummaryGoal")}</span>
-      <strong>${plan.gearGoalLabel} ${plan.gearGoalIntensity}</strong>
+      <strong>${gearGoalSummary}</strong>
     </article>
     <article class="gear-summary-card wide">
       <span>${t("gearSummaryDecision")}</span>
@@ -3025,16 +4331,152 @@ function renderGearCalculator(tune = buildTune()) {
   `;
 
   ratioGrid.innerHTML = plan.ratios
-    .map(
-      (ratio) => `
-        <article class="gear-ratio-card">
-          <span>${t("gearLabel", { gear: ratio.gear })}</span>
-          <strong>${formatGearRatio(ratio.ratio)}</strong>
-          <small>${t("gearShift", { speed: Math.round(ratio.shiftKmh) })}</small>
+    .map((ratio) => {
+      const band = gearRatioSafetyBand(ratio, plan);
+      const badges = [
+        band.isCornerTarget ? t("gearBandTarget") : "",
+        ratio.isManual ? t("gearRatioManual") : "",
+        plan.hasManualRatios && ratio.isSynchronized ? t("gearRatioSynced") : "",
+        band.isOutOfRange ? t("gearRatioOutOfRange") : "",
+      ].filter(Boolean);
+      const badgeHtml = badges.map((badge) => `<span class="gear-target-badge">${escapeHtml(badge)}</span>`).join("");
+      const resetButton = ratio.isManual
+        ? `<button class="gear-ratio-reset" type="button" data-gear="${ratio.gear}">${t("gearRatioReset")}</button>`
+        : "";
+      return `
+        <article class="gear-ratio-card ${band.isCornerTarget ? "is-target" : ""} ${ratio.isManual ? "is-manual" : ""} ${band.isOutOfRange ? "is-out-of-range" : ""}">
+          <div class="gear-ratio-header">
+            <div class="gear-ratio-title">
+              <span>${t("gearLabel", { gear: ratio.gear })}</span>
+              ${badgeHtml}
+            </div>
+            <small>${escapeHtml(band.role)}</small>
+          </div>
+          <div class="gear-ratio-metrics">
+            <strong>${t("gearRatioCurrent", { value: formatGearRatio(ratio.ratio) })}</strong>
+            <span>${t("gearRatioSuggested", { value: formatGearRatio(ratio.suggestedRatio) })}</span>
+            <span>${t("gearRatioSafeRange", {
+              min: formatGearRatio(band.safeMin),
+              max: formatGearRatio(band.safeMax),
+            })}</span>
+            <span>${t("gearShift", { speed: Math.round(ratio.shiftKmh) })}</span>
+          </div>
+          <div class="gear-band">
+            <div class="gear-band-labels">
+              <span>${t("gearBandLonger")}</span>
+              <span>${t("gearBandShorter")}</span>
+            </div>
+            <div class="gear-band-control">
+              <input
+                class="gear-ratio-slider"
+                type="range"
+                min="${formatGearRatio(band.displayMin)}"
+                max="${formatGearRatio(band.displayMax)}"
+                step="0.01"
+                value="${formatGearRatio(ratio.ratio)}"
+                data-gear="${ratio.gear}"
+                style="--safe-left: ${band.safeLeft}%; --safe-width: ${band.safeWidth}%;"
+                aria-label="${escapeHtml(t("gearLabel", { gear: ratio.gear }))}"
+              />
+              <span
+                class="gear-suggested-marker"
+                style="--suggested-left: ${band.suggestedLeft}%;"
+                title="${escapeHtml(t("gearRatioSuggested", { value: formatGearRatio(ratio.suggestedRatio) }))}"
+                aria-hidden="true"
+              ></span>
+            </div>
+          </div>
+          <div class="gear-range-notes">
+            <p><strong>${t("gearBandLowLabel")}</strong>${escapeHtml(band.lowNote)}</p>
+            <p><strong>${t("gearBandHighLabel")}</strong>${escapeHtml(band.highNote)}</p>
+          </div>
+          ${resetButton}
         </article>
-      `,
-    )
+      `;
+    })
     .join("");
+}
+
+function setManualGearRatio(gear, ratio) {
+  const gearCount = Math.round(clampNumber(Number.isFinite(gearNumber("gearCount")) ? gearNumber("gearCount") : 6, ...gearboxLimits.gearCount));
+  if (!Number.isInteger(gear) || gear < 1 || gear > gearCount || !Number.isFinite(ratio)) return;
+  state.gearbox.manualRatios = {
+    ...(state.gearbox.manualRatios ?? {}),
+    [gear]: Number(ratio.toFixed(2)),
+  };
+}
+
+function clearManualGearRatio(gear) {
+  if (!state.gearbox.manualRatios) return;
+  delete state.gearbox.manualRatios[gear];
+}
+
+function bindGearRatioControls() {
+  const ratioGrid = document.getElementById("gearRatioGrid");
+  if (!ratioGrid) return;
+  let isDraggingGearRatio = false;
+  let gearRatioCommitPending = false;
+
+  function sliderFromEvent(event) {
+    return event.target instanceof Element ? event.target.closest(".gear-ratio-slider") : null;
+  }
+
+  function updateGearRatioSliderPreview(slider) {
+    const value = Number(slider.value);
+    const card = slider.closest(".gear-ratio-card");
+    const currentValue = card?.querySelector(".gear-ratio-metrics strong");
+
+    if (currentValue && Number.isFinite(value)) {
+      currentValue.textContent = t("gearRatioCurrent", { value: formatGearRatio(value) });
+    }
+  }
+
+  function commitGearRatioChange() {
+    if (!gearRatioCommitPending) return;
+    gearRatioCommitPending = false;
+    isDraggingGearRatio = false;
+    renderGearCalculator();
+  }
+
+  ratioGrid.addEventListener("pointerdown", (event) => {
+    const slider = sliderFromEvent(event);
+    if (!slider) return;
+    isDraggingGearRatio = true;
+    slider.setPointerCapture?.(event.pointerId);
+  });
+
+  ratioGrid.addEventListener("input", (event) => {
+    const slider = sliderFromEvent(event);
+    if (!slider) return;
+    const gear = Number(slider.dataset.gear);
+    const ratio = Number(slider.value);
+    setManualGearRatio(gear, ratio);
+    gearRatioCommitPending = true;
+    updateGearRatioSliderPreview(slider);
+    if (!isDraggingGearRatio) commitGearRatioChange();
+  });
+
+  ratioGrid.addEventListener("change", (event) => {
+    if (!sliderFromEvent(event)) return;
+    commitGearRatioChange();
+  });
+
+  ratioGrid.addEventListener("pointerup", (event) => {
+    if (!sliderFromEvent(event)) return;
+    commitGearRatioChange();
+  });
+
+  ratioGrid.addEventListener("pointercancel", (event) => {
+    if (!sliderFromEvent(event)) return;
+    commitGearRatioChange();
+  });
+
+  ratioGrid.addEventListener("click", (event) => {
+    const button = event.target.closest(".gear-ratio-reset");
+    if (!button) return;
+    clearManualGearRatio(Number(button.dataset.gear));
+    renderGearCalculator();
+  });
 }
 
 function bindGearboxInputs() {
@@ -3053,6 +4495,7 @@ function bindGearboxInputs() {
 
     input.addEventListener("input", () => {
       if (input.value === "") {
+        resetManualGearRatios();
         state.gearbox[key] = "";
         renderGearCalculator();
         return;
@@ -3062,6 +4505,7 @@ function bindGearboxInputs() {
       if (!Number.isFinite(parsed)) return;
       const value = key === "gearCount" ? Math.round(parsed) : parsed;
       if (!gearboxValueInRange(key, value)) return;
+      resetManualGearRatios();
       state.gearbox[key] = value;
       syncGearOptimizationControls(inputId);
       renderGearCalculator();
@@ -3077,6 +4521,7 @@ function bindGearboxInputs() {
         state.gearbox[key] = clampNumber(value, min, max);
       }
 
+      resetManualGearRatios();
       syncGearboxInputs();
       syncGearOptimizationControls();
       renderGearCalculator();
@@ -3088,6 +4533,7 @@ function bindGearOptimizationInputs() {
   const goalSelect = document.getElementById("gearGoalSelect");
   if (goalSelect) {
     goalSelect.addEventListener("change", () => {
+      resetManualGearRatios();
       state.gearbox.gearGoal = goalSelect.value;
       refreshRecommendedGearFinalDrive();
       syncGearboxInputs();
@@ -3099,6 +4545,7 @@ function bindGearOptimizationInputs() {
   const intensitySlider = document.getElementById("gearGoalIntensitySlider");
   if (intensitySlider) {
     intensitySlider.addEventListener("input", () => {
+      resetManualGearRatios();
       state.gearbox.gearGoalIntensity = Number(intensitySlider.value);
       refreshRecommendedGearFinalDrive();
       syncGearboxInputs();
@@ -3110,6 +4557,7 @@ function bindGearOptimizationInputs() {
   const cornerGearSelect = document.getElementById("gearCornerGearSelect");
   if (cornerGearSelect) {
     cornerGearSelect.addEventListener("change", () => {
+      resetManualGearRatios();
       state.gearbox.cornerGear = Number(cornerGearSelect.value);
       syncGearOptimizationControls();
       renderGearCalculator();
@@ -3143,14 +4591,24 @@ function formatValue(key, value) {
   return Math.round(value).toString();
 }
 
+function sideAvailabilityValue(groupId, value) {
+  return availabilityEnabled(groupId) ? value : t("settingUnavailable");
+}
+
 function settingValue(card, tune) {
+  const status = settingAvailabilityStatus(card[1]);
+  if (status === "unavailable") return t("settingUnavailable");
+
   switch (card[1]) {
     case "camber":
       return valuePair(tune.camberFront.toFixed(1), tune.camberRear.toFixed(1));
     case "toe":
       return valuePair(tune.toeFront.toFixed(2), tune.toeRear.toFixed(2));
     case "arb":
-      return adjustmentValuePair("arbFront", "arbRear", tune);
+      return valuePair(
+        sideAvailabilityValue("frontArb", formatAdjustmentNumber(mappedAdjustmentValue("arbFront", tune.arbFront))),
+        sideAvailabilityValue("rearArb", formatAdjustmentNumber(mappedAdjustmentValue("arbRear", tune.arbRear))),
+      );
     case "spring":
       return adjustmentValuePair("springFront", "springRear", tune);
     case "ride":
@@ -3194,6 +4652,15 @@ function diffLabel(tune) {
 
 function settingExplanation(card, tune) {
   const [label, key, , note] = card;
+  const availabilityStatus = settingAvailabilityStatus(key);
+  if (availabilityStatus !== "available") {
+    const compensation = compensationNoteForSetting(key);
+    const statusText = unavailableLabelForStatus(availabilityStatus);
+    if (currentLanguage() === "en") {
+      return `${label} ${statusText}. ${t("settingUnavailableExplanation")} ${compensation}`.trim();
+    }
+    return `${label} ${statusText}。${t("settingUnavailableExplanation")} ${compensation}`.trim();
+  }
   const { race, tuneFocus, engine, drive } = selectedOptions();
   const separator = currentLanguage() === "en" ? ", " : "、";
   const context = [race.label, formatTuneFocusLabel(tuneFocus), engine.label, `${drive.label}${drive.subtitle ? ` ${drive.subtitle}` : ""}`].join(
@@ -3254,20 +4721,33 @@ function renderSetup(tune) {
     .map((card) => {
       const localizedCard = localizedSettingCard(card);
       const [label, key, , note] = localizedCard;
-      const unit = settingUnit(localizedCard);
+      const availabilityStatus = settingAvailabilityStatus(key);
+      const unit = availabilityStatus === "unavailable" ? "" : settingUnit(localizedCard);
       const wide = key === "diff" || key === "brake" ? " wide" : "";
+      const unavailableClass = availabilityStatus !== "available" ? " is-unavailable" : "";
       const explanation = settingExplanation(localizedCard, tune);
       const unitMarkup = unit ? `<span class="setting-unit">${unit}</span>` : "";
+      const unavailableMarkup =
+        availabilityStatus !== "available"
+          ? `<span class="setting-unavailable-chip">${unavailableLabelForStatus(availabilityStatus)}</span>`
+          : "";
+      const compensation = compensationNoteForSetting(key);
+      const compensationMarkup =
+        availabilityStatus !== "available" && compensation
+          ? `<p class="setting-compensation-note">${escapeHtml(compensation)}</p>`
+          : "";
       return `
-        <article class="setting-card${wide}">
+        <article class="setting-card${wide}${unavailableClass}">
           <div>
             <div class="setting-label">${label}</div>
             <div class="setting-value">
               <span>${settingValue(localizedCard, tune)}</span>
               ${unitMarkup}
+              ${unavailableMarkup}
               <span class="setting-help" tabindex="0" aria-label="${escapeHtml(explanation)}" title="${escapeHtml(explanation)}" data-tooltip="${escapeHtml(explanation)}">?</span>
             </div>
           </div>
+          ${compensationMarkup}
           <p class="setting-note">${note}</p>
         </article>
       `;
@@ -3401,7 +4881,7 @@ function contextualSteps(issue) {
     steps.push(["模式確認", "若目標不是甩尾，先只小幅調胎壓與前束，避免破壞正賽穩定。"]);
   }
 
-  return steps;
+  return adaptAdviceStepsForAvailability(steps);
 }
 
 function renderResult() {
@@ -3423,7 +4903,10 @@ function copyTune(tune) {
     ...vehicleSpecCopyLines(),
     ...settingCards.map((card) => {
       const localizedCard = localizedSettingCard(card);
-      return `${localizedCard[0]}: ${settingValue(localizedCard, tune)} ${settingUnit(localizedCard)}`.trim();
+      const status = settingAvailabilityStatus(localizedCard[1]);
+      const unit = status === "unavailable" ? "" : settingUnit(localizedCard);
+      const statusText = status !== "available" ? ` (${t("copyUnavailable")})` : "";
+      return `${localizedCard[0]}: ${settingValue(localizedCard, tune)} ${unit}${statusText}`.trim();
     }),
   ];
 
@@ -3442,8 +4925,19 @@ function flashButton(id, label) {
   }, 1300);
 }
 
+function openSymptomPage(mode) {
+  state.symptomMode = mode === "standalone" ? "standalone" : "linked";
+  renderSelectionPreview();
+  renderIssueCategories();
+  renderIssues();
+  renderSelectedIssues();
+  renderAdvice();
+  setView("symptoms");
+}
+
 function resetAll() {
   state.view = "result";
+  state.symptomMode = "linked";
   state.race = "technical";
   state.tuneFocus = "balanced";
   state.tuneFocusIntensity = 100;
@@ -3453,23 +4947,15 @@ function resetAll() {
   state.frontWeightPercent = 52;
   state.powerKw = 400;
   state.torqueNm = 650;
-  state.gearbox = {
-    gearGoal: "balanced",
-    gearGoalIntensity: 100,
-    gearCount: 6,
-    topSpeedKmh: "",
-    accel97: "",
-    accel161: "",
-    finalDrive: BASE_TUNE.finalDrive,
-    cornerExitSpeedKmh: "",
-    cornerGear: 3,
-  };
+  state.gearbox = createDefaultGearbox();
   state.adjustmentRanges = createAdjustmentRanges();
+  state.availability = createAvailability();
   state.issues.clear();
   renderOptions("raceOptions", raceTypes, "race");
   renderOptions("engineOptions", engineCurves, "engine");
   renderOptions("driveOptions", driveTypes, "drive");
   renderIssues();
+  renderAvailabilityControls();
   syncAdjustmentRangeInputs();
   syncGearboxInputs();
   syncGearOptimizationControls();
@@ -3493,6 +4979,8 @@ function init() {
   bindVehicleInputs();
   bindGearboxInputs();
   bindGearOptimizationInputs();
+  bindGearRatioControls();
+  renderAvailabilityControls();
   renderAdjustmentRangeControls();
   bindAdjustmentRangeInputs();
   syncAdjustmentRangeInputs();
@@ -3548,10 +5036,123 @@ function init() {
   });
 }
 
+function availabilityGroupsForAdviceTarget(target) {
+  const normalizedTarget = target.toLowerCase();
+  if (
+    target.includes("低檔齒比") ||
+    target.includes("齒比") ||
+    target.includes("終傳") ||
+    normalizedTarget.includes("gear ratio") ||
+    normalizedTarget.includes("low gear") ||
+    normalizedTarget.includes("final drive")
+  ) {
+    return ["gearbox"];
+  }
+  if (target.includes("差速") || normalizedTarget.includes("diff")) return ["diff"];
+  if (target.includes("煞車") || normalizedTarget.includes("brake")) return ["brake"];
+  if (target.includes("空力") || target.includes("下壓") || normalizedTarget.includes("aero") || normalizedTarget.includes("downforce")) return ["aero"];
+  if (
+    target.includes("彈簧") ||
+    target.includes("車高") ||
+    target.includes("阻尼") ||
+    target.includes("懸吊") ||
+    normalizedTarget.includes("spring") ||
+    normalizedTarget.includes("ride height") ||
+    normalizedTarget.includes("damper") ||
+    normalizedTarget.includes("damping") ||
+    normalizedTarget.includes("suspension")
+  ) {
+    return ["suspension"];
+  }
+  if (target.includes("前防傾") || normalizedTarget.includes("front anti-roll")) return ["frontArb"];
+  if (target.includes("後防傾") || normalizedTarget.includes("rear anti-roll")) return ["rearArb"];
+  if (target.includes("防傾") || normalizedTarget.includes("anti-roll")) return ["frontArb", "rearArb"];
+  if (
+    target.includes("外傾") ||
+    target.includes("前束") ||
+    target.includes("後束") ||
+    target.includes("後傾") ||
+    target.includes("定位") ||
+    normalizedTarget.includes("camber") ||
+    normalizedTarget.includes("toe") ||
+    normalizedTarget.includes("caster") ||
+    normalizedTarget.includes("alignment")
+  ) {
+    return ["alignment"];
+  }
+  return [];
+}
+
+function adaptAdviceStepsForAvailability(steps) {
+  return steps.map(([target, text]) => {
+    const groupIds = availabilityGroupsForAdviceTarget(target);
+    const shouldReplace = groupIds.length > 0 && groupIds.every((groupId) => !availabilityEnabled(groupId));
+    if (!shouldReplace) return [target, text];
+
+    const fallbacks = fallbackTargetsForGroups(groupIds);
+    const fallbackText = fallbacks.length ? fallbacks.join(" / ") : t("compensationLimited");
+    return [
+      t("adviceAlternativeTarget", { target }),
+      t("adviceAlternativeText", {
+        target,
+        fallbacks: fallbackText,
+      }),
+    ];
+  });
+}
+
+function renderLinkedTuneCard(card, baseTune, optimizedTune) {
+  const localizedCard = localizedSettingCard(card);
+  const [label, key] = localizedCard;
+  const availabilityStatus = settingAvailabilityStatus(key);
+  const unit = availabilityStatus === "unavailable" ? "" : settingUnit(localizedCard);
+  const unavailableClass = availabilityStatus !== "available" ? " is-unavailable" : "";
+  const adjusted = settingValue(localizedCard, baseTune) !== settingValue(localizedCard, optimizedTune);
+  const adjustedMarkup = adjusted ? `<span class="linked-tune-chip">${t("linkedTuneAdjusted")}</span>` : "";
+  const unavailableMarkup =
+    availabilityStatus !== "available"
+      ? `<span class="setting-unavailable-chip">${unavailableLabelForStatus(availabilityStatus)}</span>`
+      : "";
+  const unitMarkup = unit ? `<span class="setting-unit">${unit}</span>` : "";
+
+  return `
+    <article class="linked-tune-card${unavailableClass}${adjusted ? " is-adjusted" : ""}">
+      <div class="linked-tune-head">
+        <span class="linked-tune-label">${label}</span>
+        ${adjustedMarkup}
+      </div>
+      <div class="linked-tune-value">
+        <span>${settingValue(localizedCard, optimizedTune)}</span>
+        ${unitMarkup}
+        ${unavailableMarkup}
+      </div>
+    </article>
+  `;
+}
+
+function renderLinkedTuneAdvice(selectedIssues) {
+  const adviceList = document.getElementById("adviceList");
+  const baseTune = buildTune();
+  const optimizedTune = buildSymptomOptimizedTune(selectedIssues);
+  adviceList.innerHTML = `
+    <div class="linked-tune-grid">
+      ${settingCards.map((card) => renderLinkedTuneCard(card, baseTune, optimizedTune)).join("")}
+    </div>
+  `;
+}
+
 function renderAdvice() {
   const adviceList = document.getElementById("adviceList");
   const issueLookup = new Map(allIssueTypes.map((issue) => [issue.id, issue]));
-  const selected = [...state.issues].map((id) => issueLookup.get(id)).filter(Boolean);
+  const selected = [...currentIssueSet()].map((id) => issueLookup.get(id)).filter(Boolean);
+  const isLinkedMode = !isStandaloneSymptomMode();
+  renderSymptomModeHeader();
+  adviceList.classList.toggle("is-linked-tune", isLinkedMode);
+
+  if (isLinkedMode) {
+    renderLinkedTuneAdvice(selected);
+    return;
+  }
 
   if (!selected.length) {
     adviceList.innerHTML = `<div class="advice-empty">${t("adviceEmpty")}</div>`;
@@ -3560,8 +5161,9 @@ function renderAdvice() {
 
   adviceList.innerHTML = selected
     .map((issue) => {
+      const separator = currentLanguage() === "en" ? ": " : "：";
       const steps = contextualSteps(issue)
-        .map(([target, text]) => `<li><strong>${target}</strong>：${text}</li>`)
+        .map(([target, text]) => `<li><strong>${target}</strong>${separator}${text}</li>`)
         .join("");
       return `
         <article class="advice-card">
@@ -3579,27 +5181,30 @@ function renderAdvice() {
 function contextualSteps(issue) {
   const steps = [...issue.steps];
 
-  if ((issue.id === "exit-flat" || issue.id === "accel-power-rough") && state.engine === "turboHit") {
-    steps.push(["渦輪遲滯", "把終傳縮短前先試縮短低檔，避免高檔尾速被犧牲太多。"]);
+  if (!isStandaloneSymptomMode()) {
+    if ((issue.id === "exit-flat" || issue.id === "accel-power-rough") && state.engine === "turboHit") {
+      steps.push(["渦輪遲滯", "把終傳縮短前先試縮短低檔，避免高檔尾速被犧牲太多。"]);
+    }
+
+    if ((issue.id.includes("oversteer") || issue.id.includes("rear")) && state.drive === "rwd") {
+      steps.push(["後驅容錯", "後驅車先保住後胎胎壓與後差速器，再調防傾桿。"]);
+    }
+
+    if ((issue.id.includes("understeer") || issue.id.includes("push")) && state.drive === "fwd") {
+      steps.push(["前驅補救", "若入彎仍推，前差減速降低 2% 到 4%，讓收油時前輪更願意轉。"]);
+    }
+
+    if (issue.id.includes("highspeed") && state.race === "technical") {
+      steps.push(["賽道取捨", "多彎賽道不要一次犧牲太多尾速或下壓，先用小幅調整測試。"]);
+    }
+
+    if (issue.label.includes("甩尾") && state.race !== "drift") {
+      steps.push(["模式確認", "若目標不是甩尾，先只小幅調胎壓與前束，避免破壞正賽穩定。"]);
+    }
   }
 
-  if ((issue.id.includes("oversteer") || issue.id.includes("rear")) && state.drive === "rwd") {
-    steps.push(["後驅容錯", "後驅車先保住後胎胎壓與後差速器，再調防傾桿。"]);
-  }
-
-  if ((issue.id.includes("understeer") || issue.id.includes("push")) && state.drive === "fwd") {
-    steps.push(["前驅補救", "若入彎仍推，前差減速降低 2% 到 4%，讓收油時前輪更願意轉。"]);
-  }
-
-  if (issue.id.includes("highspeed") && state.race === "technical") {
-    steps.push(["賽道取捨", "多彎賽道不要一次犧牲太多尾速或下壓，先用小幅調整測試。"]);
-  }
-
-  if (issue.label.includes("甩尾") && state.race !== "drift") {
-    steps.push(["模式確認", "若目標不是甩尾，先只小幅調胎壓與前束，避免破壞正賽穩定。"]);
-  }
-
-  return steps;
+  const localizedSteps = steps.map((step, index) => localizedAdviceStep(issue, step, index));
+  return isStandaloneSymptomMode() ? localizedSteps : adaptAdviceStepsForAvailability(localizedSteps);
 }
 
 function renderResult() {
@@ -3623,7 +5228,10 @@ function copyTune(tune) {
     ...vehicleSpecCopyLines(),
     ...settingCards.map((card) => {
       const localizedCard = localizedSettingCard(card);
-      return `${localizedCard[0]}: ${settingValue(localizedCard, tune)} ${settingUnit(localizedCard)}`.trim();
+      const status = settingAvailabilityStatus(localizedCard[1]);
+      const unit = status === "unavailable" ? "" : settingUnit(localizedCard);
+      const statusText = status !== "available" ? ` (${t("copyUnavailable")})` : "";
+      return `${localizedCard[0]}: ${settingValue(localizedCard, tune)} ${unit}${statusText}`.trim();
     }),
   ];
 
@@ -3644,26 +5252,20 @@ function resetAll() {
   state.frontWeightPercent = 52;
   state.powerKw = 400;
   state.torqueNm = 650;
-  state.gearbox = {
-    gearGoal: "balanced",
-    gearGoalIntensity: 100,
-    gearCount: 6,
-    topSpeedKmh: "",
-    accel97: "",
-    accel161: "",
-    finalDrive: BASE_TUNE.finalDrive,
-    cornerExitSpeedKmh: "",
-    cornerGear: 3,
-  };
+  state.gearbox = createDefaultGearbox();
   state.adjustmentRanges = createAdjustmentRanges();
+  state.availability = createAvailability();
   state.activeIssueCategory = "steering";
+  state.solutionActiveIssueCategory = "steering";
   state.issues.clear();
+  state.solutionIssues.clear();
   renderOptions("raceOptions", raceTypes, "race");
   renderOptions("engineOptions", engineCurves, "engine");
   renderOptions("driveOptions", driveTypes, "drive");
   renderIssueCategories();
   renderIssues();
   renderSelectedIssues();
+  renderAvailabilityControls();
   syncAdjustmentRangeInputs();
   syncGearboxInputs();
   syncGearOptimizationControls();
@@ -3687,6 +5289,8 @@ function init() {
   bindVehicleInputs();
   bindGearboxInputs();
   bindGearOptimizationInputs();
+  bindGearRatioControls();
+  renderAvailabilityControls();
   renderAdjustmentRangeControls();
   bindAdjustmentRangeInputs();
   syncAdjustmentRangeInputs();
@@ -3708,13 +5312,9 @@ function init() {
     setView("result");
   });
 
-  document.getElementById("startTestButton").addEventListener("click", () => {
-    renderIssueCategories();
-    renderIssues();
-    renderSelectedIssues();
-    renderAdvice();
-    setView("symptoms");
-  });
+  document.getElementById("startTestButton").addEventListener("click", () => openSymptomPage("linked"));
+
+  document.getElementById("solutionButton").addEventListener("click", () => openSymptomPage("standalone"));
 
   document.getElementById("gearButton").addEventListener("click", () => {
     prepareGearCalculator();
@@ -3738,7 +5338,7 @@ function init() {
   document.getElementById("resetButton").addEventListener("click", resetAll);
 
   document.getElementById("clearIssuesButton").addEventListener("click", () => {
-    state.issues.clear();
+    currentIssueSet().clear();
     renderIssueCategories();
     renderIssues();
     renderSelectedIssues();

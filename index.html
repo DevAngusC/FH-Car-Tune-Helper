@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FH6 Tune Lab</title>
-    <link rel="stylesheet" href="styles.css?v=20260630a" />
+    <link rel="stylesheet" href="styles.css?v=20260630d" />
   </head>
   <body>
     <main class="app-shell">
@@ -102,8 +102,11 @@
       <section class="result-page" id="resultPage" aria-label="Recommended tune">
         <div class="result-toolbar">
           <button class="utility-button ghost is-hidden" id="backButton" type="button" data-i18n="buttonBackConfig">返回配置</button>
+          <div class="toolbar-secondary">
+            <button class="utility-button ghost" id="solutionButton" type="button" data-i18n="buttonTuneSolutions">調校應對方案</button>
+          </div>
           <div class="toolbar-actions">
-            <button class="primary-button" id="startTestButton" type="button" data-i18n="buttonStartTest">開始試車</button>
+            <button class="primary-button" id="startTestButton" type="button" data-i18n="buttonStartTest">車況調校</button>
             <button class="utility-button" id="gearButton" type="button" data-i18n="buttonGearCalculator">齒比計算器</button>
             <button class="utility-button" id="copyButton" type="button" data-i18n="buttonCopy">複製數值</button>
             <button class="utility-button ghost" id="resetButton" type="button" data-i18n="buttonReset">重置</button>
@@ -111,13 +114,7 @@
         </div>
 
         <section class="inline-config" aria-label="Live tune configuration">
-          <div class="stage-header">
-            <div>
-              <p class="eyebrow">Step 1</p>
-              <h2 data-i18n="baseConfigTitle">基礎配置</h2>
-            </div>
-            <div class="selected-tags" id="liveConfigTags"></div>
-          </div>
+          <div class="selected-tags" id="liveConfigTags"></div>
 
           <div class="tune-config-grid">
             <label class="config-control" for="raceSelect">
@@ -128,7 +125,7 @@
               <span class="spec-label" data-i18n="labelTuneFocus">調校取向</span>
               <select id="tuneFocusSelect"></select>
             </label>
-            <label class="config-control focus-intensity-control" for="tuneFocusIntensitySlider">
+            <label class="config-control focus-intensity-control" id="tuneFocusIntensityField" for="tuneFocusIntensitySlider">
               <span class="spec-label" data-i18n="labelFocusIntensity">取向強度</span>
               <span class="range-control">
                 <input id="tuneFocusIntensitySlider" type="range" min="0" max="150" step="5" value="100" />
@@ -176,14 +173,21 @@
               <span class="spec-note compact" id="rearWeightOutput">後配重 48%</span>
             </label>
           </div>
+
+          <div class="availability-panel" aria-label="Adjustable tune parts">
+            <div class="availability-heading">
+              <div>
+                <h3 data-i18n="availabilityTitle">可調項目</h3>
+                <p data-i18n="availabilityHint">關閉遊戲中無法調整的項目，工具會改用其他可調項目做保守補償。</p>
+              </div>
+              <button class="utility-button ghost compact-button" id="resetAvailabilityButton" type="button" data-i18n="buttonResetAvailability">全部可調</button>
+            </div>
+            <div class="availability-grid" id="availabilityGrid"></div>
+          </div>
         </section>
 
         <section class="tune-stage" aria-label="Recommended tune values">
-          <div class="stage-header">
-            <div>
-              <p class="eyebrow">Step 2</p>
-              <h2 id="setupTitle">多彎賽道基礎值</h2>
-            </div>
+          <div class="stage-header stage-tags-only">
             <div class="selected-tags" id="resultTags"></div>
           </div>
 
@@ -228,7 +232,7 @@
                 <span class="spec-label" data-i18n="labelGearGoal">齒比優化目標</span>
                 <select id="gearGoalSelect"></select>
               </label>
-              <label class="gear-field" for="gearGoalIntensitySlider">
+              <label class="gear-field" id="gearGoalIntensityField" for="gearGoalIntensitySlider">
                 <span class="spec-label" data-i18n="labelGearIntensity">優化強度</span>
                 <span class="range-control">
                   <input id="gearGoalIntensitySlider" type="range" min="0" max="150" step="5" value="100" />
@@ -298,7 +302,7 @@
           <div class="stage-header">
             <div>
               <p class="eyebrow">Step 3</p>
-              <h2 data-i18n="roadTestTitle">試車狀況</h2>
+              <h2 id="symptomPageTitle" data-i18n="roadTestTitle">車況調校</h2>
             </div>
             <button class="utility-button ghost" id="clearIssuesButton" type="button" data-i18n="buttonClearIssues">清除狀況</button>
           </div>
@@ -321,8 +325,8 @@
             <div class="symptom-advice">
               <div class="symptom-detail-header">
                 <div>
-                  <p class="picker-label" data-i18n="adjustmentDirectionLabel">修改方向</p>
-                  <h3 data-i18n="symptomAdviceHint">勾選症狀後，這裡會立即顯示調整建議。</h3>
+                  <p class="picker-label" id="symptomAdviceLabel" data-i18n="adjustmentDirectionLabel">修改方向</p>
+                  <h3 id="symptomAdviceHintTitle" data-i18n="symptomAdviceHint">勾選症狀後，這裡會立即顯示調整建議。</h3>
                 </div>
               </div>
               <div class="selected-issues" id="selectedIssues"></div>
@@ -333,6 +337,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=20260630a"></script>
+    <script src="app.js?v=20260630d"></script>
   </body>
 </html>
