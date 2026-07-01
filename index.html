@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FH6 Tune Lab</title>
-    <link rel="stylesheet" href="styles.css?v=20260630e" />
+    <link rel="stylesheet" href="styles.css?v=20260701h" />
   </head>
   <body>
     <main class="app-shell">
@@ -88,8 +88,20 @@
                   <span class="spec-unit">%</span>
                 </span>
               </label>
+              <label class="spec-field" for="frontTireSizeInput">
+                <span class="spec-label" data-i18n="labelFrontTireSize">前胎規格</span>
+                <span class="spec-control">
+                  <input id="frontTireSizeInput" type="text" value="245/35R19" placeholder="265/35R19" autocomplete="off" />
+                </span>
+              </label>
+              <label class="spec-field" for="rearTireSizeInput">
+                <span class="spec-label" data-i18n="labelRearTireSize">後胎規格</span>
+                <span class="spec-control">
+                  <input id="rearTireSizeInput" type="text" value="265/35R19" placeholder="265/35R19" autocomplete="off" />
+                </span>
+              </label>
             </div>
-            <p class="spec-note" data-i18n="configSpecNote">以車頭承重比例輸入，例如 52 代表前 52% / 後 48%。</p>
+            <p class="spec-note" data-i18n="configSpecNote">以車頭承重比例輸入，例如 52 代表前 52% / 後 48%。胎規格請輸入 Forza 顯示格式，例如 265/35R19。</p>
           </section>
         </div>
 
@@ -177,6 +189,18 @@
               </span>
               <span class="spec-note compact" id="rearWeightOutput">後配重 48%</span>
             </label>
+            <label class="config-control" for="inlineFrontTireSizeInput">
+              <span class="spec-label" data-i18n="labelFrontTireSize">前胎規格</span>
+              <span class="spec-control">
+                <input id="inlineFrontTireSizeInput" type="text" value="245/35R19" placeholder="265/35R19" autocomplete="off" />
+              </span>
+            </label>
+            <label class="config-control" for="inlineRearTireSizeInput">
+              <span class="spec-label" data-i18n="labelRearTireSize">後胎規格</span>
+              <span class="spec-control">
+                <input id="inlineRearTireSizeInput" type="text" value="265/35R19" placeholder="265/35R19" autocomplete="off" />
+              </span>
+            </label>
           </div>
 
           <div class="availability-panel" aria-label="Adjustable tune parts">
@@ -233,34 +257,24 @@
 
           <div class="gear-calculator-layout">
             <div class="gear-input-panel">
-              <label class="gear-field" for="gearGoalSelect">
-                <span class="spec-label" data-i18n="labelGearGoal">齒比優化目標</span>
-                <select id="gearGoalSelect"></select>
-              </label>
-              <label class="gear-field" id="gearGoalIntensityField" for="gearGoalIntensitySlider">
-                <span class="spec-label" data-i18n="labelGearIntensity">優化強度</span>
-                <span class="range-control">
-                  <input id="gearGoalIntensitySlider" type="range" min="0" max="150" step="5" value="100" />
-                  <output id="gearGoalIntensityOutput" for="gearGoalIntensitySlider">100%</output>
-                </span>
-                <span class="spec-note compact" id="gearGoalIntensityHint">標準優化</span>
-              </label>
-              <div class="gear-corner-fields" id="gearCornerFields">
-                <label class="gear-field" for="gearCornerSpeedInput">
-                  <span class="spec-label" data-i18n="labelCornerSpeed">常用出彎速度</span>
-                  <span class="spec-control">
-                    <input id="gearCornerSpeedInput" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="例如 80" data-i18n-placeholder="placeholderExample80" />
-                    <span class="spec-unit">km/h</span>
-                  </span>
-                </label>
-                <label class="gear-field" for="gearCornerGearSelect">
-                  <span class="spec-label" data-i18n="labelCornerGear">主要回速檔位</span>
-                  <select id="gearCornerGearSelect"></select>
-                </label>
-              </div>
               <label class="gear-field" for="gearCountInput">
                 <span class="spec-label" data-i18n="labelGearCount">總共有幾個檔位</span>
                 <input id="gearCountInput" type="text" inputmode="numeric" pattern="[0-9]*" value="6" />
+              </label>
+              <label class="gear-field" for="gearRedlineRpmInput">
+                <span class="spec-label" data-i18n="labelRedlineRpm">紅線 RPM</span>
+                <span class="spec-control">
+                  <input id="gearRedlineRpmInput" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="例如 7000" data-i18n-placeholder="placeholderExample7000" />
+                  <span class="spec-unit">RPM</span>
+                </span>
+              </label>
+              <label class="gear-field" for="gearPeakHpRpmInput">
+                <span class="spec-label" data-i18n="labelPeakHpRpm">最高馬力 RPM</span>
+                <span class="spec-control">
+                  <input id="gearPeakHpRpmInput" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="例如 6500" data-i18n-placeholder="placeholderExample6500" />
+                  <span class="spec-unit">RPM</span>
+                </span>
+                <span class="spec-note compact" data-i18n="gearRpmNote">紅線決定各檔最大拉轉速度，最高馬力 RPM 用來校準升檔後落點與終端檔長度。</span>
               </label>
               <label class="gear-field" for="gearTopSpeedInput">
                 <span class="spec-label" data-i18n="labelTopSpeed">車輛卡理論極速</span>
@@ -268,7 +282,7 @@
                   <input id="gearTopSpeedInput" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="例如 312" data-i18n-placeholder="placeholderExample312" />
                   <span class="spec-unit">km/h</span>
                 </span>
-                <span class="spec-note compact" data-i18n="gearTopSpeedNote">使用 Forza 車輛數據頁顯示的理論極速，計算器會自動折算成可實跑的最高檔目標。</span>
+                <span class="spec-note compact" data-i18n="gearTopSpeedNote">使用 Forza 車輛數據頁顯示的理論極速，計算器會結合紅線 RPM、終傳比與輪胎規格反推最高檔。</span>
               </label>
               <label class="gear-field" for="gearAccel97Input">
                 <span class="spec-label" data-i18n="labelAccel97">1-97 km/h 加速</span>
@@ -342,6 +356,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=20260630e"></script>
+    <script src="app.js?v=20260701h"></script>
   </body>
 </html>
