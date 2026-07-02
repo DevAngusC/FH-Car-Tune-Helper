@@ -28,13 +28,14 @@ const BASE_TUNE = {
   diffCenter: 65,
 };
 
+const TUNE_KEYS = Object.keys(BASE_TUNE);
+const TUNE_DELTA_EPSILON = 0.0001;
+
 const DEFAULT_GEARBOX = {
   gearCount: 6,
   redlineRpm: 7000,
   peakHpRpm: 6500,
   topSpeedKmh: 312,
-  accel97: 3.4,
-  accel161: 7.8,
   finalDrive: BASE_TUNE.finalDrive,
 };
 
@@ -113,9 +114,16 @@ const availabilityGroups = [
     fallbackTargets: ["tire", "antiRoll", "aero"],
   },
   {
-    id: "aero",
-    label: "空力",
-    tuneKeys: ["aeroFront", "aeroRear"],
+    id: "frontAero",
+    label: "前空力",
+    tuneKeys: ["aeroFront"],
+    settingKeys: ["aero"],
+    fallbackTargets: ["suspension", "antiRoll", "alignment"],
+  },
+  {
+    id: "rearAero",
+    label: "後空力",
+    tuneKeys: ["aeroRear"],
     settingKeys: ["aero"],
     fallbackTargets: ["suspension", "antiRoll", "alignment"],
   },
@@ -157,7 +165,7 @@ const compensationTargetGroups = {
   alignment: ["alignment"],
   antiRoll: ["frontArb", "rearArb"],
   suspension: ["suspension"],
-  aero: ["aero"],
+  aero: ["frontAero", "rearAero"],
   brake: ["brake"],
   diff: ["diff"],
   gearbox: ["gearbox"],
@@ -176,6 +184,7 @@ const state = {
   tuneFocusIntensity: 100,
   engine: "flatTorque",
   drive: "awd",
+  vehicleName: "",
   carWeight: 1500,
   frontWeightPercent: 52,
   frontTireSpec: "245/35R19",
@@ -194,6 +203,8 @@ const state = {
   issues: new Set(),
   solutionActiveIssueCategory: "steering",
   solutionIssues: new Set(),
+  appliedSymptomAdjustments: [],
+  appliedSymptomAdjustmentSeq: 0,
 };
 
 const vehicleSpecLimits = {
@@ -216,14 +227,15 @@ const gearboxLimits = {
   redlineRpm: [3000, 12000],
   peakHpRpm: [2500, 12000],
   topSpeedKmh: [80, 600],
-  accel97: [1, 30],
-  accel161: [2, 60],
   finalDrive: [2.2, 6.5],
 };
 
 const tuneFocusIntensityLimits = [0, 150];
 const PSI_TO_BAR = 0.0689476;
 const LANGUAGE_STORAGE_KEY = "fh6-tune-lab-language";
+const SETUP_SAVE_SCHEMA = "fh6-tune-lab-setup";
+const SETUP_SAVE_SCHEMA_VERSION = 1;
+const SETUP_SAVE_APP_VERSION = "v0.8";
 
 const translations = {
   zh: {
@@ -237,6 +249,7 @@ const translations = {
     labelCornerProfile: "彎型分布",
     labelEngine: "引擎曲線",
     labelDrive: "驅動類型",
+    labelVehicleName: "車輛名稱",
     labelWeightBalance: "車重與重心",
     labelWeight: "車重",
     labelFrontBalance: "重心 / 前配重",
@@ -253,6 +266,8 @@ const translations = {
     buttonTuneSolutions: "調校應對方案",
     buttonGearCalculator: "齒比計算器",
     buttonCopy: "複製數值",
+    buttonSaveJson: "儲存設定",
+    buttonLoadJson: "載入設定",
     buttonReset: "重置",
     buttonResetRange: "重設範圍",
     buttonResetAvailability: "全部可調",
@@ -287,6 +302,7 @@ const translations = {
     placeholderExample7000: "例如 7000",
     placeholderExample34: "例如 3.4",
     placeholderExample78: "例如 7.8",
+    placeholderVehicleName: "輸入車輛名稱",
     recommendationPrefix: "推薦：",
     rearBalance: "後配重",
     frontShort: "前",
@@ -303,6 +319,7 @@ const translations = {
     fixedRange: "固定範圍",
     rangeScaledPrefix: "，已依",
     rangeScaledSuffix: "換算",
+    vehicleSpecName: "車輛名稱",
     vehicleSpecWeight: "車重",
     vehicleSpecFront: "前配重",
     vehicleSpecRear: "後配重",
@@ -320,6 +337,9 @@ const translations = {
     trackTypeCorner: "彎道多",
     copySuccess: "已複製",
     copyFail: "複製失敗",
+    saveJsonSuccess: "已下載設定檔",
+    loadJsonSuccess: "已載入設定檔",
+    loadJsonFail: "設定檔格式無法讀取",
     copyUnavailable: "無法調整",
     settingUnavailable: "無法調整",
     settingPartUnavailable: "部分無法調整",
@@ -331,6 +351,10 @@ const translations = {
     adviceEmpty: "選取試車狀況後，這裡會整理成調整順序。",
     linkedTuneEmpty: "勾選車況後，這裡會顯示依目前基礎數值優化後的建議數值。",
     linkedTuneAdjusted: "已優化",
+    buttonApplySymptomAdjustment: "應用修改",
+    applySymptomAdjustmentHint: "套用後會清空目前勾選，並保留已應用症狀標籤。",
+    appliedSymptomAdjustmentHint: "目前數值已包含已應用修改。",
+    removeAppliedSymptomAdjustment: "取消這次修改：{label}",
     adviceAlternativeTarget: "替代：{target}",
     adviceAlternativeText: "原本可調整「{target}」，但目前標記為不可調。先改用 {fallbacks} 小幅補償，試車後再微調。",
     gearFinalDriveChip: "終傳比 {value}",
@@ -411,6 +435,7 @@ const translations = {
     labelCornerProfile: "Corner Mix",
     labelEngine: "Engine Curve",
     labelDrive: "Drivetrain",
+    labelVehicleName: "Vehicle Name",
     labelWeightBalance: "Weight & Balance",
     labelWeight: "Weight",
     labelFrontBalance: "Front Weight",
@@ -427,6 +452,8 @@ const translations = {
     buttonTuneSolutions: "Tune Response Guide",
     buttonGearCalculator: "Gear Calculator",
     buttonCopy: "Copy Values",
+    buttonSaveJson: "Save Setup",
+    buttonLoadJson: "Load Setup",
     buttonReset: "Reset",
     buttonResetRange: "Reset Range",
     buttonResetAvailability: "All Adjustable",
@@ -461,6 +488,7 @@ const translations = {
     placeholderExample7000: "e.g. 7000",
     placeholderExample34: "e.g. 3.4",
     placeholderExample78: "e.g. 7.8",
+    placeholderVehicleName: "Enter vehicle name",
     recommendationPrefix: "Recommended: ",
     rearBalance: "Rear",
     frontShort: "Front",
@@ -477,6 +505,7 @@ const translations = {
     fixedRange: "fixed range",
     rangeScaledPrefix: ", scaled to ",
     rangeScaledSuffix: "",
+    vehicleSpecName: "Vehicle Name",
     vehicleSpecWeight: "Weight",
     vehicleSpecFront: "Front",
     vehicleSpecRear: "Rear",
@@ -494,6 +523,9 @@ const translations = {
     trackTypeCorner: "More corners",
     copySuccess: "Copied",
     copyFail: "Copy failed",
+    saveJsonSuccess: "Setup file downloaded",
+    loadJsonSuccess: "Setup file loaded",
+    loadJsonFail: "Could not read setup file",
     copyUnavailable: "locked",
     settingUnavailable: "Locked",
     settingPartUnavailable: "Partially locked",
@@ -505,6 +537,10 @@ const translations = {
     adviceEmpty: "Select road-test issues and the adjustment order will appear here.",
     linkedTuneEmpty: "Select conditions to show optimized values based on the current base tune.",
     linkedTuneAdjusted: "Optimized",
+    buttonApplySymptomAdjustment: "Apply Changes",
+    applySymptomAdjustmentHint: "Applying clears the current selection and keeps the applied issue tags.",
+    appliedSymptomAdjustmentHint: "Current values include applied changes.",
+    removeAppliedSymptomAdjustment: "Remove this applied change: {label}",
     adviceAlternativeTarget: "Alternative: {target}",
     adviceAlternativeText: "{target} is currently locked. Start by compensating lightly with {fallbacks}, then road-test again.",
     gearFinalDriveChip: "Final Drive {value}",
@@ -575,6 +611,34 @@ const translations = {
     settingExplanationCurrentFocus: "current tune focus",
   },
 };
+
+Object.assign(translations.zh, {
+  labelTopSpeed: "目標終端速度",
+  gearRpmNote: "紅線與最高馬力 RPM 會決定目標終端速度落在 power band 的位置。",
+  gearTopSpeedNote: "輸入你希望最後一檔支援的終端速度，計算器會讓該速度時的 RPM 維持在最高馬力 RPM 到紅線之間。",
+  gearEmpty: "填入檔位數、紅線 RPM、最高馬力 RPM、目標終端速度與終傳比後，這裡會依基礎配置與胎規格自動計算齒比。",
+  gearSummaryTop: "最高檔齒比上限",
+  gearSummaryUsable: "目標終端 RPM",
+  gearSummaryUsableValue: "Power band {percent}%",
+  gearUsableNote: "目標終端速度 {speed} km/h 時約落在 {rpm} RPM，位於 power band 的 {percent}%。",
+  gearTerminalLong: "終端檔偏長，目標速度時 RPM 低於最高馬力區。",
+  gearTerminalShort: "終端檔偏短，目標速度前可能太早接近紅線。",
+  gearTerminalOk: "終端檔已對齊最高馬力 RPM 到紅線之間。",
+});
+
+Object.assign(translations.en, {
+  labelTopSpeed: "Target Terminal Speed",
+  gearRpmNote: "Redline and Peak HP RPM decide where the target terminal speed lands inside the power band.",
+  gearTopSpeedNote: "Enter the terminal speed you want top gear to support; the calculator keeps that speed between Peak HP RPM and redline.",
+  gearEmpty: "Enter gear count, redline RPM, Peak HP RPM, target terminal speed, and final drive. The calculator will infer ratios from the base setup and tire specs.",
+  gearSummaryTop: "Top-Gear Ratio Ceiling",
+  gearSummaryUsable: "Terminal RPM",
+  gearSummaryUsableValue: "Power band {percent}%",
+  gearUsableNote: "At {speed} km/h, top gear lands near {rpm} RPM, about {percent}% through the power band.",
+  gearTerminalLong: "Top gear is too long; target speed is below the Peak HP range.",
+  gearTerminalShort: "Top gear is too short; the car may reach redline before the target speed.",
+  gearTerminalOk: "Top gear is aligned between Peak HP RPM and redline.",
+});
 
 const optionTranslations = {
   en: {
@@ -700,7 +764,8 @@ const optionTranslations = {
       frontArb: "Front Anti-Roll Bar",
       rearArb: "Rear Anti-Roll Bar",
       suspension: "Suspension",
-      aero: "Aero",
+      frontAero: "Front Aero",
+      rearAero: "Rear Aero",
       brake: "Brakes",
       diff: "Differential",
       gearbox: "Gearbox",
@@ -2541,6 +2606,10 @@ function unavailableLabelForStatus(status) {
   return status === "partial" ? t("settingPartUnavailable") : t("settingUnavailable");
 }
 
+function copyStatusText(status) {
+  return status === "available" ? "" : ` (${unavailableLabelForStatus(status)})`;
+}
+
 function applyStaticTranslations() {
   document.documentElement.lang = currentLanguage() === "en" ? "en" : "zh-Hant";
 
@@ -3035,15 +3104,18 @@ function applyCompensationForUnavailableGroup(tune, desiredTune, groupId) {
       addCompensation(tune, "aeroRear", rearSupport * 0.18);
       break;
     }
-    case "aero": {
+    case "frontAero": {
       const front = tuneDelta(desiredTune, "aeroFront");
-      const rear = tuneDelta(desiredTune, "aeroRear");
       addCompensation(tune, "springFront", front * 0.26);
-      addCompensation(tune, "springRear", rear * 0.26);
       addCompensation(tune, "arbFront", front * 0.16);
+      addCompensation(tune, "tireFront", -front * 0.006);
+      break;
+    }
+    case "rearAero": {
+      const rear = tuneDelta(desiredTune, "aeroRear");
+      addCompensation(tune, "springRear", rear * 0.26);
       addCompensation(tune, "arbRear", rear * 0.16);
       addCompensation(tune, "toeRear", rear > 0 ? 0.01 : -0.005);
-      addCompensation(tune, "tireFront", -front * 0.006);
       addCompensation(tune, "tireRear", -rear * 0.006);
       break;
     }
@@ -3103,7 +3175,7 @@ function applyAvailabilityToTune(desiredTune) {
   return clampTune(tune);
 }
 
-function buildTune() {
+function buildBaseTune() {
   const tune = { ...BASE_TUNE };
   const race = optionById(raceTypes, state.race);
   const tuneFocus = optionById(tuneFocusTypes, state.tuneFocus);
@@ -3143,6 +3215,26 @@ function buildTune() {
   }
 
   return applyAvailabilityToTune(clampTune(tune));
+}
+
+function addAppliedSymptomDelta(tune, key, amount) {
+  const value = Number(amount);
+  if (!Number.isFinite(value) || !tuneKeyAdjustable(key)) return;
+  tune[key] = (Number(tune[key]) || 0) + value;
+}
+
+function applyAppliedSymptomAdjustments(tune, adjustments = state.appliedSymptomAdjustments) {
+  const adjustedTune = { ...tune };
+  adjustments.forEach((adjustment) => {
+    Object.entries(adjustment.deltaByKey ?? {}).forEach(([key, amount]) => {
+      addAppliedSymptomDelta(adjustedTune, key, amount);
+    });
+  });
+  return clampTune(adjustedTune);
+}
+
+function buildTune() {
+  return applyAppliedSymptomAdjustments(buildBaseTune());
 }
 
 const symptomTuneMods = {
@@ -3386,12 +3478,71 @@ function applySymptomTuneMods(tune, issue, multiplier) {
   Object.entries(mods).forEach(([key, amount]) => addSymptomMod(tune, key, amount, multiplier));
 }
 
-function buildSymptomOptimizedTune(selectedIssues = []) {
-  const tune = { ...buildTune() };
+function buildSymptomOptimizedTune(selectedIssues = [], baseTune = buildTune()) {
+  const tune = { ...baseTune };
   if (!selectedIssues.length) return tune;
   const multiplier = clampNumber(1 / Math.sqrt(selectedIssues.length), 0.55, 1);
   selectedIssues.forEach((issue) => applySymptomTuneMods(tune, issue, multiplier));
   return clampTune(tune);
+}
+
+function tuneDeltaByKey(baseTune, optimizedTune) {
+  return TUNE_KEYS.reduce((deltaByKey, key) => {
+    const delta = (Number(optimizedTune[key]) || 0) - (Number(baseTune[key]) || 0);
+    if (Math.abs(delta) > TUNE_DELTA_EPSILON) deltaByKey[key] = delta;
+    return deltaByKey;
+  }, {});
+}
+
+function issueObjectsFromSet(issueSet) {
+  const issueLookup = new Map(allIssueTypes.map((issue) => [issue.id, issue]));
+  return [...issueSet].map((id) => issueLookup.get(id)).filter(Boolean);
+}
+
+function nextAppliedSymptomAdjustmentId() {
+  state.appliedSymptomAdjustmentSeq += 1;
+  return `symptom-${Date.now()}-${state.appliedSymptomAdjustmentSeq}`;
+}
+
+function appliedSymptomAdjustmentLabel(adjustment) {
+  const issueLookup = new Map(allIssueTypes.map((issue) => [issue.id, issue]));
+  return (adjustment.issueIds ?? [])
+    .map((id) => issueLookup.get(id))
+    .filter(Boolean)
+    .map((issue) => localizedSymptom(issue).label)
+    .join(" / ");
+}
+
+function selectedSymptomDelta(selectedIssues, baseTune = buildTune()) {
+  return tuneDeltaByKey(baseTune, buildSymptomOptimizedTune(selectedIssues, baseTune));
+}
+
+function applyCurrentSymptomAdjustment() {
+  if (isStandaloneSymptomMode()) return;
+  const selectedIssues = issueObjectsFromSet(state.issues);
+  if (!selectedIssues.length) return;
+
+  const baseTune = buildTune();
+  const deltaByKey = selectedSymptomDelta(selectedIssues, baseTune);
+  if (!Object.keys(deltaByKey).length) return;
+
+  state.appliedSymptomAdjustments.push({
+    id: nextAppliedSymptomAdjustmentId(),
+    issueIds: selectedIssues.map((issue) => issue.id),
+    deltaByKey,
+    createdAt: Date.now(),
+  });
+  state.issues.clear();
+  renderResult();
+  renderIssues();
+}
+
+function removeAppliedSymptomAdjustment(adjustmentId) {
+  const nextAdjustments = state.appliedSymptomAdjustments.filter((adjustment) => adjustment.id !== adjustmentId);
+  if (nextAdjustments.length === state.appliedSymptomAdjustments.length) return;
+  state.appliedSymptomAdjustments = nextAdjustments;
+  renderResult();
+  renderIssues();
 }
 
 function renderOptions(containerId, options, groupName) {
@@ -3634,12 +3785,31 @@ function renderIssues() {
 }
 
 function renderSelectedIssues() {
-  const issueLookup = new Map(allIssueTypes.map((issue) => [issue.id, issue]));
-  const selected = [...currentIssueSet()].map((id) => issueLookup.get(id)).filter(Boolean);
+  const container = document.getElementById("selectedIssues");
+  const selected = issueObjectsFromSet(currentIssueSet());
+  const appliedChips = isStandaloneSymptomMode()
+    ? []
+    : state.appliedSymptomAdjustments.map((adjustment) => {
+        const label = appliedSymptomAdjustmentLabel(adjustment);
+        const escapedLabel = escapeHtml(label);
+        return `
+          <span class="selected-issue-chip is-applied">
+            <span>${escapedLabel}</span>
+            <button
+              class="applied-issue-remove"
+              type="button"
+              data-applied-adjustment-id="${escapeHtml(adjustment.id)}"
+              aria-label="${escapeHtml(t("removeAppliedSymptomAdjustment", { label }))}"
+            >x</button>
+          </span>
+        `;
+      });
+  const selectedChips = selected.map((issue) => `<span class="selected-issue-chip">${escapeHtml(localizedSymptom(issue).label)}</span>`);
   document.getElementById("selectedIssueCount").textContent = t("selectedCount", { count: selected.length });
-  document.getElementById("selectedIssues").innerHTML = selected
-    .map((issue) => `<span class="selected-issue-chip">${localizedSymptom(issue).label}</span>`)
-    .join("");
+  container.innerHTML = [...appliedChips, ...selectedChips].join("");
+  container.querySelectorAll("[data-applied-adjustment-id]").forEach((button) => {
+    button.addEventListener("click", () => removeAppliedSymptomAdjustment(button.dataset.appliedAdjustmentId));
+  });
 }
 
 function selectedOptions() {
@@ -3663,6 +3833,15 @@ function vehicleSpecLabel() {
   )}% / ${state.powerKw} kW / ${state.torqueNm} N.m`;
 }
 
+function normalizedVehicleName() {
+  return String(state.vehicleName || "").trim();
+}
+
+function vehicleNameLabel() {
+  const name = normalizedVehicleName();
+  return name ? `${t("vehicleSpecName")} ${name}` : "";
+}
+
 function tireSpecLabel() {
   normalizeVehicleSpecs();
   return `${t("vehicleSpecFrontTire")} ${state.frontTireSpec} / ${t("vehicleSpecRearTire")} ${state.rearTireSpec}`;
@@ -3671,6 +3850,7 @@ function tireSpecLabel() {
 function vehicleSpecCopyLines() {
   normalizeVehicleSpecs();
   const lines = [
+    ...(normalizedVehicleName() ? [`${t("vehicleSpecName")}: ${normalizedVehicleName()}`] : []),
     `${t("vehicleSpecWeight")}: ${Math.round(state.carWeight)} kg`,
     `${t("vehicleSpecFront")}: ${formatSpecPercent(state.frontWeightPercent)}%`,
     `${t("vehicleSpecRear")}: ${formatSpecPercent(100 - state.frontWeightPercent)}%`,
@@ -3756,6 +3936,7 @@ function renderSelectionPreview() {
   const { race, tuneFocus, engine, drive } = selectedOptions();
   const routeLabel = formatTrackTypeLabel();
   const html = [
+    vehicleNameLabel(),
     race.label,
     routeLabel,
     formatCornerProfileLabel(),
@@ -3765,6 +3946,7 @@ function renderSelectionPreview() {
     vehicleSpecLabel(),
     tireSpecLabel(),
   ]
+    .filter(Boolean)
     .map((text) => `<span>${text}</span>`)
     .join("");
   document.getElementById("selectionPreview").innerHTML = html;
@@ -3961,6 +4143,7 @@ function syncVehicleInputs(skipInputId = "") {
   const inlineRearTireSizeInput = document.getElementById("inlineRearTireSizeInput");
   const powerKwInput = document.getElementById("powerKwInput");
   const torqueNmInput = document.getElementById("torqueNmInput");
+  const vehicleNameInput = document.getElementById("vehicleNameInput");
   const frontWeightInput = document.getElementById("frontWeightInput");
   const frontWeightSlider = document.getElementById("frontWeightSlider");
   const frontWeightOutput = document.getElementById("frontWeightOutput");
@@ -3978,6 +4161,7 @@ function syncVehicleInputs(skipInputId = "") {
   }
   if (powerKwInput && skipInputId !== "powerKwInput") powerKwInput.value = state.powerKw;
   if (torqueNmInput && skipInputId !== "torqueNmInput") torqueNmInput.value = state.torqueNm;
+  if (vehicleNameInput && skipInputId !== "vehicleNameInput") vehicleNameInput.value = state.vehicleName;
   if (frontWeightInput && skipInputId !== "frontWeightInput") frontWeightInput.value = formatSpecPercent(state.frontWeightPercent);
   if (frontWeightSlider && skipInputId !== "frontWeightSlider") frontWeightSlider.value = formatSpecPercent(state.frontWeightPercent);
   if (frontWeightOutput) frontWeightOutput.textContent = `${formatSpecPercent(state.frontWeightPercent)}%`;
@@ -4007,6 +4191,19 @@ function defaultSpecValue(stateKey) {
 }
 
 function bindVehicleInputs() {
+  const vehicleNameInput = document.getElementById("vehicleNameInput");
+  if (vehicleNameInput) {
+    vehicleNameInput.addEventListener("input", () => {
+      state.vehicleName = vehicleNameInput.value;
+      renderSelectionPreview();
+    });
+    vehicleNameInput.addEventListener("change", () => {
+      state.vehicleName = vehicleNameInput.value.trim();
+      syncVehicleInputs();
+      renderSelectionPreview();
+    });
+  }
+
   [
     ["carWeightInput", "carWeight"],
     ["inlineCarWeightInput", "carWeight"],
@@ -4098,8 +4295,6 @@ function syncGearboxInputs(skipInputId = "") {
     ["gearRedlineRpmInput", "redlineRpm"],
     ["gearPeakHpRpmInput", "peakHpRpm"],
     ["gearTopSpeedInput", "topSpeedKmh"],
-    ["gearAccel97Input", "accel97"],
-    ["gearAccel161Input", "accel161"],
     ["gearFinalDriveInput", "finalDrive"],
   ];
 
@@ -4122,23 +4317,15 @@ function syncGearStrategyControls() {
 }
 
 function gearboxReady() {
-  const values = ["gearCount", "redlineRpm", "peakHpRpm", "topSpeedKmh", "accel97", "accel161", "finalDrive"].map((key) =>
+  const values = ["gearCount", "redlineRpm", "peakHpRpm", "topSpeedKmh", "finalDrive"].map((key) =>
     gearNumber(key),
   );
-  const baseReady =
-    values.every((value) => Number.isFinite(value) && value > 0) && gearNumber("accel161") > gearNumber("accel97");
+  const baseReady = values.every((value) => Number.isFinite(value) && value > 0);
   return baseReady && gearNumber("peakHpRpm") <= gearNumber("redlineRpm");
 }
 
 function combinedGearMod(name, ...sources) {
   return sources.reduce((total, source) => total + (Number(source?.[name]) || 0), 0);
-}
-
-function combinedGearMultiplier(baseValue, name, ...sources) {
-  return sources.reduce((total, source) => {
-    const value = Number(source?.[name]);
-    return total + (Number.isFinite(value) ? value - 1 : 0);
-  }, baseValue);
 }
 
 function rpmPowerRatio(redlineRpm, peakHpRpm) {
@@ -4205,6 +4392,14 @@ function speedForGearRatio(rpm, ratio, finalDrive, tireCircumferenceMeters) {
   return (rpm * tireCircumferenceMeters * 0.06) / (ratio * finalDrive);
 }
 
+function rpmForSpeedGearRatio(speedKmh, ratio, finalDrive, tireCircumferenceMeters) {
+  if (!Number.isFinite(speedKmh) || !Number.isFinite(ratio) || !Number.isFinite(finalDrive) || !Number.isFinite(tireCircumferenceMeters)) {
+    return NaN;
+  }
+  if (speedKmh <= 0 || ratio <= 0 || finalDrive <= 0 || tireCircumferenceMeters <= 0) return NaN;
+  return (speedKmh * ratio * finalDrive) / (tireCircumferenceMeters * 0.06);
+}
+
 function engineShiftRecoveryBias(engineId) {
   const biases = {
     flatTorque: -0.04,
@@ -4239,22 +4434,45 @@ function targetShiftRecoveryFraction({ engine, raceId, tuneFocusId, trackRatio, 
   return clampNumber(powerRatio + engineShiftRecoveryBias(engine.id) + cornerBias + focusBias + raceBias, 0.62, 0.96);
 }
 
-function targetTopGearRpmFraction({ raceId, tuneFocusId, powerRatio }) {
-  const raceBias =
-    raceId === "dragQuarter"
-      ? 0.015
-      : raceId === "dragHalf"
-        ? -0.025
-        : raceId === "drift"
-          ? 0.02
-          : 0;
-  const focusBias =
-    tuneFocusId === "topSpeed"
-      ? -0.03
-      : tuneFocusId === "exit" || tuneFocusId === "agility"
-        ? 0.018
-        : 0;
-  return clampNumber(powerRatio + raceBias + focusBias, 0.7, 0.98);
+function powerToWeightIndex() {
+  normalizeVehicleSpecs();
+  const powerToWeight = state.powerKw / Math.max(1, state.carWeight);
+  return clampNumber((powerToWeight - 400 / 1500) / 0.16, -1.4, 2.4);
+}
+
+function targetTerminalBandPosition({ raceId, tuneFocusId, trackRatio, cornerProfileId, engineId }) {
+  let position = 0.62;
+
+  if (raceId === "dragHalf" || tuneFocusId === "topSpeed") position += 0.14;
+  if (raceId === "dragQuarter") position += 0.08;
+  if (raceId === "rally" || raceId === "offroad" || tuneFocusId === "grip") position -= 0.08;
+  if (raceId === "drift") position -= 0.1;
+  if (routeShapeEnabled(raceId)) position += clampNumber((0.45 - trackRatio) * 0.12, -0.04, 0.06);
+  if (cornerProfileId === "large") position += 0.04;
+  if (cornerProfileId === "small") position -= 0.05;
+  if (tuneFocusId === "exit" || tuneFocusId === "agility") position -= 0.04;
+  if (engineId === "highRpm") position += 0.08;
+  if (engineId === "turboHit") position += 0.04;
+  if (engineId === "lowEnd" || engineId === "instant") position -= 0.07;
+
+  const weakPowerBias = clampNumber(-powerToWeightIndex() * 0.08, -0.08, 0.12);
+  return clampNumber(position + weakPowerBias, 0.38, 0.9);
+}
+
+function targetTerminalRpm(peakHpRpm, redlineRpm, bandPosition) {
+  const rpmWindow = Math.max(0, redlineRpm - peakHpRpm);
+  return peakHpRpm + rpmWindow * clampNumber(bandPosition, 0, 1);
+}
+
+function terminalPowerBandPercent(terminalRpm, peakHpRpm, redlineRpm) {
+  const rpmWindow = Math.max(1, redlineRpm - peakHpRpm);
+  return clampNumber(((terminalRpm - peakHpRpm) / rpmWindow) * 100, 0, 100);
+}
+
+function terminalStatusKey(terminalRpm, peakHpRpm, redlineRpm) {
+  if (terminalRpm < peakHpRpm * 0.99) return "gearTerminalLong";
+  if (terminalRpm > redlineRpm * 1.005) return "gearTerminalShort";
+  return "gearTerminalOk";
 }
 
 function gearAutoStrategyKey({ raceId, tuneFocusId, trackRatio, cornerProfileId }) {
@@ -4267,30 +4485,6 @@ function gearAutoStrategyKey({ raceId, tuneFocusId, trackRatio, cornerProfileId 
     return "gearAutoStrategyCorner";
   }
   return "gearAutoStrategyBalanced";
-}
-
-function usableTopSpeedRatio({
-  highPullIndex,
-  gearCount,
-  raceGearMod,
-  trackGearMods,
-  cornerGearMods,
-  focusGearMods,
-  engineGearMods,
-}) {
-  const reserveIntent =
-    combinedGearMultiplier(
-      1,
-      "topTargetMultiplier",
-      raceGearMod,
-      trackGearMods,
-      cornerGearMods,
-      focusGearMods,
-      engineGearMods,
-    ) - 1;
-  const highGearPullPenalty = clampNumber((highPullIndex - 1.05) * 0.045, -0.025, 0.055);
-  const gearCountBias = gearCount <= 5 ? -0.015 : gearCount >= 8 ? 0.012 : 0;
-  return clampNumber(0.94 - highGearPullPenalty + gearCountBias + reserveIntent * 0.45, 0.86, 0.995);
 }
 
 function raceGearProfile(raceId) {
@@ -4349,8 +4543,6 @@ function focusFirstGearRange(focusId, raceGearMod = {}, intensityMultiplier = 1)
 function estimateFirstGearTarget({
   tuneFocus,
   engine,
-  accel97,
-  highPullIndex,
   raceGearMod,
   trackGearMods,
   cornerGearMods,
@@ -4360,8 +4552,7 @@ function estimateFirstGearTarget({
 }) {
   const [minTarget, maxTarget] = focusFirstGearRange(tuneFocus.id, raceGearMod, focusIntensity);
   const midpoint = (minTarget + maxTarget) / 2;
-  const launchPaceAdjust = clampNumber((3.8 - accel97) * 3, -8, 8);
-  const highPullAdjust = clampNumber((1.05 - highPullIndex) * 4, -7, 5);
+  const vehiclePaceAdjust = clampNumber(powerToWeightIndex() * 4 + Math.max(0, torqueIndex()) * 1.8 - vehicleWeightIndex() * 1.5, -7, 8);
   const profileAdjust = combinedGearMod(
     "firstTarget",
     raceGearMod,
@@ -4371,7 +4562,7 @@ function estimateFirstGearTarget({
     engineGearMods,
   );
   const engineWindowAdjust = engine.id === "highRpm" ? -2 : engine.id === "lowEnd" ? 2 : 0;
-  return clampNumber(midpoint + launchPaceAdjust + highPullAdjust + profileAdjust + engineWindowAdjust, minTarget, maxTarget);
+  return clampNumber(midpoint + vehiclePaceAdjust + profileAdjust + engineWindowAdjust, minTarget, maxTarget);
 }
 
 function cornerRecoveryRedlineFraction(engine) {
@@ -4701,13 +4892,8 @@ function calculateGearRatios(tune = buildTune()) {
   const gearCount = Math.round(clampNumber(gearNumber("gearCount"), ...gearboxLimits.gearCount));
   const redlineRpm = Math.round(clampNumber(gearNumber("redlineRpm"), ...gearboxLimits.redlineRpm));
   const peakHpRpm = Math.round(clampNumber(Math.min(gearNumber("peakHpRpm"), redlineRpm), ...gearboxLimits.peakHpRpm));
-  const topSpeed = clampNumber(gearNumber("topSpeedKmh"), ...gearboxLimits.topSpeedKmh);
-  const accel97 = clampNumber(gearNumber("accel97"), ...gearboxLimits.accel97);
-  const accel161 = clampNumber(gearNumber("accel161"), ...gearboxLimits.accel161);
+  const targetTerminalSpeed = clampNumber(gearNumber("topSpeedKmh"), ...gearboxLimits.topSpeedKmh);
   const finalDrive = clampNumber(gearNumber("finalDrive"), ...gearboxLimits.finalDrive);
-  const accelGap = Math.max(0.2, accel161 - accel97);
-  const highPullIndex = clampNumber(accelGap / Math.max(accel97, 0.1), 0.45, 3.2);
-  const highGearAdjust = clampNumber((highPullIndex - 1.05) * 0.18, -0.25, 0.5);
   const gearCountAdjust = gearCount <= 5 ? 0.35 : gearCount >= 8 ? -0.2 : 0;
   const trackRatio = routeShapeEnabled(race.id) ? trackTypeRatio() : 0;
   const powerRatio = rpmPowerRatio(redlineRpm, peakHpRpm);
@@ -4718,38 +4904,21 @@ function calculateGearRatios(tune = buildTune()) {
     trackRatio,
     powerRatio,
   });
-  const topGearRpmFraction = targetTopGearRpmFraction({
+  const terminalBandPosition = targetTerminalBandPosition({
     raceId: race.id,
     tuneFocusId: tuneFocus.id,
-    powerRatio,
+    trackRatio,
+    cornerProfileId: selectedCornerProfile().id,
+    engineId: engine.id,
   });
-  const topSpeedUseRatio = usableTopSpeedRatio({
-    highPullIndex,
-    gearCount,
-    raceGearMod,
-    trackGearMods,
-    cornerGearMods,
-    focusGearMods,
-    engineGearMods,
-  });
-  const usableTopTarget = topSpeed * topSpeedUseRatio;
-  const desiredTopTarget = clampNumber(usableTopTarget / topGearRpmFraction, usableTopTarget * 1.01, topSpeed * 1.12);
-  const formulaTopRatio = gearRatioForSpeed(redlineRpm, desiredTopTarget, finalDrive, tireProfile.circumference);
+  const desiredTerminalRpm = targetTerminalRpm(peakHpRpm, redlineRpm, terminalBandPosition);
+  const formulaTopRatio = gearRatioForSpeed(desiredTerminalRpm, targetTerminalSpeed, finalDrive, tireProfile.circumference);
   const baseTopRatio = Number.isFinite(formulaTopRatio) ? formulaTopRatio : 0.85;
-  const topRatio = clampNumber(
-    baseTopRatio +
-      combinedGearMod("topRatio", raceGearMod, trackGearMods, cornerGearMods, focusGearMods, engineGearMods),
-    0.45,
-    2.2,
-  );
+  const topRatio = clampNumber(baseTopRatio, 0.45, 2.2);
   const topTarget = speedForGearRatio(redlineRpm, topRatio, finalDrive, tireProfile.circumference);
-  const actualUsableTopTarget = topTarget * topGearRpmFraction;
-  const actualTopSpeedUseRatio = clampNumber(actualUsableTopTarget / topSpeed, 0.72, 1.12);
   const firstGearTarget = estimateFirstGearTarget({
     tuneFocus,
     engine,
-    accel97,
-    highPullIndex,
     raceGearMod,
     trackGearMods,
     cornerGearMods,
@@ -4757,15 +4926,16 @@ function calculateGearRatios(tune = buildTune()) {
     engineGearMods,
     focusIntensity,
   });
-  const speedSpread = desiredTopTarget / firstGearTarget + gearCountAdjust * 0.08;
+  const speedSpread = topTarget / firstGearTarget + gearCountAdjust * 0.08;
   const rpmSpread = Math.pow(1 / shiftRecoveryFraction, Math.max(1, gearCount - 1));
   const spread = clampNumber(speedSpread * 0.78 + rpmSpread * 0.22, 3.05, 5.35);
   const actualFirstGearTarget = topTarget / spread;
   const rpmCurveAdjust = clampNumber((shiftRecoveryFraction - 0.82) * 0.32, -0.08, 0.08);
+  const abilityCurveAdjust = clampNumber((vehicleWeightIndex() - powerToWeightIndex()) * 0.035, -0.08, 0.1);
   const curvePower = clampNumber(
     1 +
-      highGearAdjust * 0.45 +
       rpmCurveAdjust +
+      abilityCurveAdjust +
       combinedGearMod("curvePower", raceGearMod, trackGearMods, cornerGearMods, focusGearMods, engineGearMods),
     0.78,
     1.35,
@@ -4802,6 +4972,11 @@ function calculateGearRatios(tune = buildTune()) {
     finalDrive,
     tireCircumference: tireProfile.circumference,
   });
+  const currentTopRatio = ratios[ratios.length - 1]?.ratio ?? topRatio;
+  const currentTopTarget = speedForGearRatio(redlineRpm, currentTopRatio, finalDrive, tireProfile.circumference);
+  const currentTerminalRpm = rpmForSpeedGearRatio(targetTerminalSpeed, currentTopRatio, finalDrive, tireProfile.circumference);
+  const currentTerminalBandPercent = terminalPowerBandPercent(currentTerminalRpm, peakHpRpm, redlineRpm);
+  const currentTerminalStatus = terminalStatusKey(currentTerminalRpm, peakHpRpm, redlineRpm);
   const currentSpread = ratios[0].ratio / ratios[ratios.length - 1].ratio;
   const strategyKey =
     cornerPlan.strategyId === "corner"
@@ -4821,14 +4996,15 @@ function calculateGearRatios(tune = buildTune()) {
     peakHpRpm,
     tireCircumference: tireProfile.circumference,
     tireDriveLabel: tireProfile.label,
-    listedTopSpeed: topSpeed,
-    topSpeedUseRatio: actualTopSpeedUseRatio,
-    usableTopTarget: actualUsableTopTarget,
-    topTarget,
+    targetTerminalSpeed,
+    terminalRpm: currentTerminalRpm,
+    terminalBandPercent: currentTerminalBandPercent,
+    terminalStatus: currentTerminalStatus,
+    topTarget: currentTopTarget,
     firstGearTarget: actualFirstGearTarget,
     targetShiftRpm: redlineRpm * shiftRecoveryFraction,
     shiftRecoveryFraction,
-    topGearRpmFraction,
+    terminalBandPosition,
     raceLabel: localizedOption("raceTypes", race).label,
     raceNote: localizedRaceGearNote(race.id, raceGearMod.note),
     trackTypeLabel: formatTrackTypeLabel(),
@@ -4844,15 +5020,43 @@ function calculateGearRatios(tune = buildTune()) {
     note:
       cornerPlan.note
         ? `${cornerPlan.note} ${t("gearAutoApplied", { strategy: t(strategyKey) })}`
-        : highPullIndex > 1.35
-        ? t("gearSlowHighPull")
-        : accel97 < 3.2
-          ? t("gearQuickLowSpeed")
-          : t("gearDefaultNote", {
-              strategy: t(strategyKey),
-              focus: formatTuneFocusLabel(tuneFocus),
-            }),
+        : `${t(currentTerminalStatus)} ${t("gearDefaultNote", {
+            strategy: t(strategyKey),
+            focus: formatTuneFocusLabel(tuneFocus),
+          })}`,
   };
+}
+
+function gearDecisionText(plan) {
+  return `${t("gearFormulaNote", { drive: plan.tireDriveLabel })} ${t("gearUsableNote", {
+    speed: Math.round(plan.targetTerminalSpeed),
+    rpm: Math.round(plan.terminalRpm),
+    percent: Math.round(plan.terminalBandPercent),
+  })} ${plan.note} ${t("gearDecisionSuffix", {
+    race: plan.raceLabel,
+    raceNote: plan.raceNote,
+    route: plan.trackTypeLabel,
+    corner: plan.cornerProfileLabel,
+    engine: plan.engineLabel,
+    focus: plan.tuneFocusLabel,
+  })}`;
+}
+
+function renderGearDecisionPanel(plan) {
+  const decisionPanel = document.getElementById("gearDecisionPanel");
+  if (!decisionPanel) return;
+
+  if (!plan) {
+    decisionPanel.innerHTML = "";
+    return;
+  }
+
+  decisionPanel.innerHTML = `
+    <article class="gear-decision-card">
+      <span>${t("gearSummaryDecision")}</span>
+      <strong>${escapeHtml(gearDecisionText(plan))}</strong>
+    </article>
+  `;
 }
 
 function renderGearCalculator(tune = buildTune()) {
@@ -4863,6 +5067,7 @@ function renderGearCalculator(tune = buildTune()) {
 
   if (!availabilityEnabled("gearbox")) {
     finalChip.textContent = t("gearboxUnavailableChip");
+    renderGearDecisionPanel();
     summaryGrid.innerHTML = `
       <div class="gear-empty">
         ${t("gearboxUnavailableMessage")}
@@ -4876,6 +5081,7 @@ function renderGearCalculator(tune = buildTune()) {
   finalChip.textContent = t("gearFinalDriveChip", { value: formatGearRatio(finalDrive) });
 
   if (!gearboxReady()) {
+    renderGearDecisionPanel();
     summaryGrid.innerHTML = `
       <div class="gear-empty">
         ${t("gearEmpty")}
@@ -4886,6 +5092,7 @@ function renderGearCalculator(tune = buildTune()) {
   }
 
   const plan = calculateGearRatios(tune);
+  renderGearDecisionPanel(plan);
   summaryGrid.innerHTML = `
     <article class="gear-summary-card">
       <span>${t("gearSummaryFinal")}</span>
@@ -4897,7 +5104,9 @@ function renderGearCalculator(tune = buildTune()) {
     </article>
     <article class="gear-summary-card">
       <span>${t("gearSummaryUsable")}</span>
-      <strong>${t("gearSummaryUsableValue", { percent: Math.round(plan.topSpeedUseRatio * 100) })} / ${Math.round(plan.usableTopTarget)} km/h</strong>
+      <strong>${Math.round(plan.terminalRpm)} RPM / ${t("gearSummaryUsableValue", {
+        percent: Math.round(plan.terminalBandPercent),
+      })}</strong>
     </article>
     <article class="gear-summary-card">
       <span>${t("gearSummaryFirst")}</span>
@@ -4922,19 +5131,6 @@ function renderGearCalculator(tune = buildTune()) {
     <article class="gear-summary-card">
       <span>${t("gearSummaryGoal")}</span>
       <strong>${plan.strategyLabel}</strong>
-    </article>
-    <article class="gear-summary-card wide">
-      <span>${t("gearSummaryDecision")}</span>
-      <strong>${t("gearFormulaNote", { drive: plan.tireDriveLabel })} ${t("gearUsableNote", {
-        percent: Math.round(plan.topSpeedUseRatio * 100),
-      })} ${plan.note} ${t("gearDecisionSuffix", {
-        race: plan.raceLabel,
-        raceNote: plan.raceNote,
-        route: plan.trackTypeLabel,
-        corner: plan.cornerProfileLabel,
-        engine: plan.engineLabel,
-        focus: plan.tuneFocusLabel,
-      })}</strong>
     </article>
   `;
 
@@ -5094,8 +5290,6 @@ function bindGearboxInputs() {
     ["gearRedlineRpmInput", "redlineRpm"],
     ["gearPeakHpRpmInput", "peakHpRpm"],
     ["gearTopSpeedInput", "topSpeedKmh"],
-    ["gearAccel97Input", "accel97"],
-    ["gearAccel161Input", "accel161"],
     ["gearFinalDriveInput", "finalDrive"],
   ].forEach(([inputId, key]) => {
     const input = document.getElementById(inputId);
@@ -5192,7 +5386,10 @@ function settingValue(card, tune) {
     case "bump":
       return adjustmentValuePair("bumpFront", "bumpRear", tune);
     case "aero":
-      return adjustmentValuePair("aeroFront", "aeroRear", tune);
+      return valuePair(
+        sideAvailabilityValue("frontAero", formatAdjustmentNumber(mappedAdjustmentValue("aeroFront", tune.aeroFront))),
+        sideAvailabilityValue("rearAero", formatAdjustmentNumber(mappedAdjustmentValue("aeroRear", tune.aeroRear))),
+      );
     case "brake":
       return `${t("frontShort")} ${Math.round(tune.brakeBalance)}% / ${t("brakePressure")} ${Math.round(
         tune.brakePressure,
@@ -5487,7 +5684,7 @@ function copyTune(tune) {
       const localizedCard = localizedSettingCard(card);
       const status = settingAvailabilityStatus(localizedCard[1]);
       const unit = status === "unavailable" ? "" : settingUnit(localizedCard);
-      const statusText = status !== "available" ? ` (${t("copyUnavailable")})` : "";
+      const statusText = copyStatusText(status);
       return `${localizedCard[0]}: ${settingValue(localizedCard, tune)} ${unit}${statusText}`.trim();
     }),
   ];
@@ -5500,11 +5697,363 @@ function copyTune(tune) {
 
 function flashButton(id, label) {
   const button = document.getElementById(id);
+  if (!button) return;
   const original = button.textContent;
   button.textContent = label;
   window.setTimeout(() => {
     button.textContent = original;
   }, 1300);
+}
+
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function hasOwnValue(object, key) {
+  return Object.prototype.hasOwnProperty.call(object, key);
+}
+
+function validOptionId(options, value, fallback) {
+  return options.some((option) => option.id === value) ? value : fallback;
+}
+
+function sanitizedText(value, maxLength = 120) {
+  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
+function sanitizedNumber(value, fallback, [min, max], shouldRound = false) {
+  const number = Number(value);
+  const normalized = clampNumber(Number.isFinite(number) ? number : fallback, min, max);
+  return shouldRound ? Math.round(normalized) : normalized;
+}
+
+function safeFileNameSegment(value) {
+  return (
+    sanitizedText(value, 60)
+      .normalize("NFKC")
+      .replace(/[\\/:*?"<>|]+/g, "-")
+      .replace(/\s+/g, " ")
+      .trim() || "FH6-TuneLab"
+  );
+}
+
+function setupFileName() {
+  const date = new Date().toISOString().slice(0, 10);
+  return `FH6-TuneLab_${safeFileNameSegment(normalizedVehicleName())}_${date}.json`;
+}
+
+function serializableAvailability() {
+  return Object.fromEntries(availabilityGroups.map((group) => [group.id, availabilityEnabled(group.id)]));
+}
+
+function serializableAdjustmentRanges() {
+  return Object.fromEntries(
+    Object.keys(DEFAULT_ADJUSTMENT_RANGES).map((groupId) => [
+      groupId,
+      { ...normalizeAdjustmentRange(groupId) },
+    ]),
+  );
+}
+
+function serializableManualGearRatios() {
+  const gearCount = Math.round(clampNumber(Number(state.gearbox.gearCount) || DEFAULT_GEARBOX.gearCount, ...gearboxLimits.gearCount));
+  return Object.fromEntries(
+    manualGearRatioEntries(gearCount).map(([gear, ratio]) => [gear, Number(ratio.toFixed(2))]),
+  );
+}
+
+function createSetupSavePayload() {
+  normalizeVehicleSpecs();
+  normalizeTrackType();
+  normalizeTuneFocusIntensity();
+
+  return {
+    schema: SETUP_SAVE_SCHEMA,
+    schemaVersion: SETUP_SAVE_SCHEMA_VERSION,
+    appVersion: SETUP_SAVE_APP_VERSION,
+    savedAt: new Date().toISOString(),
+    vehicle: {
+      vehicleName: normalizedVehicleName(),
+      carWeight: state.carWeight,
+      frontWeightPercent: state.frontWeightPercent,
+      frontTireSpec: state.frontTireSpec,
+      rearTireSpec: state.rearTireSpec,
+      powerKw: state.powerKw,
+      torqueNm: state.torqueNm,
+    },
+    config: {
+      race: state.race,
+      trackType: state.trackType,
+      cornerProfile: state.cornerProfile,
+      tuneFocus: state.tuneFocus,
+      tuneFocusIntensity: state.tuneFocusIntensity,
+      engine: state.engine,
+      drive: state.drive,
+    },
+    gearbox: {
+      ...state.gearbox,
+      manualRatios: serializableManualGearRatios(),
+    },
+    adjustmentRanges: serializableAdjustmentRanges(),
+    availability: serializableAvailability(),
+    symptoms: {
+      activeIssueCategory: state.activeIssueCategory,
+      issues: [...state.issues],
+      solutionActiveIssueCategory: state.solutionActiveIssueCategory,
+      solutionIssues: [...state.solutionIssues],
+      appliedSymptomAdjustmentSeq: state.appliedSymptomAdjustmentSeq,
+      appliedSymptomAdjustments: state.appliedSymptomAdjustments.map((adjustment) => ({
+        id: adjustment.id,
+        issueIds: [...(adjustment.issueIds ?? [])],
+        deltaByKey: { ...(adjustment.deltaByKey ?? {}) },
+        createdAt: adjustment.createdAt,
+      })),
+    },
+  };
+}
+
+function saveSetupJson() {
+  const payload = createSetupSavePayload();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = setupFileName();
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  flashButton("saveJsonButton", t("saveJsonSuccess"));
+}
+
+function sanitizedIssueIds(value) {
+  if (!Array.isArray(value)) return [];
+  const validIssueIds = new Set(allIssueTypes.map((issue) => issue.id));
+  return [...new Set(value.map((id) => String(id)).filter((id) => validIssueIds.has(id)))];
+}
+
+function sanitizedCategoryId(value, fallback) {
+  return symptomCategories.some((category) => category.id === value) ? value : fallback;
+}
+
+function sanitizedAvailability(value) {
+  const nextAvailability = createAvailability();
+  if (!isPlainObject(value)) return nextAvailability;
+
+  if (hasOwnValue(value, "aero")) {
+    const isEnabled = value.aero !== false;
+    nextAvailability.frontAero = isEnabled;
+    nextAvailability.rearAero = isEnabled;
+  }
+
+  availabilityGroups.forEach((group) => {
+    if (hasOwnValue(value, group.id)) {
+      nextAvailability[group.id] = value[group.id] !== false;
+    }
+  });
+
+  return nextAvailability;
+}
+
+function sanitizedAdjustmentRanges(value) {
+  const nextRanges = createAdjustmentRanges();
+  if (!isPlainObject(value)) return nextRanges;
+
+  Object.entries(DEFAULT_ADJUSTMENT_RANGES).forEach(([groupId, defaults]) => {
+    const rawRange = isPlainObject(value[groupId]) ? value[groupId] : {};
+    const range = {};
+
+    Object.keys(defaults).forEach((field) => {
+      range[field] = sanitizedNumber(rawRange[field], defaults[field], adjustmentRangeValueLimits);
+    });
+
+    if (range.frontMin > range.frontMax) {
+      [range.frontMin, range.frontMax] = [range.frontMax, range.frontMin];
+    }
+    if (range.rearMin > range.rearMax) {
+      [range.rearMin, range.rearMax] = [range.rearMax, range.rearMin];
+    }
+
+    nextRanges[groupId] = range;
+  });
+
+  return nextRanges;
+}
+
+function sanitizedGearbox(value) {
+  const rawGearbox = isPlainObject(value) ? value : {};
+  const nextGearbox = createDefaultGearbox();
+
+  Object.entries(DEFAULT_GEARBOX).forEach(([key, fallback]) => {
+    nextGearbox[key] = sanitizedNumber(rawGearbox[key], fallback, gearboxLimits[key]);
+  });
+
+  nextGearbox.gearCount = Math.round(nextGearbox.gearCount);
+  nextGearbox.redlineRpm = Math.round(nextGearbox.redlineRpm);
+  nextGearbox.peakHpRpm = Math.round(Math.min(nextGearbox.peakHpRpm, nextGearbox.redlineRpm));
+
+  const rawManualRatios = isPlainObject(rawGearbox.manualRatios) ? rawGearbox.manualRatios : {};
+  nextGearbox.manualRatios = Object.entries(rawManualRatios).reduce((ratios, [gearKey, ratioValue]) => {
+    const gear = Number(gearKey);
+    const ratio = Number(ratioValue);
+    if (!Number.isInteger(gear) || gear < 1 || gear > nextGearbox.gearCount || !Number.isFinite(ratio)) {
+      return ratios;
+    }
+    ratios[gear] = Number(clampNumber(ratio, 0.2, 10).toFixed(2));
+    return ratios;
+  }, {});
+
+  return nextGearbox;
+}
+
+function sanitizedAppliedSymptomAdjustments(value) {
+  if (!Array.isArray(value)) return [];
+  const usedIds = new Set();
+
+  return value
+    .map((adjustment, index) => {
+      if (!isPlainObject(adjustment)) return null;
+      const issueIds = sanitizedIssueIds(adjustment.issueIds);
+      const rawDelta = isPlainObject(adjustment.deltaByKey) ? adjustment.deltaByKey : {};
+      const deltaByKey = {};
+
+      TUNE_KEYS.forEach((key) => {
+        const delta = Number(rawDelta[key]);
+        if (Number.isFinite(delta) && Math.abs(delta) > TUNE_DELTA_EPSILON) {
+          deltaByKey[key] = delta;
+        }
+      });
+
+      if (!issueIds.length || !Object.keys(deltaByKey).length) return null;
+
+      const baseId = sanitizedText(adjustment.id, 80) || `loaded-symptom-${index + 1}`;
+      let id = baseId;
+      let suffix = 2;
+      while (usedIds.has(id)) {
+        id = `${baseId}-${suffix}`;
+        suffix += 1;
+      }
+      usedIds.add(id);
+
+      const createdAt = Number(adjustment.createdAt);
+      return {
+        id,
+        issueIds,
+        deltaByKey,
+        createdAt: Number.isFinite(createdAt) ? createdAt : Date.now() + index,
+      };
+    })
+    .filter(Boolean);
+}
+
+function applySetupSavePayload(payload) {
+  if (!isPlainObject(payload)) throw new Error("Invalid setup file");
+  if (payload.schema && payload.schema !== SETUP_SAVE_SCHEMA) throw new Error("Unsupported setup schema");
+  if (
+    payload.schema === SETUP_SAVE_SCHEMA &&
+    Number(payload.schemaVersion ?? SETUP_SAVE_SCHEMA_VERSION) > SETUP_SAVE_SCHEMA_VERSION
+  ) {
+    throw new Error("Unsupported setup schema version");
+  }
+
+  const hasSetupSections = ["vehicle", "config", "gearbox", "adjustmentRanges", "availability", "symptoms"].some((key) =>
+    isPlainObject(payload[key]),
+  );
+  if (payload.schema !== SETUP_SAVE_SCHEMA && !hasSetupSections) throw new Error("Invalid setup file");
+
+  const config = isPlainObject(payload.config) ? payload.config : {};
+  const vehicle = isPlainObject(payload.vehicle) ? payload.vehicle : {};
+  const symptoms = isPlainObject(payload.symptoms) ? payload.symptoms : {};
+
+  state.view = "result";
+  state.symptomMode = "linked";
+  state.race = validOptionId(raceTypes, config.race, "road");
+  state.trackType = sanitizedNumber(config.trackType, optionById(raceTypes, state.race)?.defaultTrackType ?? 55, routeShapeLimits.trackType, true);
+  state.cornerProfile = validOptionId(cornerProfileTypes, config.cornerProfile, "mixed");
+  state.tuneFocus = validOptionId(tuneFocusTypes, config.tuneFocus, "balanced");
+  state.tuneFocusIntensity = sanitizedNumber(config.tuneFocusIntensity, 100, tuneFocusIntensityLimits, true);
+  state.engine = validOptionId(engineCurves, config.engine, "flatTorque");
+  state.drive = validOptionId(driveTypes, config.drive, "awd");
+  state.vehicleName = sanitizedText(vehicle.vehicleName ?? payload.vehicleName, 80);
+  state.carWeight = sanitizedNumber(vehicle.carWeight, 1500, vehicleSpecLimits.carWeight, true);
+  state.frontWeightPercent = sanitizedNumber(vehicle.frontWeightPercent, 52, vehicleSpecLimits.frontWeightPercent, true);
+  state.frontTireSpec = parseTireSpec(vehicle.frontTireSpec, "245/35R19").spec;
+  state.rearTireSpec = parseTireSpec(vehicle.rearTireSpec, "265/35R19").spec;
+  state.powerKw = sanitizedNumber(vehicle.powerKw, 400, vehicleSpecLimits.powerKw, true);
+  state.torqueNm = sanitizedNumber(vehicle.torqueNm, 650, vehicleSpecLimits.torqueNm, true);
+  state.gearbox = sanitizedGearbox(payload.gearbox);
+  state.adjustmentRanges = sanitizedAdjustmentRanges(payload.adjustmentRanges);
+  state.availability = sanitizedAvailability(payload.availability);
+  state.activeIssueCategory = sanitizedCategoryId(symptoms.activeIssueCategory, "steering");
+  state.solutionActiveIssueCategory = sanitizedCategoryId(symptoms.solutionActiveIssueCategory, "steering");
+  state.issues = new Set(sanitizedIssueIds(symptoms.issues));
+  state.solutionIssues = new Set(sanitizedIssueIds(symptoms.solutionIssues));
+  state.appliedSymptomAdjustments = sanitizedAppliedSymptomAdjustments(symptoms.appliedSymptomAdjustments);
+  state.appliedSymptomAdjustmentSeq = Math.max(
+    state.appliedSymptomAdjustments.length,
+    sanitizedNumber(symptoms.appliedSymptomAdjustmentSeq, state.appliedSymptomAdjustments.length, [0, 999999], true),
+  );
+
+  normalizeVehicleSpecs();
+  normalizeTrackType();
+  normalizeTuneFocusIntensity();
+}
+
+function refreshAfterSetupLoad() {
+  renderOptions("raceOptions", raceTypes, "race");
+  renderOptions("engineOptions", engineCurves, "engine");
+  renderOptions("driveOptions", driveTypes, "drive");
+  syncConfigControls();
+  renderAvailabilityControls();
+  renderAdjustmentRangeControls();
+  bindAdjustmentRangeInputs();
+  syncAdjustmentRangeInputs();
+  syncGearboxInputs();
+  syncGearStrategyControls();
+  syncTuneFocusIntensityInput();
+  syncVehicleInputs();
+  renderIssueCategories();
+  renderIssues();
+  renderSelectedIssues();
+  renderSummary();
+  renderSelectionPreview();
+  renderResult();
+  renderGearCalculator();
+  setView("result");
+}
+
+function loadSetupJsonText(text) {
+  const payload = JSON.parse(text);
+  applySetupSavePayload(payload);
+  refreshAfterSetupLoad();
+}
+
+async function handleLoadSetupJson(event) {
+  const input = event.target;
+  const file = input.files?.[0];
+  if (!file) return;
+
+  try {
+    loadSetupJsonText(await file.text());
+    flashButton("loadJsonButton", t("loadJsonSuccess"));
+  } catch (error) {
+    console.error(error);
+    flashButton("loadJsonButton", t("loadJsonFail"));
+  } finally {
+    input.value = "";
+  }
+}
+
+function bindSetupJsonButtons() {
+  const saveButton = document.getElementById("saveJsonButton");
+  const loadButton = document.getElementById("loadJsonButton");
+  const loadInput = document.getElementById("loadJsonInput");
+
+  if (saveButton) saveButton.addEventListener("click", saveSetupJson);
+  if (loadButton && loadInput) {
+    loadButton.addEventListener("click", () => loadInput.click());
+    loadInput.addEventListener("change", handleLoadSetupJson);
+  }
 }
 
 function openSymptomPage(mode) {
@@ -5531,7 +6080,25 @@ function availabilityGroupsForAdviceTarget(target) {
   }
   if (target.includes("差速") || normalizedTarget.includes("diff")) return ["diff"];
   if (target.includes("煞車") || normalizedTarget.includes("brake")) return ["brake"];
-  if (target.includes("空力") || target.includes("下壓") || normalizedTarget.includes("aero") || normalizedTarget.includes("downforce")) return ["aero"];
+  if (
+    target.includes("前空力") ||
+    target.includes("前下壓") ||
+    normalizedTarget.includes("front aero") ||
+    normalizedTarget.includes("front downforce")
+  ) {
+    return ["frontAero"];
+  }
+  if (
+    target.includes("後空力") ||
+    target.includes("後下壓") ||
+    normalizedTarget.includes("rear aero") ||
+    normalizedTarget.includes("rear downforce")
+  ) {
+    return ["rearAero"];
+  }
+  if (target.includes("空力") || target.includes("下壓") || normalizedTarget.includes("aero") || normalizedTarget.includes("downforce")) {
+    return ["frontAero", "rearAero"];
+  }
   if (
     target.includes("彈簧") ||
     target.includes("車高") ||
@@ -5614,12 +6181,27 @@ function renderLinkedTuneCard(card, baseTune, optimizedTune) {
 function renderLinkedTuneAdvice(selectedIssues) {
   const adviceList = document.getElementById("adviceList");
   const baseTune = buildTune();
-  const optimizedTune = buildSymptomOptimizedTune(selectedIssues);
+  const optimizedTune = buildSymptomOptimizedTune(selectedIssues, baseTune);
+  const deltaByKey = tuneDeltaByKey(baseTune, optimizedTune);
+  const canApply = selectedIssues.length > 0 && Object.keys(deltaByKey).length > 0;
+  const actionHint = selectedIssues.length
+    ? t("applySymptomAdjustmentHint")
+    : state.appliedSymptomAdjustments.length
+      ? t("appliedSymptomAdjustmentHint")
+      : t("linkedTuneEmpty");
   adviceList.innerHTML = `
+    <div class="linked-tune-actions">
+      <button class="utility-button compact-button" id="applySymptomAdjustmentButton" type="button" ${canApply ? "" : "disabled"}>
+        ${t("buttonApplySymptomAdjustment")}
+      </button>
+      <span>${actionHint}</span>
+    </div>
     <div class="linked-tune-grid">
       ${settingCards.map((card) => renderLinkedTuneCard(card, baseTune, optimizedTune)).join("")}
     </div>
   `;
+  const applyButton = document.getElementById("applySymptomAdjustmentButton");
+  if (applyButton) applyButton.addEventListener("click", applyCurrentSymptomAdjustment);
 }
 
 function renderAdvice() {
@@ -5711,7 +6293,7 @@ function copyTune(tune) {
       const localizedCard = localizedSettingCard(card);
       const status = settingAvailabilityStatus(localizedCard[1]);
       const unit = status === "unavailable" ? "" : settingUnit(localizedCard);
-      const statusText = status !== "available" ? ` (${t("copyUnavailable")})` : "";
+      const statusText = copyStatusText(status);
       return `${localizedCard[0]}: ${settingValue(localizedCard, tune)} ${unit}${statusText}`.trim();
     }),
   ];
@@ -5731,6 +6313,7 @@ function resetAll() {
   state.tuneFocusIntensity = 100;
   state.engine = "flatTorque";
   state.drive = "awd";
+  state.vehicleName = "";
   state.carWeight = 1500;
   state.frontWeightPercent = 52;
   state.frontTireSpec = "245/35R19";
@@ -5746,6 +6329,8 @@ function resetAll() {
   state.solutionActiveIssueCategory = "steering";
   state.issues.clear();
   state.solutionIssues.clear();
+  state.appliedSymptomAdjustments = [];
+  state.appliedSymptomAdjustmentSeq = 0;
   renderOptions("raceOptions", raceTypes, "race");
   renderOptions("engineOptions", engineCurves, "engine");
   renderOptions("driveOptions", driveTypes, "drive");
@@ -5777,6 +6362,7 @@ function init() {
   bindVehicleInputs();
   bindGearboxInputs();
   bindGearRatioControls();
+  bindSetupJsonButtons();
   renderAvailabilityControls();
   renderAdjustmentRangeControls();
   bindAdjustmentRangeInputs();

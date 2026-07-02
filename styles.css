@@ -137,6 +137,12 @@ button {
   gap: 10px;
 }
 
+.topbar-solution-button {
+  min-height: 36px;
+  padding: 7px 11px;
+  white-space: nowrap;
+}
+
 .language-toggle {
   display: inline-flex;
   align-items: center;
@@ -821,12 +827,39 @@ h3 {
   gap: 10px;
 }
 
+.vehicle-name-field {
+  width: min(320px, 30vw);
+  min-width: 210px;
+  display: block;
+}
+
+.vehicle-name-field input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 11px;
+  background: var(--field-bg);
+  color: var(--ink);
+  font-weight: 900;
+  outline: 0;
+}
+
+.vehicle-name-field input::placeholder {
+  color: var(--muted);
+  opacity: 0.82;
+}
+
 .toolbar-actions,
 .stage-header {
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: 14px;
+}
+
+.toolbar-actions {
+  flex-wrap: wrap;
 }
 
 .tune-stage,
@@ -1008,6 +1041,38 @@ h3 {
   gap: 7px;
 }
 
+.gear-decision-panel {
+  min-height: 140px;
+  display: grid;
+  align-content: start;
+}
+
+.gear-decision-panel:empty {
+  display: none;
+}
+
+.gear-decision-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel);
+}
+
+.gear-decision-card span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.gear-decision-card strong {
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
 .gear-field > input,
 .gear-field > select {
   width: 100%;
@@ -1049,7 +1114,7 @@ h3 {
 
 .gear-summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -1609,6 +1674,34 @@ h3 {
   font-weight: 900;
 }
 
+.selected-issue-chip.is-applied {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-color: rgba(6, 182, 212, 0.28);
+  background: var(--cyan-bg);
+  color: var(--cyan-text);
+}
+
+.applied-issue-remove {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--cyan-text);
+  font-size: 0.7rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.applied-issue-remove:hover {
+  border-color: var(--cyan);
+  background: var(--blue-soft-strong);
+}
+
 .advice-list {
   display: grid;
   gap: 8px;
@@ -1616,6 +1709,35 @@ h3 {
 
 .advice-list.is-linked-tune {
   gap: 0;
+}
+
+.linked-tune-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--panel);
+}
+
+.linked-tune-actions span {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.linked-tune-actions button {
+  flex: 0 0 auto;
+}
+
+.linked-tune-actions button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
 }
 
 .advice-empty {
@@ -1813,8 +1935,18 @@ h3 {
   }
 
   .toolbar-actions,
+  .topbar-controls,
   .selected-tags {
     justify-content: flex-start;
+  }
+
+  .topbar-controls {
+    flex-wrap: wrap;
+  }
+
+  .vehicle-name-field {
+    width: 100%;
+    min-width: 0;
   }
 
   .option-grid.compact,

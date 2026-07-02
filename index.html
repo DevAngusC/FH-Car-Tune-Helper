@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FH6 Tune Lab</title>
-    <link rel="stylesheet" href="styles.css?v=20260701h" />
+    <link rel="stylesheet" href="styles.css?v=20260702f" />
   </head>
   <body>
     <main class="app-shell">
@@ -14,6 +14,7 @@
           <h1>FH6 Tune Lab</h1>
         </div>
         <div class="topbar-controls">
+          <button class="utility-button ghost topbar-solution-button" id="solutionButton" type="button" data-i18n="buttonTuneSolutions">調校應對方案</button>
           <label class="language-toggle" for="languageSelect">
             <span class="sr-only" data-i18n="languageLabel">語言</span>
             <select id="languageSelect" aria-label="語言">
@@ -115,12 +116,18 @@
         <div class="result-toolbar">
           <button class="utility-button ghost is-hidden" id="backButton" type="button" data-i18n="buttonBackConfig">返回配置</button>
           <div class="toolbar-secondary">
-            <button class="utility-button ghost" id="solutionButton" type="button" data-i18n="buttonTuneSolutions">調校應對方案</button>
+            <label class="vehicle-name-field" for="vehicleNameInput">
+              <span class="sr-only" data-i18n="labelVehicleName">車輛名稱</span>
+              <input id="vehicleNameInput" type="text" autocomplete="off" maxlength="80" data-i18n-placeholder="placeholderVehicleName" placeholder="輸入車輛名稱" />
+            </label>
           </div>
           <div class="toolbar-actions">
             <button class="primary-button" id="startTestButton" type="button" data-i18n="buttonStartTest">車況調校</button>
             <button class="utility-button" id="gearButton" type="button" data-i18n="buttonGearCalculator">齒比計算器</button>
             <button class="utility-button" id="copyButton" type="button" data-i18n="buttonCopy">複製數值</button>
+            <button class="utility-button ghost" id="saveJsonButton" type="button" data-i18n="buttonSaveJson">儲存設定</button>
+            <button class="utility-button ghost" id="loadJsonButton" type="button" data-i18n="buttonLoadJson">載入設定</button>
+            <input class="sr-only" id="loadJsonInput" type="file" accept="application/json,.json" aria-hidden="true" tabindex="-1" />
             <button class="utility-button ghost" id="resetButton" type="button" data-i18n="buttonReset">重置</button>
           </div>
         </div>
@@ -274,34 +281,37 @@
                   <input id="gearPeakHpRpmInput" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="例如 6500" data-i18n-placeholder="placeholderExample6500" />
                   <span class="spec-unit">RPM</span>
                 </span>
-                <span class="spec-note compact" data-i18n="gearRpmNote">紅線決定各檔最大拉轉速度，最高馬力 RPM 用來校準升檔後落點與終端檔長度。</span>
+                <span class="spec-note compact" data-i18n="gearRpmNote">紅線與最高馬力 RPM 會決定目標終端速度落在 power band 的位置。</span>
               </label>
               <label class="gear-field" for="gearTopSpeedInput">
-                <span class="spec-label" data-i18n="labelTopSpeed">車輛卡理論極速</span>
+                <span class="spec-label" data-i18n="labelTopSpeed">目標終端速度</span>
                 <span class="spec-control">
                   <input id="gearTopSpeedInput" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="例如 312" data-i18n-placeholder="placeholderExample312" />
                   <span class="spec-unit">km/h</span>
                 </span>
-                <span class="spec-note compact" data-i18n="gearTopSpeedNote">使用 Forza 車輛數據頁顯示的理論極速，計算器會結合紅線 RPM、終傳比與輪胎規格反推最高檔。</span>
+                <span class="spec-note compact" data-i18n="gearTopSpeedNote">輸入你希望最後一檔支援的終端速度，計算器會讓該速度時的 RPM 維持在最高馬力 RPM 到紅線之間。</span>
               </label>
-              <label class="gear-field" for="gearAccel97Input">
+              <!-- Legacy acceleration inputs removed from the calculator flow.
+              <label class="gear-field is-hidden" for="gearAccel97Input">
                 <span class="spec-label" data-i18n="labelAccel97">1-97 km/h 加速</span>
                 <span class="spec-control">
                   <input id="gearAccel97Input" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="例如 3.4" data-i18n-placeholder="placeholderExample34" />
                   <span class="spec-unit" data-i18n="unitSecond">秒</span>
                 </span>
               </label>
-              <label class="gear-field" for="gearAccel161Input">
+              <label class="gear-field is-hidden" for="gearAccel161Input">
                 <span class="spec-label" data-i18n="labelAccel161">0-161 km/h 加速</span>
                 <span class="spec-control">
                   <input id="gearAccel161Input" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="例如 7.8" data-i18n-placeholder="placeholderExample78" />
                   <span class="spec-unit" data-i18n="unitSecond">秒</span>
                 </span>
               </label>
+              -->
               <label class="gear-field" for="gearFinalDriveInput">
                 <span class="spec-label" data-i18n="labelFinalDrive">終傳比</span>
                 <input id="gearFinalDriveInput" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" />
               </label>
+              <div class="gear-decision-panel" id="gearDecisionPanel" aria-live="polite"></div>
             </div>
 
             <div class="gear-output-panel">
@@ -356,6 +366,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=20260701h"></script>
+    <script src="app.js?v=20260702f"></script>
   </body>
 </html>
