@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FH6 Tune Lab</title>
-    <link rel="stylesheet" href="styles.css?v=20260702f" />
+    <link rel="stylesheet" href="styles.css?v=20260703l" />
   </head>
   <body>
     <main class="app-shell">
@@ -146,7 +146,7 @@
                 <span class="range-edge-label" data-i18n="trackTypeStraight">直線多</span>
                 <input id="trackTypeSlider" type="range" min="0" max="100" step="5" value="55" />
                 <span class="range-edge-label" data-i18n="trackTypeCorner">彎道多</span>
-                <output id="trackTypeOutput" for="trackTypeSlider">彎道 55%</output>
+                <output id="trackTypeOutput" for="trackTypeSlider">55%</output>
               </span>
             </label>
             <label class="config-control" for="cornerProfileSelect">
@@ -242,7 +242,6 @@
             <div class="adjustment-range-grid" id="adjustmentRangeGrid"></div>
           </div>
 
-          <div class="principle-strip" id="principleStrip"></div>
           <div class="setup-grid" id="setupGrid"></div>
         </section>
       </section>
@@ -264,6 +263,10 @@
 
           <div class="gear-calculator-layout">
             <div class="gear-input-panel">
+              <label class="gear-field" for="gearFinalDriveInput">
+                <span class="spec-label" data-i18n="labelFinalDrive">終傳比</span>
+                <input id="gearFinalDriveInput" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" />
+              </label>
               <label class="gear-field" for="gearCountInput">
                 <span class="spec-label" data-i18n="labelGearCount">總共有幾個檔位</span>
                 <input id="gearCountInput" type="text" inputmode="numeric" pattern="[0-9]*" value="6" />
@@ -281,7 +284,7 @@
                   <input id="gearPeakHpRpmInput" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="例如 6500" data-i18n-placeholder="placeholderExample6500" />
                   <span class="spec-unit">RPM</span>
                 </span>
-                <span class="spec-note compact" data-i18n="gearRpmNote">紅線與最高馬力 RPM 會決定目標終端速度落在 power band 的位置。</span>
+                <span class="spec-note compact" data-i18n="gearRpmNote">紅線決定各檔最大拉轉速度，最高馬力 RPM 用來校準升檔後落點與延伸餘裕。</span>
               </label>
               <label class="gear-field" for="gearTopSpeedInput">
                 <span class="spec-label" data-i18n="labelTopSpeed">目標終端速度</span>
@@ -289,27 +292,15 @@
                   <input id="gearTopSpeedInput" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="例如 312" data-i18n-placeholder="placeholderExample312" />
                   <span class="spec-unit">km/h</span>
                 </span>
-                <span class="spec-note compact" data-i18n="gearTopSpeedNote">輸入你希望最後一檔支援的終端速度，計算器會讓該速度時的 RPM 維持在最高馬力 RPM 到紅線之間。</span>
+                <span class="spec-note compact" data-i18n="gearTopSpeedNote">輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留 power band 餘裕。</span>
               </label>
-              <!-- Legacy acceleration inputs removed from the calculator flow.
-              <label class="gear-field is-hidden" for="gearAccel97Input">
-                <span class="spec-label" data-i18n="labelAccel97">1-97 km/h 加速</span>
-                <span class="spec-control">
-                  <input id="gearAccel97Input" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="例如 3.4" data-i18n-placeholder="placeholderExample34" />
-                  <span class="spec-unit" data-i18n="unitSecond">秒</span>
-                </span>
-              </label>
-              <label class="gear-field is-hidden" for="gearAccel161Input">
-                <span class="spec-label" data-i18n="labelAccel161">0-161 km/h 加速</span>
-                <span class="spec-control">
-                  <input id="gearAccel161Input" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="例如 7.8" data-i18n-placeholder="placeholderExample78" />
-                  <span class="spec-unit" data-i18n="unitSecond">秒</span>
-                </span>
-              </label>
-              -->
-              <label class="gear-field" for="gearFinalDriveInput">
-                <span class="spec-label" data-i18n="labelFinalDrive">終傳比</span>
-                <input id="gearFinalDriveInput" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" />
+              <label class="gear-field" for="gearTerminalModeSelect">
+                <span class="spec-label" data-i18n="labelTerminalMode">終端檔位目標</span>
+                <select id="gearTerminalModeSelect">
+                  <option value="redline" data-i18n="terminalModeRedline">終端上限模式</option>
+                  <option value="powerBand" data-i18n="terminalModePowerBand" selected>延伸餘裕模式</option>
+                </select>
+                <span class="spec-note compact" data-i18n="gearTerminalModeNote">終端上限會讓目標速度碰到紅線；延伸餘裕會讓目標速度落在最高馬力 RPM 到紅線之間。</span>
               </label>
               <div class="gear-decision-panel" id="gearDecisionPanel" aria-live="polite"></div>
             </div>
@@ -366,6 +357,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=20260702f"></script>
+    <script src="app.js?v=20260703l"></script>
   </body>
 </html>

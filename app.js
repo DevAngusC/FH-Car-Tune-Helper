@@ -32,6 +32,7 @@ const TUNE_KEYS = Object.keys(BASE_TUNE);
 const TUNE_DELTA_EPSILON = 0.0001;
 
 const DEFAULT_GEARBOX = {
+  terminalMode: "powerBand",
   gearCount: 6,
   redlineRpm: 7000,
   peakHpRpm: 6500,
@@ -283,9 +284,10 @@ const translations = {
     labelGearCount: "總共有幾個檔位",
     labelRedlineRpm: "紅線 RPM",
     labelPeakHpRpm: "最高馬力 RPM",
-    labelTopSpeed: "車輛卡理論極速",
-    labelAccel97: "1-97 km/h 加速",
-    labelAccel161: "0-161 km/h 加速",
+    labelTopSpeed: "目標終端速度",
+    labelTerminalMode: "終端檔位目標",
+    terminalModeRedline: "終端上限模式",
+    terminalModePowerBand: "延伸餘裕模式",
     labelFinalDrive: "終傳比",
     unitSecond: "秒",
     roadTestTitle: "車況調校",
@@ -296,12 +298,14 @@ const translations = {
     linkedTunePanelLabel: "優化建議數值",
     symptomAdviceHint: "勾選症狀後，這裡會顯示依目前基礎數值優化後的建議。",
     solutionAdviceHint: "勾選你遇到的狀況，這裡會顯示通用調整方向。",
+    advicePlanTitle: "修改方向與原因",
+    adviceRiskTitle: "可能副作用與風險",
+    adviceAdjustmentLabel: "修改",
+    adviceReasonLabel: "原因",
     placeholderExample80: "例如 80",
     placeholderExample312: "例如 312",
     placeholderExample6500: "例如 6500",
     placeholderExample7000: "例如 7000",
-    placeholderExample34: "例如 3.4",
-    placeholderExample78: "例如 7.8",
     placeholderVehicleName: "輸入車輛名稱",
     recommendationPrefix: "推薦：",
     rearBalance: "後配重",
@@ -350,7 +354,6 @@ const translations = {
     selectedCount: "已選 {count}",
     adviceEmpty: "選取試車狀況後，這裡會整理成調整順序。",
     linkedTuneEmpty: "勾選車況後，這裡會顯示依目前基礎數值優化後的建議數值。",
-    linkedTuneAdjusted: "已優化",
     buttonApplySymptomAdjustment: "應用修改",
     applySymptomAdjustmentHint: "套用後會清空目前勾選，並保留已應用症狀標籤。",
     appliedSymptomAdjustmentHint: "目前數值已包含已應用修改。",
@@ -360,13 +363,14 @@ const translations = {
     gearFinalDriveChip: "終傳比 {value}",
     gearboxUnavailableChip: "齒輪箱無法調整",
     gearboxUnavailableMessage: "齒輪箱目前標記為不可調，無法產生終傳比或各檔齒比。請先使用其他仍可調項目做保守補償。",
-    gearRpmNote: "紅線決定各檔最大拉轉速度，最高馬力 RPM 用來校準升檔後落點與終端檔長度。",
-    gearTopSpeedNote: "使用 Forza 車輛數據頁顯示的理論極速，計算器會結合紅線 RPM、終傳比與輪胎規格反推最高檔。",
-    gearEmpty: "填入檔位數、紅線 RPM、最高馬力 RPM、車輛卡理論極速、1-97 km/h 和 0-161 km/h 秒數後，這裡會依基礎配置與胎規格自動計算齒比。",
+    gearRpmNote: "紅線決定各檔最大拉轉速度，最高馬力 RPM 用來校準升檔後落點與延伸餘裕。",
+    gearTopSpeedNote: "輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留 power band 餘裕。",
+    gearTerminalModeNote: "終端上限會讓目標速度碰到紅線；延伸餘裕會讓目標速度落在最高馬力 RPM 到紅線之間。",
+    gearEmpty: "填入檔位數、紅線 RPM、最高馬力 RPM、目標終端速度與終傳比後，這裡會依基礎配置與胎規格自動計算齒比。",
     gearSummaryFinal: "建議終傳比",
     gearSummaryTop: "最高檔紅線速度",
-    gearSummaryUsable: "理論極速折算",
-    gearSummaryUsableValue: "理論值 {percent}%",
+    gearSummaryUsable: "目標終端 RPM",
+    gearSummaryUsableValue: "Power band {percent}%",
     gearSummaryFirst: "1 檔紅線目標",
     gearSummaryRpmWindow: "馬力轉速區",
     gearSummaryShiftDrop: "升檔落點",
@@ -394,6 +398,7 @@ const translations = {
     gearRatioOutOfRange: "超出安全區間",
     gearRatioReset: "重置",
     gearRatioSafeRange: "安全試調 {min} - {max}",
+    gearTopRedlineSpeed: "最高檔紅線約 {speed} km/h",
     gearBandLonger: "較長 / 較穩",
     gearBandShorter: "較短 / 較衝",
     gearBandLowLabel: "偏低",
@@ -418,7 +423,7 @@ const translations = {
     gearBandLowTop: "再低會保留尾速，但若馬力不足可能拉不上去。",
     gearBandHighTop: "再高會讓最高檔更有力，但容易犧牲尾速或撞紅線。",
     gearCornerNote: "彎道回速以 {speed} km/h、{gear} 檔為核心，目標約 {rev}% 紅線區。",
-    gearUsableNote: "已將車輛卡極速視為理論值，最高檔目標抓在理論值約 {percent}%。",
+    gearUsableNote: "目標終端速度 {speed} km/h 時約落在 {rpm} RPM，位於 power band 的 {percent}%。",
     gearSlowHighPull: "中高速加速偏慢，高檔齒比會排得更密。",
     gearQuickLowSpeed: "低速加速很快，1-2 檔略放長避免補油打滑。",
     gearDefaultNote: "自動策略採用{strategy}，齒比分布以{focus}與 RPM 落點為主。",
@@ -449,7 +454,7 @@ const translations = {
     buttonGenerate: "Generate Base Tune",
     buttonBackConfig: "Back to Setup",
     buttonStartTest: "Condition Tuning",
-    buttonTuneSolutions: "Tune Response Guide",
+    buttonTuneSolutions: "Tuning Response Guide",
     buttonGearCalculator: "Gear Calculator",
     buttonCopy: "Copy Values",
     buttonSaveJson: "Save Setup",
@@ -469,25 +474,28 @@ const translations = {
     labelGearCount: "Number of Gears",
     labelRedlineRpm: "Redline RPM",
     labelPeakHpRpm: "Peak HP RPM",
-    labelTopSpeed: "Listed Theoretical Top Speed",
-    labelAccel97: "1-97 km/h Accel",
-    labelAccel161: "0-161 km/h Accel",
+    labelTopSpeed: "Target Terminal Speed",
+    labelTerminalMode: "Terminal Gear Target",
+    terminalModeRedline: "Terminal Limit",
+    terminalModePowerBand: "Extension Reserve",
     labelFinalDrive: "Final Drive",
     unitSecond: "sec",
     roadTestTitle: "Condition Tuning",
-    solutionTitle: "Tune Response Guide",
+    solutionTitle: "Tuning Response Guide",
     solutionModeChip: "Standalone Guide",
     symptomGroupLabel: "Issue Group",
     adjustmentDirectionLabel: "Adjustment Direction",
     linkedTunePanelLabel: "Optimized Values",
     symptomAdviceHint: "Select issues to show optimized values based on the current base tune.",
-    solutionAdviceHint: "Select the issue you are seeing to show general adjustment responses.",
+    solutionAdviceHint: "Select the issue you are seeing to show general tuning responses.",
+    advicePlanTitle: "Adjustment Direction and Reason",
+    adviceRiskTitle: "Possible Side Effects and Risks",
+    adviceAdjustmentLabel: "Adjustment",
+    adviceReasonLabel: "Reason",
     placeholderExample80: "e.g. 80",
     placeholderExample312: "e.g. 312",
     placeholderExample6500: "e.g. 6500",
     placeholderExample7000: "e.g. 7000",
-    placeholderExample34: "e.g. 3.4",
-    placeholderExample78: "e.g. 7.8",
     placeholderVehicleName: "Enter vehicle name",
     recommendationPrefix: "Recommended: ",
     rearBalance: "Rear",
@@ -536,7 +544,6 @@ const translations = {
     selectedCount: "{count} selected",
     adviceEmpty: "Select road-test issues and the adjustment order will appear here.",
     linkedTuneEmpty: "Select conditions to show optimized values based on the current base tune.",
-    linkedTuneAdjusted: "Optimized",
     buttonApplySymptomAdjustment: "Apply Changes",
     applySymptomAdjustmentHint: "Applying clears the current selection and keeps the applied issue tags.",
     appliedSymptomAdjustmentHint: "Current values include applied changes.",
@@ -546,26 +553,27 @@ const translations = {
     gearFinalDriveChip: "Final Drive {value}",
     gearboxUnavailableChip: "Gearbox locked",
     gearboxUnavailableMessage: "The gearbox is marked as locked, so final drive and per-gear ratios cannot be generated. Use other adjustable items for conservative compensation.",
-    gearRpmNote: "Redline sets each gear's maximum pull; Peak HP RPM calibrates shift recovery and the terminal gear length.",
-    gearTopSpeedNote: "Use the theoretical top speed shown on the Forza car stats page; redline RPM, final drive, and tire specs derive top gear.",
-    gearEmpty: "Enter gear count, redline RPM, Peak HP RPM, listed top speed, 1-97 km/h, and 0-161 km/h times. The calculator will infer ratios from the base setup and tire specs.",
+    gearRpmNote: "Redline sets each gear's maximum pull; Peak HP RPM calibrates shift recovery and top-gear reserve.",
+    gearTopSpeedNote: "Enter the target speed you want top gear to support, then choose whether it should reach redline or keep power-band reserve.",
+    gearTerminalModeNote: "Terminal Limit puts the target speed at redline. Extension Reserve puts the target speed between Peak HP RPM and redline.",
+    gearEmpty: "Enter gear count, redline RPM, Peak HP RPM, target terminal speed, and final drive. The calculator will infer ratios from the base setup and tire specs.",
     gearSummaryFinal: "Suggested Final Drive",
     gearSummaryTop: "Top-Gear Redline Speed",
-    gearSummaryUsable: "Theory-Speed Use",
-    gearSummaryUsableValue: "{percent}% of listed",
+    gearSummaryUsable: "Terminal RPM",
+    gearSummaryUsableValue: "Power band {percent}%",
     gearSummaryFirst: "1st-Gear Redline",
     gearSummaryRpmWindow: "HP RPM Window",
     gearSummaryShiftDrop: "Shift Recovery",
-    gearSummaryTireCirc: "Driven Tire Circ.",
+    gearSummaryTireCirc: "Driven Tire Circumference",
     gearSummarySpread: "Ratio Spread",
     gearSummaryGoal: "Auto Strategy",
     gearSummaryDecision: "Decision",
-    gearFormulaNote: "Ratios use the {drive} tire specs to calculate rolling circumference and redline speed.",
-    gearDrivenFront: "front-wheel",
-    gearDrivenRear: "rear-wheel",
-    gearDrivenAwd: "AWD blended",
-    gearDecisionSuffix: "{race} strategy: {raceNote} Route: {route} / {corner}, {engine} engine curve, and {focus} tune focus are included.",
-    gearAutoStrategyBalanced: "Balanced general",
+    gearFormulaNote: "Ratios use {drive} specs to calculate rolling circumference and redline speed.",
+    gearDrivenFront: "front tire",
+    gearDrivenRear: "rear tire",
+    gearDrivenAwd: "blended AWD tire",
+    gearDecisionSuffix: "{race} strategy: {raceNote} It also accounts for route shape ({route}), corner mix ({corner}), {engine} engine curve, and {focus} tune focus.",
+    gearAutoStrategyBalanced: "Balanced general use",
     gearAutoStrategyCorner: "Corner recovery",
     gearAutoStrategyLaunch: "Launch traction",
     gearAutoStrategyTopSpeed: "Upper-gear extension",
@@ -580,6 +588,7 @@ const translations = {
     gearRatioOutOfRange: "Outside safe range",
     gearRatioReset: "Reset",
     gearRatioSafeRange: "Safe trial {min} - {max}",
+    gearTopRedlineSpeed: "Top gear redline around {speed} km/h",
     gearBandLonger: "Longer / steadier",
     gearBandShorter: "Shorter / punchier",
     gearBandLowLabel: "Lower",
@@ -593,18 +602,18 @@ const translations = {
     gearBandRoleTop: "Top-speed reserve",
     gearBandLowLaunch: "Lower lengthens 1st gear, improving launch stability but risking bogging.",
     gearBandHighLaunch: "Higher makes launch punchier, but high-power or RWD builds may spin more easily.",
-    gearBandLowCorner: "Lower drops exit rpm, so throttle pickup may feel delayed.",
-    gearBandHighCorner: "Higher raises exit rpm, but early throttle can upset grip.",
+    gearBandLowCorner: "Lower drops exit RPM, so throttle pickup may feel delayed.",
+    gearBandHighCorner: "Higher raises exit RPM, but early throttle can upset grip.",
     gearBandLowLowMid: "Lower lengthens low-mid gears and may drop the car out of the useful rev range.",
     gearBandHighLowMid: "Higher shortens low-mid gears for faster recovery, but shifts come closer together.",
-    gearBandLowMid: "Lower widens adjacent spacing and drops more rpm after shifts.",
+    gearBandLowMid: "Lower widens adjacent spacing and drops more RPM after shifts.",
     gearBandHighMid: "Higher tightens spacing for quicker response, but may add extra shifts.",
     gearBandLowHigh: "Lower preserves high-speed stretch, but upper gears may struggle to pull.",
     gearBandHighHigh: "Higher strengthens mid-high acceleration, but may approach redline too early.",
-    gearBandLowTop: "Lower preserves top speed, but weak power may not pull it.",
-    gearBandHighTop: "Higher makes top gear pull harder, but can sacrifice speed or hit redline.",
+    gearBandLowTop: "Lower preserves top speed, but a low-power car may not pull it.",
+    gearBandHighTop: "Higher makes top gear pull harder, but may sacrifice top speed or hit redline.",
     gearCornerNote: "Corner recovery centers on {speed} km/h in gear {gear}, targeting about {rev}% of redline.",
-    gearUsableNote: "The listed car-card top speed is treated as theoretical, so top gear targets about {percent}% of that value.",
+    gearUsableNote: "At {speed} km/h, top gear lands near {rpm} RPM, about {percent}% through the power band.",
     gearSlowHighPull: "Mid-high speed acceleration is slow, so upper gears are packed tighter.",
     gearQuickLowSpeed: "Low-speed acceleration is already quick, so 1st-2nd are slightly longer to reduce wheelspin.",
     gearDefaultNote: "Auto strategy uses {strategy}; ratio spacing mainly follows {focus} and RPM recovery.",
@@ -614,8 +623,8 @@ const translations = {
 
 Object.assign(translations.zh, {
   labelTopSpeed: "目標終端速度",
-  gearRpmNote: "紅線與最高馬力 RPM 會決定目標終端速度落在 power band 的位置。",
-  gearTopSpeedNote: "輸入你希望最後一檔支援的終端速度，計算器會讓該速度時的 RPM 維持在最高馬力 RPM 到紅線之間。",
+  gearRpmNote: "紅線決定各檔最大拉轉速度，最高馬力 RPM 用來校準升檔後落點與延伸餘裕。",
+  gearTopSpeedNote: "輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留 power band 餘裕。",
   gearEmpty: "填入檔位數、紅線 RPM、最高馬力 RPM、目標終端速度與終傳比後，這裡會依基礎配置與胎規格自動計算齒比。",
   gearSummaryTop: "最高檔齒比上限",
   gearSummaryUsable: "目標終端 RPM",
@@ -628,10 +637,10 @@ Object.assign(translations.zh, {
 
 Object.assign(translations.en, {
   labelTopSpeed: "Target Terminal Speed",
-  gearRpmNote: "Redline and Peak HP RPM decide where the target terminal speed lands inside the power band.",
-  gearTopSpeedNote: "Enter the terminal speed you want top gear to support; the calculator keeps that speed between Peak HP RPM and redline.",
+  gearRpmNote: "Redline sets each gear's maximum pull; Peak HP RPM calibrates shift recovery and top-gear reserve.",
+  gearTopSpeedNote: "Enter the target speed you want top gear to support, then choose whether it should reach redline or keep power-band reserve.",
   gearEmpty: "Enter gear count, redline RPM, Peak HP RPM, target terminal speed, and final drive. The calculator will infer ratios from the base setup and tire specs.",
-  gearSummaryTop: "Top-Gear Ratio Ceiling",
+  gearSummaryTop: "Top-Gear Redline Speed",
   gearSummaryUsable: "Terminal RPM",
   gearSummaryUsableValue: "Power band {percent}%",
   gearUsableNote: "At {speed} km/h, top gear lands near {rpm} RPM, about {percent}% through the power band.",
@@ -656,20 +665,20 @@ const optionTranslations = {
         principles: ["Softer suspension and usable low-end response help the tires stay connected."],
       },
       offroad: {
-        label: "Offroad",
-        subtitle: "Grass, dirt, and big elevation",
-        title: "Offroad Base Tune",
+        label: "Off-road",
+        subtitle: "Grass, dirt, and large elevation changes",
+        title: "Off-road Base Tune",
         principles: ["Longer low gears and extra travel make throttle easier on rough surfaces."],
       },
       dragQuarter: {
-        label: "Drag Quarter Mile",
+        label: "Quarter-Mile Drag",
         subtitle: "Launch and short sprint",
         title: "Quarter Mile Drag Base Tune",
         principles: ["Dense low gears prioritize launch, traction, and the 1-2 shift."],
       },
       dragHalf: {
-        label: "Drag Half Mile",
-        subtitle: "Mid-long acceleration",
+        label: "Half-Mile Drag",
+        subtitle: "Mid-to-long acceleration",
         title: "Half Mile Drag Base Tune",
         principles: ["Longer upper gears reserve more speed while keeping launch traction usable."],
       },
@@ -687,17 +696,17 @@ const optionTranslations = {
         principle: "Mixed corners keep the setup neutral so it can handle different corner speeds.",
       },
       large: {
-        label: "More Big Corners",
+        label: "Big-Corner Bias",
         subtitle: "High-speed sweepers",
         principle: "Big corners need stability, aero support, and a little more top-speed reserve.",
       },
       medium: {
-        label: "More Medium Corners",
+        label: "Medium-Corner Bias",
         subtitle: "Mid-speed bends",
         principle: "Medium corners reward balanced rotation and low-mid gear recovery.",
       },
       small: {
-        label: "More Small Corners",
+        label: "Small-Corner Bias",
         subtitle: "Hairpins / tight turns",
         principle: "Small corners need stronger turn-in and shorter recovery gearing.",
       },
@@ -707,7 +716,7 @@ const optionTranslations = {
       stability: { label: "Stability", subtitle: "High-speed and braking confidence" },
       agility: { label: "Agility", subtitle: "Faster turn-in response" },
       exit: { label: "Corner Exit", subtitle: "Earlier throttle application" },
-      topSpeed: { label: "Top-Speed Focus", subtitle: "Long straights" },
+      topSpeed: { label: "Top Speed", subtitle: "Long straights" },
       grip: { label: "Grip", subtitle: "Low-grip / bumpy stability" },
     },
     engineCurves: {
@@ -719,11 +728,11 @@ const optionTranslations = {
       highRpm: {
         label: "High-RPM Power",
         subtitle: "Stronger near redline",
-        principle: "Slightly shorter gearing helps exits climb back into the high-rpm range.",
+        principle: "Slightly shorter gearing helps exits climb back into the high-RPM range.",
       },
       turboHit: {
         label: "Turbo Hit",
-        subtitle: "Mid-high rpm surge",
+        subtitle: "Mid-high RPM surge",
         principle: "Softer rear response reduces snap when boost arrives.",
       },
       supercharged: {
@@ -857,12 +866,12 @@ const symptomCategoryTranslations = {
       description: "Floating, crests, lane changes, fast bends, and steering corrections.",
     },
     fh: {
-      label: "FH-Specific Issues",
+      label: "Horizon-Specific Issues",
       description: "Mountain roads, rough roads, grass, jumps, and surface changes.",
     },
     "awd-common": {
-      label: "AWD Top Issues",
-      description: "Quick entry points for common Horizon AWD behavior.",
+      label: "Common AWD Issues",
+      description: "Quick picks for common Horizon AWD behavior.",
     },
   },
 };
@@ -907,7 +916,7 @@ const symptomChipTranslations = {
     離地: "Airtime",
     甩尾: "Drift",
     距離: "Distance",
-    重煞: "Heavy brake",
+    重煞: "Heavy braking",
     鎖死: "Lock-up",
     起步: "Launch",
     全油門: "Full throttle",
@@ -934,79 +943,79 @@ const symptomLabelTranslations = {
   en: {
     "steering-entry-understeer": "Entry understeer",
     "steering-entry-slow": "Slow turn-in response",
-    "steering-entry-push": "Entry push",
+    "steering-entry-push": "Pushes wide on entry",
     "steering-mid-push": "Mid-corner understeer",
     "steering-exit-push": "Exit understeer",
-    "steering-fast-corner-not-turning": "Won't rotate in fast bends",
+    "steering-fast-corner-not-turning": "Won't turn through fast bends",
     "steering-dull": "Steering feels dull",
     "steering-nervous": "Steering feels nervous",
     "steering-small-correction-hard": "Small corrections are difficult",
     "steering-small-angle-weak": "Small steering inputs feel weak",
-    "steering-highspeed-float": "High-speed steering float",
-    "steering-highspeed-unsafe": "High-speed steering feels unsafe",
+    "steering-highspeed-float": "Steering floats at high speed",
+    "steering-highspeed-unsafe": "Steering feels unsafe at high speed",
     "steering-mid-sudden-oversteer": "Sudden mid-corner oversteer",
     "steering-mid-constant-correction": "Constant mid-corner corrections",
     "steering-delay": "Delayed steering response",
     "steering-too-sensitive": "Steering is too sensitive",
-    "steering-front-not-follow": "Front end will not follow steering",
+    "steering-front-not-follow": "Front end won't follow steering input",
     "steering-understeer": "Understeer",
     "steering-oversteer": "Oversteer",
     "rear-fishtail": "Rear fishtailing",
-    "rear-floating": "Floating rear feel",
-    "rear-sway": "Rear swaying side to side",
+    "rear-floating": "Rear feels floaty",
+    "rear-sway": "Rear sways side to side",
     "rear-unstable": "Unstable rear end",
     "rear-too-active": "Rear is too active",
     "rear-exit-drift": "Exit oversteer",
     "rear-lift-off-drift": "Lift-off oversteer",
     "rear-highspeed-snap": "High-speed rear snap",
-    "rear-highspeed-direction-unstable": "Unstable high-speed direction changes",
+    "rear-highspeed-direction-unstable": "Unstable direction changes at high speed",
     "rear-mid-slide": "Rear keeps sliding mid-corner",
-    "rear-throttle-slide": "Rear slides after throttle",
+    "rear-throttle-slide": "Rear slides on throttle",
     "rear-loses-grip": "Rear loses grip easily",
-    "rear-wiggle": "Rear wiggle",
-    "rear-snap-death": "Sudden rear snap",
+    "rear-wiggle": "Rear end wiggles",
+    "rear-snap-death": "Rear snaps suddenly",
     "rear-too-quick": "Rear reacts too quickly",
-    "rear-lags-front": "Rear lags behind the front",
+    "rear-lags-front": "Rear lags behind the front end",
     "grip-front-low": "Low front grip",
     "grip-rear-low": "Low rear grip",
     "grip-all-low": "Low overall grip",
-    "grip-exit-low": "Poor exit grip",
+    "grip-exit-low": "Poor corner-exit grip",
     "grip-highspeed-low": "Low high-speed grip",
     "grip-mid-low": "Low mid-corner grip",
-    "grip-throttle-low": "Poor throttle grip",
-    "grip-brake-low": "Poor braking grip",
-    "grip-curb-low": "Poor curb grip",
-    "grip-bumpy-low": "Poor bumpy-road grip",
-    "grip-rain-low": "Poor wet grip",
+    "grip-throttle-low": "Low grip on throttle",
+    "grip-brake-low": "Low grip under braking",
+    "grip-curb-low": "Low grip over curbs",
+    "grip-bumpy-low": "Low grip on bumpy roads",
+    "grip-rain-low": "Low wet grip",
     "grip-tire-slide": "Tires slide easily",
-    "grip-limit-low": "Tire limit feels too low",
+    "grip-limit-low": "Tire grip limit feels too low",
     "suspension-boat": "Boat-like body motion",
-    "suspension-body-roll-too-much": "Too much body roll",
+    "suspension-body-roll-too-much": "Too much body movement",
     "suspension-jumpy": "Car keeps bouncing",
-    "suspension-curb-fly": "Car flies off curbs",
-    "suspension-bump-kick": "Bumps kick the car away",
+    "suspension-curb-fly": "Car gets launched off curbs",
+    "suspension-bump-kick": "Bumps kick the car off line",
     "suspension-crest-unstable": "Unstable over crests",
     "suspension-highspeed-bottom": "High-speed bottoming out",
     "suspension-landing-lost": "Loss of control on landing",
     "suspension-roll-large": "Excessive body roll",
-    "suspension-left-right": "Body sways left and right",
-    "suspension-up-down": "Body bounces up and down",
+    "suspension-left-right": "Body sways side to side",
+    "suspension-up-down": "Body bounces vertically",
     "suspension-pitch": "Excessive pitch",
-    "suspension-corner-stiff": "Cornering posture feels too stiff",
+    "suspension-corner-stiff": "Too stiff through corners",
     "suspension-too-stiff": "Body feels too stiff",
     "suspension-travel-low": "Not enough suspension travel",
     "suspension-landing-rebound": "Too much rebound after landing",
     "suspension-lift-easy": "Car gets airborne too easily",
     "brake-unstable": "Unstable braking",
-    "brake-understeer": "Brake understeer",
-    "brake-oversteer": "Brake oversteer",
+    "brake-understeer": "Understeer under braking",
+    "brake-oversteer": "Oversteer under braking",
     "brake-distance-long": "Braking distance is too long",
     "brake-entry-not-turning": "Won't turn while braking into corners",
     "brake-body-wobble": "Body wobbles under braking",
     "brake-heavy-unstable": "Unstable under heavy braking",
     "brake-lock": "Brake lock-up",
     "brake-trail-unstable": "Unstable trail braking",
-    "brake-rear-move": "Rear moves around after braking",
+    "brake-rear-move": "Rear moves around under braking",
     "brake-highspeed-unstable": "Unstable high-speed braking",
     "accel-launch-unstable": "Unstable launch",
     "launch-spin": "Launch wheelspin",
@@ -1014,36 +1023,36 @@ const symptomLabelTranslations = {
     "accel-throttle-understeer": "Understeer on throttle",
     "accel-throttle-oversteer": "Oversteer on throttle",
     "accel-full-throttle-hard": "Full throttle is hard to control",
-    "accel-highspeed-float": "High-speed acceleration float",
-    "accel-direction-pull": "Car pulls under acceleration",
+    "accel-highspeed-float": "Floats under high-speed acceleration",
+    "accel-direction-pull": "Pulls off line under acceleration",
     "accel-power-rough": "Rough power delivery",
-    "accel-cannot-early-throttle": "Cannot get on throttle early",
-    "accel-body-unstable": "Body unstable on throttle",
-    "accel-front-push-out": "Front pushes wide after throttle",
-    "highspeed-left-right-float": "High-speed left-right float",
+    "accel-cannot-early-throttle": "Cannot apply throttle early on exit",
+    "accel-body-unstable": "Body unstable under throttle",
+    "accel-front-push-out": "Front pushes wide on throttle",
+    "highspeed-left-right-float": "Floats left and right at high speed",
     "highspeed-steering-light": "Steering feels light at speed",
     "highspeed-floating": "Car feels like it is floating",
-    "highspeed-road-jump": "Car hops over high-speed bumps",
-    "highspeed-line-unstable": "Unstable high-speed line",
+    "highspeed-road-jump": "Car hops over road bumps at high speed",
+    "highspeed-line-unstable": "Line is unstable at high speed",
     "highspeed-fast-corner-unstable": "Unstable in fast bends",
-    "highspeed-lane-change-unstable": "Unstable lane changes",
+    "highspeed-lane-change-unstable": "Unstable high-speed lane changes",
     "highspeed-crest-unstable": "Unstable over high-speed crests",
     "highspeed-curb-unstable": "Unstable over high-speed curbs",
-    "highspeed-correction-hard": "Hard to correct at high speed",
+    "highspeed-correction-hard": "Hard to correct steering at high speed",
     "highspeed-body-wobble": "High-speed body wobble",
-    "highspeed-float-feel": "High-speed floating feel",
+    "highspeed-float-feel": "Floaty feel at high speed",
     "fh-mountain-lost": "Easy to lose control on mountain roads",
     "fh-downhill-brake-hard": "Hard to brake downhill",
-    "fh-s-corner-slow-correct": "Slow corrections through linked corners",
-    "fh-mountain-jump": "Car jumps too much on mountain roads",
-    "fh-rough-road-unstable": "Unstable on rough FH roads",
-    "fh-ramp-fly": "Car launches off ramps",
+    "fh-s-corner-slow-correct": "Slow correction through linked corners",
+    "fh-mountain-jump": "Car keeps hopping on mountain roads",
+    "fh-rough-road-unstable": "Unstable on rough Horizon roads",
+    "fh-ramp-fly": "Car launches when hitting ramps",
     "fh-jump-landing-unstable": "Unstable after jump landings",
-    "fh-grass-lost": "Loses control on grass",
+    "fh-grass-lost": "Loses control when touching grass",
     "fh-elevation-unstable": "Unstable over elevation changes",
-    "fh-tarmac-dirt-unstable": "Unstable from tarmac to dirt",
-    "fh-mountain-throttle-unstable": "Unstable throttle on mountain roads",
-    "fh-mountain-highspeed-push": "High-speed mountain understeer",
+    "fh-tarmac-dirt-unstable": "Unstable transitioning from tarmac to dirt",
+    "fh-mountain-throttle-unstable": "Unstable under throttle on mountain roads",
+    "fh-mountain-highspeed-push": "High-speed understeer on mountain roads",
   },
 };
 
@@ -1058,7 +1067,7 @@ const recommendationReasonTranslations = {
       driveWhy: "AWD gives the most consistent traction when surface grip changes.",
     },
     offroad: {
-      engineWhy: "Offroad routes need low-end torque to recover from grass, dirt, jumps, and elevation.",
+      engineWhy: "Off-road routes need low-end torque to recover from grass, dirt, jumps, and elevation changes.",
       driveWhy: "AWD gives control over uneven surfaces and landing traction.",
     },
     dragQuarter: {
@@ -1066,7 +1075,7 @@ const recommendationReasonTranslations = {
       driveWhy: "AWD launches harder and reduces wheelspin during the first shift.",
     },
     dragHalf: {
-      engineWhy: "High-rpm power keeps pulling deeper into the half-mile run.",
+      engineWhy: "High-RPM power keeps pulling deeper into the half-mile run.",
       driveWhy: "RWD reduces drivetrain loss once launch traction is under control.",
     },
     drift: {
@@ -2053,7 +2062,7 @@ const adviceTemplateTranslations = {
     accelTraction: [
       ["Driven tire pressure", "Lower 0.03 to 0.07 BAR to help the power reach the ground first."],
       ["Differential accel", "Lower 4% to 8%; prioritize this when the car slides as soon as throttle is applied."],
-      ["Final drive", "Lower -0.08 to -0.18 so the low gears are less violent."],
+      ["Final drive", "Reduce by 0.08 to 0.18 so the low gears are less violent."],
     ],
     accelUndersteer: [
       ["Front diff accel", "For AWD or FWD, lower front accel diff by 4% to 8%."],
@@ -2071,7 +2080,7 @@ const adviceTemplateTranslations = {
       ["Center differential", "Move AWD center balance 2% to 4% forward for more stable high-speed acceleration."],
     ],
     powerDelivery: [
-      ["Final drive", "Adjust by symptom: add +0.08 if rpm drops, or lower -0.08 if delivery is too violent."],
+      ["Final drive", "Adjust by symptom: add 0.08 if RPM drops, or reduce by 0.08 if delivery is too violent."],
       ["Low gear ratios", "Only shorten or lengthen the problem gear by 3% to 6%."],
       ["Differential", "Lower accel lock by 3% to 6% if power delivery feels abrupt."],
     ],
@@ -2093,7 +2102,7 @@ const adviceTemplateTranslations = {
     fhMountain: [
       ["Ride height and damping", "Raise ride height 4% to 8%, and lower bump and rebound by 3% to 6%."],
       ["Brakes", "If downhill braking is difficult, lower brake pressure 5% to 10% and move balance 1% to 2% forward."],
-      ["Final drive", "If rpm drops on mountain exits, add +0.08 to +0.15."],
+      ["Final drive", "If RPM drops on mountain exits, add 0.08 to 0.15."],
     ],
     fhRough: [
       ["Suspension travel", "Raise ride height 6% to 12% to avoid bottoming on slopes, rough roads, and jumps."],
@@ -2132,6 +2141,204 @@ const contextualAdviceStepTranslations = {
     ],
   },
 };
+
+const adviceKnowledgeEntries = [
+  {
+    match: ["前端抓地", "front grip"],
+    reason: {
+      zh: "轉向不足多半代表前輪在入彎或彎中已經承受太多側向負荷。放軟前端支撐或增加前輪有效接地，可以讓外側前輪在車身側傾後更願意咬住路面，車頭才會跟著方向盤進彎。",
+      en: "Understeer usually means the front tires are already overloaded during entry or mid-corner. Adding usable front contact and softening front support helps the outside front tire stay loaded so the nose follows steering input.",
+    },
+    risks: {
+      zh: ["前端抓地加太多可能讓車尾變得更活躍，出彎補油時更容易甩。", "前後抓地差距太大時，車輛會從推頭變成突然轉向過度。"],
+      en: ["Too much front grip can make the rear more active and easier to slide on exit.", "A large front-rear grip mismatch can turn understeer into sudden oversteer."],
+    },
+  },
+  {
+    match: ["車尾輔助旋轉", "rear rotation"],
+    reason: {
+      zh: "車頭不願意轉時，除了增加前輪抓地，也可以讓後軸稍微更願意跟著旋轉。小幅提高後端抗側傾或調整差速，可以讓車尾幫忙改變車身角度，減少車頭一路往外推。",
+      en: "When the nose refuses to rotate, you can also ask the rear axle to help the car rotate. Slightly increasing rear roll resistance or adjusting diff behavior helps the rear change the car angle instead of letting the front push wide.",
+    },
+    risks: {
+      zh: ["後端旋轉加太多會讓出彎穩定性下降。", "高速彎使用太激進時，車尾可能比車頭更早失去抓地。"],
+      en: ["Too much rear rotation reduces exit stability.", "Aggressive rear rotation can make the rear lose grip before the front in fast corners."],
+    },
+  },
+  {
+    match: ["前胎胎壓", "後胎胎壓", "驅動輪胎壓", "胎壓", "front tire pressure", "rear tire pressure", "driven tire pressure", "tire pressure"],
+    reason: {
+      zh: "胎壓會改變輪胎接地形狀與熱胎後的抓地容錯。小幅降低胎壓通常能增加接地面積與牽引容錯，對抓地不足、補油打滑或路面切換不穩特別直接。",
+      en: "Tire pressure changes the contact patch shape and warm-tire tolerance. Lowering it slightly usually increases contact area and traction margin, which directly helps low grip, throttle spin, and surface transitions.",
+    },
+    risks: {
+      zh: ["胎壓過低會讓轉向反應變慢，車身感覺變鈍。", "胎壓過低也可能讓胎溫上升太快，長距離會失去穩定抓地。"],
+      en: ["Too little pressure slows steering response and makes the car feel dull.", "Very low pressure can overheat the tire and reduce consistency over longer runs."],
+    },
+  },
+  {
+    match: ["前外傾", "外傾", "front camber", "camber"],
+    reason: {
+      zh: "過彎時車身側傾會讓外側輪胎逐漸站直或往外翻。增加負外傾是為了讓外側輪在承受側向 G 力時仍能保持有效接地面積，提升彎中支撐與前輪指向性。",
+      en: "Body roll changes the outside tire angle during cornering. More negative camber helps the loaded outside tire keep a better contact patch under lateral G, improving mid-corner support and steering bite.",
+    },
+    risks: {
+      zh: ["負外傾過多會犧牲直線煞車接地，煞車距離可能變長。", "內側胎溫過高時代表外傾可能已經過量。"],
+      en: ["Too much negative camber reduces straight-line braking contact and can lengthen braking distance.", "High inner tire temperature usually means camber may be excessive."],
+    },
+  },
+  {
+    match: ["前束", "後束", "toe"],
+    reason: {
+      zh: "前束影響方向盤初段反應，後束影響車尾自我穩定。前輪外八會讓車頭更快開始轉向；後輪內八會讓後軸在直線、煞車與高速換線時比較願意保持穩定。",
+      en: "Front toe affects initial steering response, while rear toe affects rear self-stability. Front toe-out helps the nose start turning sooner; rear toe-in helps the rear stay settled in straights, braking, and lane changes.",
+    },
+    risks: {
+      zh: ["前輪外八太多會讓高速直線變飄，修正方向變忙。", "後輪內八太多會讓車變穩但轉向反應變慢，也可能吃掉尾速。"],
+      en: ["Too much front toe-out makes high-speed straights nervous.", "Too much rear toe-in calms the car but slows rotation and can cost top speed."],
+    },
+  },
+  {
+    match: ["主銷後傾", "caster"],
+    reason: {
+      zh: "主銷後傾會增加轉向時的動態外傾與方向盤回正力。提高後傾可以讓前輪在打方向時獲得更多支撐，特別適合方向感模糊或彎中前端支撐不足的車。",
+      en: "Caster adds dynamic camber and stronger self-aligning force while steering. More caster gives the front tires extra support during steering, especially when the front feels vague or weak mid-corner.",
+    },
+    risks: {
+      zh: ["後傾太高會讓方向盤變重，小角度修正可能變慢。", "已經很敏感的車再加後傾，可能讓高速修正更緊張。"],
+      en: ["Too much caster can make steering heavier and small corrections slower.", "On already nervous cars, extra caster can make high-speed corrections tense."],
+    },
+  },
+  {
+    match: ["前防傾", "後防傾", "防傾桿", "anti-roll"],
+    reason: {
+      zh: "防傾桿決定左右輪連動程度，也會改變前後軸在彎中的負荷分配。放軟某一端通常能讓該端輪胎更貼地；加硬某一端則會讓該端反應更快，但也更容易先到抓地極限。",
+      en: "Anti-roll bars control left-right coupling and change front-rear load transfer. Softening one end usually lets that end stay planted; stiffening one end sharpens response but also moves it closer to the grip limit.",
+    },
+    risks: {
+      zh: ["防傾加太硬會讓路肩與顛簸表現變差。", "後防傾太硬可能讓出彎或高速彎車尾突然滑。"],
+      en: ["Overly stiff anti-roll bars hurt curb and bump behavior.", "Too much rear bar can make the rear slide suddenly on exit or in fast corners."],
+    },
+  },
+  {
+    match: ["彈簧", "springs", "spring"],
+    reason: {
+      zh: "彈簧控制車身支撐與重量轉移速度。放軟能增加機械抓地和路面貼合；加硬能減少俯仰與側傾，讓車身平台更穩，適合高速或重煞車支撐不足的情況。",
+      en: "Springs control body support and how quickly weight transfers. Softer springs add mechanical grip and surface compliance; stiffer springs reduce pitch and roll, stabilizing the platform for speed or heavy braking.",
+    },
+    risks: {
+      zh: ["彈簧太軟會讓車身晃動、反應延遲，甚至高速觸底。", "彈簧太硬會讓輪胎不貼地，彎中和爛路抓地下降。"],
+      en: ["Too soft can cause body float, delayed response, or high-speed bottoming.", "Too stiff can make tires skip and reduce grip mid-corner or on rough roads."],
+    },
+  },
+  {
+    match: ["車高", "懸吊行程", "ride height", "suspension travel"],
+    reason: {
+      zh: "車高影響懸吊剩餘行程和底盤是否觸底。提高車高是為了讓車在路肩、跳台、坡頂或高速壓縮時還有空間吸收路面，避免輪胎突然離地或底盤刮地失控。",
+      en: "Ride height affects remaining suspension travel and bottoming. Raising it gives the car room to absorb curbs, jumps, crests, or high-speed compression without suddenly unloading tires or scraping the chassis.",
+    },
+    risks: {
+      zh: ["車高太高會提高重心，快速變換方向時更容易晃。", "公路高速車太高會降低空力效率，方向感也可能變浮。"],
+      en: ["Too much height raises the center of gravity and increases body movement.", "On fast road cars, excessive height can reduce aero efficiency and make steering feel floaty."],
+    },
+  },
+  {
+    match: ["壓縮阻尼", "回彈阻尼", "阻尼", "bump damping", "rebound damping", "damping", "dampers"],
+    reason: {
+      zh: "阻尼控制彈簧壓縮與回彈的速度。壓縮太硬會讓路面把車彈開；回彈太硬會讓輪胎伸展不回去。正確的阻尼是讓輪胎跟著路面動，而不是讓車身一直晃或讓輪胎離地。",
+      en: "Damping controls how quickly springs compress and extend. Too much bump kicks the car off the surface; too much rebound prevents the tire from extending back. Good damping lets tires follow the road without endless body motion.",
+    },
+    risks: {
+      zh: ["阻尼太軟會讓車身連續晃動，轉向節奏變慢。", "阻尼太硬會讓輪胎跳動，路肩、爛路與落地穩定性變差。"],
+      en: ["Too little damping causes repeated body movement and slower response.", "Too much damping makes tires skip, hurting curbs, rough roads, and landings."],
+    },
+  },
+  {
+    match: ["前下壓", "後下壓", "空力", "downforce", "aero"],
+    reason: {
+      zh: "空力會在速度越高時提供越多輪胎垂直負荷。增加下壓能改善高速彎、換線與全油門穩定，因為輪胎在高速下有更多壓力貼住路面。",
+      en: "Aero adds vertical tire load as speed rises. More downforce improves fast corners, lane changes, and full-throttle stability because the tires are pressed harder into the road at speed.",
+    },
+    risks: {
+      zh: ["下壓太高會犧牲尾速與加速延伸。", "前後下壓比例不對時，可能造成高速推頭或高速甩尾。"],
+      en: ["Too much downforce costs top speed and high-speed acceleration.", "Wrong front-rear aero balance can create high-speed understeer or oversteer."],
+    },
+  },
+  {
+    match: ["煞車壓力", "煞車平衡", "煞車", "brake pressure", "brake balance", "brakes"],
+    reason: {
+      zh: "煞車設定會改變煞車時前後輪的負荷與鎖死順序。降低壓力能提升可控性；調整平衡則是在前輪轉向能力與後輪穩定之間取捨。",
+      en: "Brake setup changes front-rear load and lock-up order under braking. Lower pressure improves controllability; balance changes the tradeoff between front turning capacity and rear stability.",
+    },
+    risks: {
+      zh: ["煞車壓力太低會讓煞車距離變長。", "煞車平衡太前會推頭，太後會讓車尾在重煞時亂動。"],
+      en: ["Too little brake pressure lengthens stopping distance.", "Too much front bias causes push; too much rear bias makes the rear unstable under heavy braking."],
+    },
+  },
+  {
+    match: ["差速", "前差", "後差", "中央差速", "differential", "diff"],
+    reason: {
+      zh: "差速器決定左右輪或前後軸在補油、收油時鎖定多少。降低鎖定能讓車輪轉速差更自由，通常會提升容錯；提高鎖定則能讓動力更直接，但也更容易把推頭或甩尾放大。",
+      en: "Differentials decide how strongly wheels or axles lock under throttle or lift-off. Less lock gives wheel-speed difference more freedom and usually more tolerance; more lock delivers power directly but can amplify push or oversteer.",
+    },
+    risks: {
+      zh: ["差速鎖定太低會讓出彎動力不夠直接。", "差速鎖定太高會讓補油推頭、補油甩尾或收油甩尾更明顯。"],
+      en: ["Too little lock can make exit drive feel weak.", "Too much lock can worsen throttle understeer, throttle oversteer, or lift-off oversteer."],
+    },
+  },
+  {
+    match: ["終傳", "齒比", "低檔齒比", "final drive", "gear ratio", "low gear"],
+    reason: {
+      zh: "齒比會改變同一車速下的引擎轉速與輪上扭力。縮短齒比能改善出彎回速和渦輪掉轉；拉長齒比能降低低檔暴力感，讓大馬力車更容易把動力放到地面。",
+      en: "Gear ratios change engine RPM and wheel torque at a given speed. Shorter gearing improves corner-exit recovery and turbo response; taller gearing calms low-gear torque so high-power cars can put power down.",
+    },
+    risks: {
+      zh: ["齒比太短會提早撞紅線，尾速和換檔節奏變差。", "齒比太長會出彎掉轉，車會感覺沒力。"],
+      en: ["Too short hits redline early and hurts top speed or shift rhythm.", "Too tall drops RPM on exit and makes the car feel weak."],
+    },
+  },
+  {
+    match: ["Trail Braking", "trail braking"],
+    reason: {
+      zh: "Trail Braking 是用逐漸釋放煞車，把前輪負荷留到入彎前段。若設定正確，前輪會有更多垂直負荷幫助轉向；若車尾不穩，代表煞車或減速差速讓後輪負荷太少。",
+      en: "Trail braking keeps some load on the front tires as you begin turning. Correct setup gives the front more vertical load for rotation; rear instability means brake or decel diff behavior is unloading the rear too much.",
+    },
+    risks: {
+      zh: ["Trail Braking 調太激進會讓車尾在入彎煞車時突然擺動。", "如果前輪已經鎖死，再往後調煞車平衡會讓車更難控制。"],
+      en: ["Aggressive trail-brake setup can make the rear swing on corner entry.", "If the front already locks, moving bias rearward can make the car harder to control."],
+    },
+  },
+];
+
+function adviceKnowledgeFor(target, text) {
+  const haystack = `${target} ${text}`.toLowerCase();
+  return adviceKnowledgeEntries.find((entry) => entry.match.some((keyword) => haystack.includes(keyword.toLowerCase())));
+}
+
+function fallbackAdviceKnowledge() {
+  return {
+    reason: {
+      zh: "這個調整會把車輛行為往目前症狀的反方向推，但建議用小幅度測試。調校不是單一數字越多越好，而是在抓地、反應速度與穩定性之間找平衡。",
+      en: "This adjustment pushes vehicle behavior away from the current symptom, but it should be tested in small steps. Tuning is not about maximizing one value; it is a balance between grip, response, and stability.",
+    },
+    risks: {
+      zh: ["一次調太多可能把問題轉移到另一個階段，例如入彎變好但出彎變差。", "如果新症狀出現，先回退一半再重新試車。"],
+      en: ["Changing too much at once can move the problem to another phase, such as improving entry but hurting exit.", "If a new symptom appears, back the change off halfway and test again."],
+    },
+  };
+}
+
+function standaloneAdviceStep(issue, step, index) {
+  const [target, text] = localizedAdviceStep(issue, step, index);
+  const knowledge = adviceKnowledgeFor(target, text) ?? fallbackAdviceKnowledge();
+  const language = currentLanguage() === "en" ? "en" : "zh";
+  return {
+    target,
+    text,
+    reason: knowledge.reason[language],
+    risks: knowledge.risks[language],
+  };
+}
 
 function symptom(id, label, chip, templateKey) {
   return { id, label, chip, templateKey, steps: adviceTemplates[templateKey] };
@@ -2212,7 +2419,7 @@ const symptomCategories = [
       symptom("grip-brake-low", "煞車抓地不足", "煞車", "brakeLock"),
       symptom("grip-curb-low", "路肩抓地不足", "路肩", "gripBump"),
       symptom("grip-bumpy-low", "顛簸路面抓地不足", "顛簸", "gripBump"),
-      symptom("grip-rain-low", "雨天抓地不足（若有模擬）", "雨天", "gripAll"),
+      symptom("grip-rain-low", "雨天抓地不足", "雨天", "gripAll"),
       symptom("grip-tire-slide", "輪胎容易滑動", "輪胎", "gripAll"),
       symptom("grip-limit-low", "輪胎極限太低", "輪胎", "gripAll"),
     ],
@@ -2769,6 +2976,10 @@ function trackTypeRatio() {
 
 function formatTrackTypeLabel() {
   return routeShapeEnabled() ? t("trackTypeValue", { value: normalizeTrackType() }) : t("trackTypeStraight");
+}
+
+function formatTrackTypeOutputLabel() {
+  return `${normalizeTrackType()}%`;
 }
 
 function selectedCornerProfile() {
@@ -3645,7 +3856,7 @@ function syncTrackTypeControls(skipInputId = "") {
 
   if (slider && skipInputId !== "trackTypeSlider") slider.value = value;
   if (slider) slider.disabled = disabled;
-  if (output) output.textContent = formatTrackTypeLabel();
+  if (output) output.textContent = formatTrackTypeOutputLabel();
   if (cornerSelect) cornerSelect.disabled = disabled;
 }
 
@@ -3757,11 +3968,10 @@ function renderIssues() {
     .map(
       (issue) => {
         const localizedIssue = localizedSymptom(issue);
+        const isSelected = selectedIssues.has(issue.id);
         return `
         <div class="issue-card">
-          <input type="checkbox" id="issue-${issue.id}" value="${issue.id}" ${
-            selectedIssues.has(issue.id) ? "checked" : ""
-          }>
+          <input type="checkbox" id="issue-${issue.id}" value="${issue.id}" ${isSelected ? "checked" : ""}>
           <label for="issue-${issue.id}">${localizedIssue.label}</label>
         </div>
       `;
@@ -3773,11 +3983,13 @@ function renderIssues() {
     input.addEventListener("change", (event) => {
       const issues = currentIssueSet();
       if (event.target.checked) {
+        if (isStandaloneSymptomMode()) issues.clear();
         issues.add(event.target.value);
       } else {
         issues.delete(event.target.value);
       }
       renderIssueCategories();
+      renderIssues();
       renderSelectedIssues();
       renderAdvice();
     });
@@ -3786,10 +3998,16 @@ function renderIssues() {
 
 function renderSelectedIssues() {
   const container = document.getElementById("selectedIssues");
+  const isStandalone = isStandaloneSymptomMode();
+  container.classList.toggle("is-reserved", !isStandalone);
+  if (isStandalone) {
+    document.getElementById("selectedIssueCount").textContent = t("selectedCount", { count: state.solutionIssues.size });
+    container.innerHTML = "";
+    return;
+  }
+
   const selected = issueObjectsFromSet(currentIssueSet());
-  const appliedChips = isStandaloneSymptomMode()
-    ? []
-    : state.appliedSymptomAdjustments.map((adjustment) => {
+  const appliedChips = state.appliedSymptomAdjustments.map((adjustment) => {
         const label = appliedSymptomAdjustmentLabel(adjustment);
         const escapedLabel = escapeHtml(label);
         return `
@@ -3999,23 +4217,42 @@ function renderRecommendationHints() {
   }
 }
 
+function availabilityToggleMarkup(group, modifierClass = "") {
+  const checked = availabilityEnabled(group.id);
+  const inputId = `availability-${group.id}`;
+  const classes = ["availability-toggle", modifierClass, checked ? "" : "is-disabled"].filter(Boolean).join(" ");
+
+  return `
+    <label class="${classes}" for="${inputId}">
+      <input id="${inputId}" type="checkbox" ${checked ? "checked" : ""} data-availability-group="${group.id}" />
+      <span class="availability-toggle-text">
+        <span class="availability-toggle-title">${localizedAvailabilityGroup(group)}</span>
+        <span class="availability-toggle-state">${checked ? t("availabilityOn") : t("availabilityOff")}</span>
+      </span>
+    </label>
+  `;
+}
+
+function aeroAvailabilityPairMarkup() {
+  const aeroGroups = ["frontAero", "rearAero"].map((id) => availabilityById[id]).filter(Boolean);
+  const aeroLabel = localizedAdjustmentRangeGroup({ id: "aero", label: "Aero" }).label;
+
+  return `
+    <div class="availability-split" role="group" aria-label="${escapeHtml(aeroLabel)}">
+      ${aeroGroups.map((group) => availabilityToggleMarkup(group, "is-compact")).join("")}
+    </div>
+  `;
+}
+
 function renderAvailabilityControls() {
   const grid = document.getElementById("availabilityGrid");
   if (!grid) return;
 
   grid.innerHTML = availabilityGroups
     .map((group) => {
-      const checked = availabilityEnabled(group.id);
-      const inputId = `availability-${group.id}`;
-      return `
-        <label class="availability-toggle ${checked ? "" : "is-disabled"}" for="${inputId}">
-          <input id="${inputId}" type="checkbox" ${checked ? "checked" : ""} data-availability-group="${group.id}" />
-          <span class="availability-toggle-text">
-            <span class="availability-toggle-title">${localizedAvailabilityGroup(group)}</span>
-            <span class="availability-toggle-state">${checked ? t("availabilityOn") : t("availabilityOff")}</span>
-          </span>
-        </label>
-      `;
+      if (group.id === "frontAero") return aeroAvailabilityPairMarkup();
+      if (group.id === "rearAero") return "";
+      return availabilityToggleMarkup(group);
     })
     .join("");
 
@@ -4275,6 +4512,10 @@ function gearboxValueInRange(key, value) {
   return value >= min && value <= max;
 }
 
+function validTerminalMode(value) {
+  return value === "redline" || value === "powerBand" ? value : DEFAULT_GEARBOX.terminalMode;
+}
+
 function formatGearRatio(value) {
   return Number.isFinite(value) ? value.toFixed(2) : "--";
 }
@@ -4290,12 +4531,17 @@ function rangeThumbAlignedPosition(percent, thumbSizePx = 16) {
 }
 
 function syncGearboxInputs(skipInputId = "") {
+  const terminalModeSelect = document.getElementById("gearTerminalModeSelect");
+  if (terminalModeSelect && skipInputId !== "gearTerminalModeSelect") {
+    terminalModeSelect.value = validTerminalMode(state.gearbox.terminalMode);
+  }
+
   const fieldMap = [
+    ["gearFinalDriveInput", "finalDrive"],
     ["gearCountInput", "gearCount"],
     ["gearRedlineRpmInput", "redlineRpm"],
     ["gearPeakHpRpmInput", "peakHpRpm"],
     ["gearTopSpeedInput", "topSpeedKmh"],
-    ["gearFinalDriveInput", "finalDrive"],
   ];
 
   fieldMap.forEach(([inputId, key]) => {
@@ -4894,6 +5140,7 @@ function calculateGearRatios(tune = buildTune()) {
   const peakHpRpm = Math.round(clampNumber(Math.min(gearNumber("peakHpRpm"), redlineRpm), ...gearboxLimits.peakHpRpm));
   const targetTerminalSpeed = clampNumber(gearNumber("topSpeedKmh"), ...gearboxLimits.topSpeedKmh);
   const finalDrive = clampNumber(gearNumber("finalDrive"), ...gearboxLimits.finalDrive);
+  const terminalMode = validTerminalMode(state.gearbox.terminalMode);
   const gearCountAdjust = gearCount <= 5 ? 0.35 : gearCount >= 8 ? -0.2 : 0;
   const trackRatio = routeShapeEnabled(race.id) ? trackTypeRatio() : 0;
   const powerRatio = rpmPowerRatio(redlineRpm, peakHpRpm);
@@ -4904,14 +5151,17 @@ function calculateGearRatios(tune = buildTune()) {
     trackRatio,
     powerRatio,
   });
-  const terminalBandPosition = targetTerminalBandPosition({
-    raceId: race.id,
-    tuneFocusId: tuneFocus.id,
-    trackRatio,
-    cornerProfileId: selectedCornerProfile().id,
-    engineId: engine.id,
-  });
-  const desiredTerminalRpm = targetTerminalRpm(peakHpRpm, redlineRpm, terminalBandPosition);
+  const terminalBandPosition =
+    terminalMode === "redline"
+      ? 1
+      : targetTerminalBandPosition({
+          raceId: race.id,
+          tuneFocusId: tuneFocus.id,
+          trackRatio,
+          cornerProfileId: selectedCornerProfile().id,
+          engineId: engine.id,
+        });
+  const desiredTerminalRpm = terminalMode === "redline" ? redlineRpm : targetTerminalRpm(peakHpRpm, redlineRpm, terminalBandPosition);
   const formulaTopRatio = gearRatioForSpeed(desiredTerminalRpm, targetTerminalSpeed, finalDrive, tireProfile.circumference);
   const baseTopRatio = Number.isFinite(formulaTopRatio) ? formulaTopRatio : 0.85;
   const topRatio = clampNumber(baseTopRatio, 0.45, 2.2);
@@ -4996,6 +5246,7 @@ function calculateGearRatios(tune = buildTune()) {
     peakHpRpm,
     tireCircumference: tireProfile.circumference,
     tireDriveLabel: tireProfile.label,
+    terminalMode,
     targetTerminalSpeed,
     terminalRpm: currentTerminalRpm,
     terminalBandPercent: currentTerminalBandPercent,
@@ -5148,6 +5399,10 @@ function renderGearCalculator(tune = buildTune()) {
       const resetButton = ratio.isManual
         ? `<button class="gear-ratio-reset" type="button" data-gear="${ratio.gear}">${t("gearRatioReset")}</button>`
         : "";
+      const speedLabel =
+        ratio.gear === plan.gearCount
+          ? t("gearTopRedlineSpeed", { speed: Math.round(ratio.shiftKmh) })
+          : t("gearShift", { speed: Math.round(ratio.shiftKmh) });
       return `
         <article class="gear-ratio-card ${band.isCornerTarget ? "is-target" : ""} ${ratio.isManual ? "is-manual" : ""} ${band.isOutOfRange ? "is-out-of-range" : ""}">
           <div class="gear-ratio-header">
@@ -5164,7 +5419,7 @@ function renderGearCalculator(tune = buildTune()) {
               min: formatGearRatio(band.safeMin),
               max: formatGearRatio(band.safeMax),
             })}</span>
-            <span>${t("gearShift", { speed: Math.round(ratio.shiftKmh) })}</span>
+            <span>${speedLabel}</span>
           </div>
           <div class="gear-band">
             <div class="gear-band-labels">
@@ -5285,12 +5540,22 @@ function bindGearRatioControls() {
 }
 
 function bindGearboxInputs() {
+  const terminalModeSelect = document.getElementById("gearTerminalModeSelect");
+  if (terminalModeSelect) {
+    terminalModeSelect.addEventListener("change", () => {
+      state.gearbox.terminalMode = validTerminalMode(terminalModeSelect.value);
+      resetManualGearRatios();
+      syncGearboxInputs();
+      renderGearCalculator(buildTune());
+    });
+  }
+
   [
+    ["gearFinalDriveInput", "finalDrive"],
     ["gearCountInput", "gearCount"],
     ["gearRedlineRpmInput", "redlineRpm"],
     ["gearPeakHpRpmInput", "peakHpRpm"],
     ["gearTopSpeedInput", "topSpeedKmh"],
-    ["gearFinalDriveInput", "finalDrive"],
   ].forEach(([inputId, key]) => {
     const input = document.getElementById(inputId);
     if (!input) return;
@@ -5597,18 +5862,6 @@ function renderMeters(tune) {
     .join("");
 }
 
-function renderPrinciples() {
-  const { race, cornerProfile, engine, drive } = selectedOptions();
-  const principles = [
-    race.principles[0],
-    routeShapeEnabled() ? cornerProfile.principle : "",
-    engine.principle,
-    drive.principle,
-    t("tireSizePrinciple"),
-  ].filter(Boolean);
-  document.getElementById("principleStrip").innerHTML = principles.map((principle) => `<div class="principle">${principle}</div>`).join("");
-}
-
 function renderAdvice() {
   const adviceList = document.getElementById("adviceList");
   const selected = issueTypes.filter((issue) => state.issues.has(issue.id));
@@ -5669,7 +5922,6 @@ function renderResult() {
   renderSelectionPreview();
   renderRecommendationHints();
   renderMeters(tune);
-  renderPrinciples();
   renderSetup(tune);
   renderAdvice();
   document.getElementById("copyButton").onclick = () => copyTune(tune);
@@ -5885,6 +6137,10 @@ function sanitizedGearbox(value) {
   const nextGearbox = createDefaultGearbox();
 
   Object.entries(DEFAULT_GEARBOX).forEach(([key, fallback]) => {
+    if (key === "terminalMode") {
+      nextGearbox.terminalMode = validTerminalMode(rawGearbox.terminalMode);
+      return;
+    }
     nextGearbox[key] = sanitizedNumber(rawGearbox[key], fallback, gearboxLimits[key]);
   });
 
@@ -6156,7 +6412,6 @@ function renderLinkedTuneCard(card, baseTune, optimizedTune) {
   const unit = availabilityStatus === "unavailable" ? "" : settingUnit(localizedCard);
   const unavailableClass = availabilityStatus !== "available" ? " is-unavailable" : "";
   const adjusted = settingValue(localizedCard, baseTune) !== settingValue(localizedCard, optimizedTune);
-  const adjustedMarkup = adjusted ? `<span class="linked-tune-chip">${t("linkedTuneAdjusted")}</span>` : "";
   const unavailableMarkup =
     availabilityStatus !== "available"
       ? `<span class="setting-unavailable-chip">${unavailableLabelForStatus(availabilityStatus)}</span>`
@@ -6167,7 +6422,6 @@ function renderLinkedTuneCard(card, baseTune, optimizedTune) {
     <article class="linked-tune-card${unavailableClass}${adjusted ? " is-adjusted" : ""}">
       <div class="linked-tune-head">
         <span class="linked-tune-label">${label}</span>
-        ${adjustedMarkup}
       </div>
       <div class="linked-tune-value">
         <span>${settingValue(localizedCard, optimizedTune)}</span>
@@ -6204,6 +6458,55 @@ function renderLinkedTuneAdvice(selectedIssues) {
   if (applyButton) applyButton.addEventListener("click", applyCurrentSymptomAdjustment);
 }
 
+function uniqueAdviceRisks(steps) {
+  const seen = new Set();
+  return steps
+    .flatMap((step) => step.risks)
+    .filter((risk) => {
+      if (seen.has(risk)) return false;
+      seen.add(risk);
+      return true;
+    })
+    .slice(0, 5);
+}
+
+function renderStandaloneAdviceCard(issue) {
+  const steps = issue.steps.map((step, index) => standaloneAdviceStep(issue, step, index));
+  const risks = uniqueAdviceRisks(steps);
+  const localizedIssue = localizedSymptom(issue);
+  const separator = currentLanguage() === "en" ? ": " : "：";
+
+  return `
+    <article class="advice-card is-learning-card">
+      <h3>
+        <span>${escapeHtml(localizedIssue.label)}</span>
+        <span class="advice-chip">${escapeHtml(localizedIssue.chip)}</span>
+      </h3>
+      <section class="advice-learning-block is-positive" aria-label="${escapeHtml(t("advicePlanTitle"))}">
+        <h4>${t("advicePlanTitle")}</h4>
+        <div class="advice-learning-list">
+          ${steps
+            .map(
+              (step) => `
+                <div class="advice-learning-item">
+                  <p><strong>${escapeHtml(t("adviceAdjustmentLabel"))}${separator}${escapeHtml(step.target)}</strong><span>${escapeHtml(step.text)}</span></p>
+                  <p><strong>${escapeHtml(t("adviceReasonLabel"))}${separator}</strong>${escapeHtml(step.reason)}</p>
+                </div>
+              `,
+            )
+            .join("")}
+        </div>
+      </section>
+      <section class="advice-learning-block is-risk" aria-label="${escapeHtml(t("adviceRiskTitle"))}">
+        <h4>${t("adviceRiskTitle")}</h4>
+        <ul>
+          ${risks.map((risk) => `<li>${escapeHtml(risk)}</li>`).join("")}
+        </ul>
+      </section>
+    </article>
+  `;
+}
+
 function renderAdvice() {
   const adviceList = document.getElementById("adviceList");
   const issueLookup = new Map(allIssueTypes.map((issue) => [issue.id, issue]));
@@ -6222,23 +6525,7 @@ function renderAdvice() {
     return;
   }
 
-  adviceList.innerHTML = selected
-    .map((issue) => {
-      const separator = currentLanguage() === "en" ? ": " : "：";
-      const steps = contextualSteps(issue)
-        .map(([target, text]) => `<li><strong>${target}</strong>${separator}${text}</li>`)
-        .join("");
-      return `
-        <article class="advice-card">
-          <h3>
-            <span>${localizedSymptom(issue).label}</span>
-            <span class="advice-chip">${localizedSymptom(issue).chip}</span>
-          </h3>
-          <ol>${steps}</ol>
-        </article>
-      `;
-    })
-    .join("");
+  adviceList.innerHTML = selected.map(renderStandaloneAdviceCard).join("");
 }
 
 function contextualSteps(issue) {
@@ -6276,7 +6563,6 @@ function renderResult() {
   renderSelectionPreview();
   renderRecommendationHints();
   renderMeters(tune);
-  renderPrinciples();
   renderSetup(tune);
   renderIssueCategories();
   renderSelectedIssues();

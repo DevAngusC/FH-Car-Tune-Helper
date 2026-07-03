@@ -444,6 +444,7 @@ h3 {
 .spec-field input:focus-visible,
 .adjustment-field input:focus-visible,
 .gear-field input:focus-visible,
+.gear-field select:focus-visible,
 .config-control select:focus-visible,
 .range-control input:focus-visible,
 .primary-button:focus-visible,
@@ -582,6 +583,37 @@ h3 {
   padding: 8px 9px;
   background: var(--field-bg);
   cursor: pointer;
+}
+
+.availability-split {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.availability-toggle.is-compact {
+  gap: 5px;
+  padding: 7px 6px;
+}
+
+.availability-toggle.is-compact input {
+  width: 15px;
+  height: 15px;
+}
+
+.availability-toggle.is-compact .availability-toggle-text {
+  gap: 0;
+}
+
+.availability-toggle.is-compact .availability-toggle-title {
+  font-size: 0.72rem;
+  line-height: 1.08;
+}
+
+.availability-toggle.is-compact .availability-toggle-state {
+  font-size: 0.62rem;
+  line-height: 1.05;
 }
 
 .availability-toggle input {
@@ -1363,38 +1395,6 @@ h3 {
   line-height: 1.5;
 }
 
-.principle-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0;
-  margin-bottom: 8px;
-  border: 1px solid rgba(6, 182, 212, 0.16);
-  border-left: 4px solid var(--cyan);
-  border-radius: 8px;
-  padding: 7px 10px;
-  background: rgba(6, 182, 212, 0.08);
-}
-
-.principle {
-  display: inline-flex;
-  align-items: center;
-  min-height: 22px;
-  padding: 0 10px;
-  color: var(--chip-ink);
-  font-size: 0.82rem;
-  font-weight: 900;
-  line-height: 1.35;
-}
-
-.principle:first-child {
-  padding-left: 0;
-}
-
-.principle + .principle {
-  border-left: 1px solid rgba(125, 211, 252, 0.25);
-}
-
 .setup-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -1664,6 +1664,24 @@ h3 {
   display: none;
 }
 
+.selected-issues.is-reserved {
+  min-height: 42px;
+  max-height: 42px;
+  display: flex;
+  align-content: flex-start;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  border-radius: 8px;
+  padding: 6px;
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.16);
+}
+
+.selected-issues.is-reserved:empty {
+  display: flex;
+}
+
 .selected-issue-chip {
   border: 1px solid rgba(37, 99, 235, 0.18);
   border-radius: 999px;
@@ -1791,18 +1809,6 @@ h3 {
   line-height: 1.1;
 }
 
-.linked-tune-chip {
-  flex: 0 0 auto;
-  border: 1px solid rgba(37, 99, 235, 0.22);
-  border-radius: 999px;
-  padding: 2px 6px;
-  background: var(--blue-soft-strong);
-  color: var(--blue-text);
-  font-size: 0.62rem;
-  font-weight: 950;
-  white-space: nowrap;
-}
-
 .linked-tune-value {
   min-width: 0;
   display: flex;
@@ -1828,11 +1834,20 @@ h3 {
   background: var(--panel);
 }
 
+.advice-card.is-learning-card {
+  display: grid;
+  gap: 8px;
+}
+
 .advice-card h3 {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 6px;
+}
+
+.advice-card.is-learning-card h3 {
+  margin-bottom: 0;
 }
 
 .advice-card ol {
@@ -1847,6 +1862,82 @@ h3 {
 
 .advice-card strong {
   color: var(--ink);
+}
+
+.advice-learning-block {
+  display: grid;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 9px;
+}
+
+.advice-learning-block h4 {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 950;
+}
+
+.advice-learning-block.is-positive {
+  border: 1px solid rgba(34, 197, 94, 0.42);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.advice-learning-block.is-positive h4 {
+  color: #86efac;
+}
+
+.advice-learning-block.is-risk {
+  border: 1px solid rgba(239, 68, 68, 0.42);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.advice-learning-block.is-risk h4 {
+  color: #fca5a5;
+}
+
+.advice-learning-list {
+  display: grid;
+  gap: 8px;
+}
+
+.advice-learning-item {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(34, 197, 94, 0.16);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(15, 23, 42, 0.2);
+}
+
+.advice-learning-item p,
+.advice-learning-block ul {
+  margin: 0;
+}
+
+.advice-learning-item p {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.advice-learning-item p span {
+  display: block;
+  margin-top: 2px;
+}
+
+.advice-learning-item p:first-child {
+  color: var(--ink);
+}
+
+.advice-learning-block ul {
+  display: grid;
+  gap: 6px;
+  padding-left: 1.05rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 820;
+  line-height: 1.4;
 }
 
 .advice-chip {
@@ -1955,7 +2046,6 @@ h3 {
   .meter-grid,
   .availability-grid,
   .tune-config-grid,
-  .principle-strip,
   .adjustment-range-grid,
   .gear-summary-grid,
   .gear-ratio-grid,
