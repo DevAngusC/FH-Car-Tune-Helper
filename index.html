@@ -253,20 +253,8 @@
         </div>
 
         <section class="gear-stage" aria-label="Recommended gear ratios">
-          <div class="stage-header">
-            <div>
-              <p class="eyebrow">Gearbox</p>
-              <h2 data-i18n="gearTitle">齒比計算器</h2>
-            </div>
-            <div class="gear-final-chip" id="gearFinalChip">終傳比 --</div>
-          </div>
-
           <div class="gear-calculator-layout">
             <div class="gear-input-panel">
-              <label class="gear-field" for="gearFinalDriveInput">
-                <span class="spec-label" data-i18n="labelFinalDrive">終傳比</span>
-                <input id="gearFinalDriveInput" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" />
-              </label>
               <label class="gear-field" for="gearCountInput">
                 <span class="spec-label" data-i18n="labelGearCount">總共有幾個檔位</span>
                 <input id="gearCountInput" type="text" inputmode="numeric" pattern="[0-9]*" value="6" />
@@ -294,6 +282,16 @@
                 </span>
                 <span class="spec-note compact" data-i18n="gearTopSpeedNote">輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留 power band 餘裕。</span>
               </label>
+              <label class="gear-field" for="gearSpacingModeSelect">
+                <span class="spec-label" data-i18n="labelGearSpacingMode">齒比分布方式</span>
+                <select id="gearSpacingModeSelect">
+                  <option value="traction" data-i18n="gearSpacingTraction">抓地優先</option>
+                  <option value="balanced" data-i18n="gearSpacingBalanced" selected>回速銜接</option>
+                  <option value="recovery" data-i18n="gearSpacingRecovery">快速回速</option>
+                  <option value="topSpeed" data-i18n="gearSpacingTopSpeed">馬力帶優先</option>
+                </select>
+                <span class="spec-note compact" data-i18n="gearSpacingModeNote">進入齒比頁時會先套入目前設定建議方案，可再自行切換。</span>
+              </label>
               <label class="gear-field" for="gearTerminalModeSelect">
                 <span class="spec-label" data-i18n="labelTerminalMode">終端檔位目標</span>
                 <select id="gearTerminalModeSelect">
@@ -302,7 +300,6 @@
                 </select>
                 <span class="spec-note compact" data-i18n="gearTerminalModeNote">終端上限會讓目標速度碰到紅線；延伸餘裕會讓目標速度落在最高馬力 RPM 到紅線之間。</span>
               </label>
-              <div class="gear-decision-panel" id="gearDecisionPanel" aria-live="polite"></div>
             </div>
 
             <div class="gear-output-panel">
@@ -357,6 +354,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=20260703l"></script>
+    <script src="app.js?v=20260706e"></script>
   </body>
 </html>

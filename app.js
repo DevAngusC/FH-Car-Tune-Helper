@@ -33,6 +33,7 @@ const TUNE_DELTA_EPSILON = 0.0001;
 
 const DEFAULT_GEARBOX = {
   terminalMode: "powerBand",
+  spacingMode: "balanced",
   gearCount: 6,
   redlineRpm: 7000,
   peakHpRpm: 6500,
@@ -43,7 +44,6 @@ const DEFAULT_GEARBOX = {
 function createDefaultGearbox(overrides = {}) {
   return {
     ...DEFAULT_GEARBOX,
-    manualRatios: {},
     ...overrides,
   };
 }
@@ -285,6 +285,11 @@ const translations = {
     labelRedlineRpm: "紅線 RPM",
     labelPeakHpRpm: "最高馬力 RPM",
     labelTopSpeed: "目標終端速度",
+    labelGearSpacingMode: "齒比分布方式",
+    gearSpacingTraction: "抓地優先",
+    gearSpacingBalanced: "回速銜接",
+    gearSpacingRecovery: "快速回速",
+    gearSpacingTopSpeed: "馬力帶優先",
     labelTerminalMode: "終端檔位目標",
     terminalModeRedline: "終端上限模式",
     terminalModePowerBand: "延伸餘裕模式",
@@ -360,13 +365,12 @@ const translations = {
     removeAppliedSymptomAdjustment: "取消這次修改：{label}",
     adviceAlternativeTarget: "替代：{target}",
     adviceAlternativeText: "原本可調整「{target}」，但目前標記為不可調。先改用 {fallbacks} 小幅補償，試車後再微調。",
-    gearFinalDriveChip: "終傳比 {value}",
-    gearboxUnavailableChip: "齒輪箱無法調整",
     gearboxUnavailableMessage: "齒輪箱目前標記為不可調，無法產生終傳比或各檔齒比。請先使用其他仍可調項目做保守補償。",
     gearRpmNote: "紅線決定各檔最大拉轉速度，最高馬力 RPM 用來校準升檔後落點與延伸餘裕。",
     gearTopSpeedNote: "輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留 power band 餘裕。",
+    gearSpacingModeNote: "進入齒比頁時會先套入目前設定建議方案，可再自行切換。",
     gearTerminalModeNote: "終端上限會讓目標速度碰到紅線；延伸餘裕會讓目標速度落在最高馬力 RPM 到紅線之間。",
-    gearEmpty: "填入檔位數、紅線 RPM、最高馬力 RPM、目標終端速度與終傳比後，這裡會依基礎配置與胎規格自動計算齒比。",
+    gearEmpty: "填入檔位數、紅線 RPM、最高馬力 RPM 與目標終端速度後，這裡會依基礎配置、建議終傳比與胎規格自動計算齒比。",
     gearSummaryFinal: "建議終傳比",
     gearSummaryTop: "最高檔紅線速度",
     gearSummaryUsable: "目標終端 RPM",
@@ -377,12 +381,9 @@ const translations = {
     gearSummaryTireCirc: "驅動輪周長",
     gearSummarySpread: "齒比跨度",
     gearSummaryGoal: "自動策略",
-    gearSummaryDecision: "判斷",
-    gearFormulaNote: "已用{drive}輪胎規格計算輪周長，並反推各檔紅線速度。",
     gearDrivenFront: "前輪",
     gearDrivenRear: "後輪",
     gearDrivenAwd: "AWD 混合",
-    gearDecisionSuffix: "{race}策略：{raceNote} 路線：{route} / {corner}、{engine}引擎曲線、{focus}調校取向已計入。",
     gearAutoStrategyBalanced: "平衡泛用",
     gearAutoStrategyCorner: "彎道回速",
     gearAutoStrategyLaunch: "起步牽引",
@@ -392,17 +393,7 @@ const translations = {
     gearLabel: "第 {gear} 檔",
     gearShift: "約 {speed} km/h 換檔",
     gearRatioSuggested: "建議 {value}",
-    gearRatioCurrent: "目前 {value}",
-    gearRatioManual: "已手動調整",
-    gearRatioSynced: "同步更新",
-    gearRatioOutOfRange: "超出安全區間",
-    gearRatioReset: "重置",
-    gearRatioSafeRange: "安全試調 {min} - {max}",
     gearTopRedlineSpeed: "最高檔紅線約 {speed} km/h",
-    gearBandLonger: "較長 / 較穩",
-    gearBandShorter: "較短 / 較衝",
-    gearBandLowLabel: "偏低",
-    gearBandHighLabel: "偏高",
     gearBandTarget: "回速目標",
     gearBandRoleLaunch: "起步抓地",
     gearBandRoleCornerTarget: "指定回速檔",
@@ -410,20 +401,7 @@ const translations = {
     gearBandRoleMid: "檔位銜接",
     gearBandRoleHigh: "中高速拉伸",
     gearBandRoleTop: "尾速保留",
-    gearBandLowLaunch: "再低會拉長 1 檔，起步更穩但可能拖轉。",
-    gearBandHighLaunch: "再高會讓起步更衝，高馬力或 RWD 可能更容易打滑。",
-    gearBandLowCorner: "再低會讓出彎轉速偏低，補油可能慢半拍。",
-    gearBandHighCorner: "再高會讓出彎轉速更高，但油門太早可能破壞抓地。",
-    gearBandLowLowMid: "再低會拉長低中檔，出彎後可能掉出有效轉速。",
-    gearBandHighLowMid: "再高會縮短低中檔，回速更快但換檔更密。",
-    gearBandLowMid: "再低會讓相鄰檔距拉大，換檔後轉速掉更多。",
-    gearBandHighMid: "再高會讓檔位更密，反應更快但可能增加換檔次數。",
-    gearBandLowHigh: "再低會保留高速延伸，但高檔可能拉不動。",
-    gearBandHighHigh: "再高會強化中高速加速，但直線尾段可能太早接近紅線。",
-    gearBandLowTop: "再低會保留尾速，但若馬力不足可能拉不上去。",
-    gearBandHighTop: "再高會讓最高檔更有力，但容易犧牲尾速或撞紅線。",
     gearCornerNote: "彎道回速以 {speed} km/h、{gear} 檔為核心，目標約 {rev}% 紅線區。",
-    gearUsableNote: "目標終端速度 {speed} km/h 時約落在 {rpm} RPM，位於 power band 的 {percent}%。",
     gearSlowHighPull: "中高速加速偏慢，高檔齒比會排得更密。",
     gearQuickLowSpeed: "低速加速很快，1-2 檔略放長避免補油打滑。",
     gearDefaultNote: "自動策略採用{strategy}，齒比分布以{focus}與 RPM 落點為主。",
@@ -475,6 +453,11 @@ const translations = {
     labelRedlineRpm: "Redline RPM",
     labelPeakHpRpm: "Peak HP RPM",
     labelTopSpeed: "Target Terminal Speed",
+    labelGearSpacingMode: "Gear Spacing Pattern",
+    gearSpacingTraction: "Grip priority",
+    gearSpacingBalanced: "Recovery balance",
+    gearSpacingRecovery: "Quick recovery",
+    gearSpacingTopSpeed: "Power-band priority",
     labelTerminalMode: "Terminal Gear Target",
     terminalModeRedline: "Terminal Limit",
     terminalModePowerBand: "Extension Reserve",
@@ -550,13 +533,12 @@ const translations = {
     removeAppliedSymptomAdjustment: "Remove this applied change: {label}",
     adviceAlternativeTarget: "Alternative: {target}",
     adviceAlternativeText: "{target} is currently locked. Start by compensating lightly with {fallbacks}, then road-test again.",
-    gearFinalDriveChip: "Final Drive {value}",
-    gearboxUnavailableChip: "Gearbox locked",
     gearboxUnavailableMessage: "The gearbox is marked as locked, so final drive and per-gear ratios cannot be generated. Use other adjustable items for conservative compensation.",
     gearRpmNote: "Redline sets each gear's maximum pull; Peak HP RPM calibrates shift recovery and top-gear reserve.",
     gearTopSpeedNote: "Enter the target speed you want top gear to support, then choose whether it should reach redline or keep power-band reserve.",
+    gearSpacingModeNote: "The calculator starts with the recommended pattern for the current setup, then you can switch it manually.",
     gearTerminalModeNote: "Terminal Limit puts the target speed at redline. Extension Reserve puts the target speed between Peak HP RPM and redline.",
-    gearEmpty: "Enter gear count, redline RPM, Peak HP RPM, target terminal speed, and final drive. The calculator will infer ratios from the base setup and tire specs.",
+    gearEmpty: "Enter gear count, redline RPM, Peak HP RPM, and target terminal speed. The calculator will infer ratios from the base setup, suggested final drive, and tire specs.",
     gearSummaryFinal: "Suggested Final Drive",
     gearSummaryTop: "Top-Gear Redline Speed",
     gearSummaryUsable: "Terminal RPM",
@@ -567,12 +549,9 @@ const translations = {
     gearSummaryTireCirc: "Driven Tire Circumference",
     gearSummarySpread: "Ratio Spread",
     gearSummaryGoal: "Auto Strategy",
-    gearSummaryDecision: "Decision",
-    gearFormulaNote: "Ratios use {drive} specs to calculate rolling circumference and redline speed.",
     gearDrivenFront: "front tire",
     gearDrivenRear: "rear tire",
     gearDrivenAwd: "blended AWD tire",
-    gearDecisionSuffix: "{race} strategy: {raceNote} It also accounts for route shape ({route}), corner mix ({corner}), {engine} engine curve, and {focus} tune focus.",
     gearAutoStrategyBalanced: "Balanced general use",
     gearAutoStrategyCorner: "Corner recovery",
     gearAutoStrategyLaunch: "Launch traction",
@@ -582,17 +561,7 @@ const translations = {
     gearLabel: "Gear {gear}",
     gearShift: "Shift around {speed} km/h",
     gearRatioSuggested: "Suggested {value}",
-    gearRatioCurrent: "Current {value}",
-    gearRatioManual: "Manual",
-    gearRatioSynced: "Synced",
-    gearRatioOutOfRange: "Outside safe range",
-    gearRatioReset: "Reset",
-    gearRatioSafeRange: "Safe trial {min} - {max}",
     gearTopRedlineSpeed: "Top gear redline around {speed} km/h",
-    gearBandLonger: "Longer / steadier",
-    gearBandShorter: "Shorter / punchier",
-    gearBandLowLabel: "Lower",
-    gearBandHighLabel: "Higher",
     gearBandTarget: "Recovery target",
     gearBandRoleLaunch: "Launch grip",
     gearBandRoleCornerTarget: "Target recovery gear",
@@ -600,20 +569,7 @@ const translations = {
     gearBandRoleMid: "Gear-to-gear spacing",
     gearBandRoleHigh: "Mid-high pull",
     gearBandRoleTop: "Top-speed reserve",
-    gearBandLowLaunch: "Lower lengthens 1st gear, improving launch stability but risking bogging.",
-    gearBandHighLaunch: "Higher makes launch punchier, but high-power or RWD builds may spin more easily.",
-    gearBandLowCorner: "Lower drops exit RPM, so throttle pickup may feel delayed.",
-    gearBandHighCorner: "Higher raises exit RPM, but early throttle can upset grip.",
-    gearBandLowLowMid: "Lower lengthens low-mid gears and may drop the car out of the useful rev range.",
-    gearBandHighLowMid: "Higher shortens low-mid gears for faster recovery, but shifts come closer together.",
-    gearBandLowMid: "Lower widens adjacent spacing and drops more RPM after shifts.",
-    gearBandHighMid: "Higher tightens spacing for quicker response, but may add extra shifts.",
-    gearBandLowHigh: "Lower preserves high-speed stretch, but upper gears may struggle to pull.",
-    gearBandHighHigh: "Higher strengthens mid-high acceleration, but may approach redline too early.",
-    gearBandLowTop: "Lower preserves top speed, but a low-power car may not pull it.",
-    gearBandHighTop: "Higher makes top gear pull harder, but may sacrifice top speed or hit redline.",
     gearCornerNote: "Corner recovery centers on {speed} km/h in gear {gear}, targeting about {rev}% of redline.",
-    gearUsableNote: "At {speed} km/h, top gear lands near {rpm} RPM, about {percent}% through the power band.",
     gearSlowHighPull: "Mid-high speed acceleration is slow, so upper gears are packed tighter.",
     gearQuickLowSpeed: "Low-speed acceleration is already quick, so 1st-2nd are slightly longer to reduce wheelspin.",
     gearDefaultNote: "Auto strategy uses {strategy}; ratio spacing mainly follows {focus} and RPM recovery.",
@@ -625,11 +581,10 @@ Object.assign(translations.zh, {
   labelTopSpeed: "目標終端速度",
   gearRpmNote: "紅線決定各檔最大拉轉速度，最高馬力 RPM 用來校準升檔後落點與延伸餘裕。",
   gearTopSpeedNote: "輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留 power band 餘裕。",
-  gearEmpty: "填入檔位數、紅線 RPM、最高馬力 RPM、目標終端速度與終傳比後，這裡會依基礎配置與胎規格自動計算齒比。",
+  gearEmpty: "填入檔位數、紅線 RPM、最高馬力 RPM 與目標終端速度後，這裡會依基礎配置、建議終傳比與胎規格自動計算齒比。",
   gearSummaryTop: "最高檔齒比上限",
   gearSummaryUsable: "目標終端 RPM",
   gearSummaryUsableValue: "Power band {percent}%",
-  gearUsableNote: "目標終端速度 {speed} km/h 時約落在 {rpm} RPM，位於 power band 的 {percent}%。",
   gearTerminalLong: "終端檔偏長，目標速度時 RPM 低於最高馬力區。",
   gearTerminalShort: "終端檔偏短，目標速度前可能太早接近紅線。",
   gearTerminalOk: "終端檔已對齊最高馬力 RPM 到紅線之間。",
@@ -639,11 +594,10 @@ Object.assign(translations.en, {
   labelTopSpeed: "Target Terminal Speed",
   gearRpmNote: "Redline sets each gear's maximum pull; Peak HP RPM calibrates shift recovery and top-gear reserve.",
   gearTopSpeedNote: "Enter the target speed you want top gear to support, then choose whether it should reach redline or keep power-band reserve.",
-  gearEmpty: "Enter gear count, redline RPM, Peak HP RPM, target terminal speed, and final drive. The calculator will infer ratios from the base setup and tire specs.",
+  gearEmpty: "Enter gear count, redline RPM, Peak HP RPM, and target terminal speed. The calculator will infer ratios from the base setup, suggested final drive, and tire specs.",
   gearSummaryTop: "Top-Gear Redline Speed",
   gearSummaryUsable: "Terminal RPM",
   gearSummaryUsableValue: "Power band {percent}%",
-  gearUsableNote: "At {speed} km/h, top gear lands near {rpm} RPM, about {percent}% through the power band.",
   gearTerminalLong: "Top gear is too long; target speed is below the Peak HP range.",
   gearTerminalShort: "Top gear is too short; the car may reach redline before the target speed.",
   gearTerminalOk: "Top gear is aligned between Peak HP RPM and redline.",
@@ -3867,7 +3821,6 @@ function bindTrackTypeInput() {
   slider.addEventListener("input", () => {
     state.trackType = Number(slider.value);
     syncTrackTypeControls("trackTypeSlider");
-    resetManualGearRatios();
     updateLiveTune();
   });
 }
@@ -3892,7 +3845,6 @@ function bindConfigSelects() {
         syncConfigControls();
       }
       if (stateKey === "tuneFocus") syncTuneFocusIntensityInput();
-      if (["race", "cornerProfile", "tuneFocus", "engine", "drive"].includes(stateKey)) resetManualGearRatios();
       updateLiveTune();
     });
   });
@@ -4516,18 +4468,14 @@ function validTerminalMode(value) {
   return value === "redline" || value === "powerBand" ? value : DEFAULT_GEARBOX.terminalMode;
 }
 
+function validGearSpacingMode(value) {
+  return ["traction", "balanced", "recovery", "topSpeed"].includes(value)
+    ? value
+    : recommendedGearSpacingMode();
+}
+
 function formatGearRatio(value) {
   return Number.isFinite(value) ? value.toFixed(2) : "--";
-}
-
-function roundGearRatio(value) {
-  return Number.isFinite(value) ? Number(value.toFixed(2)) : NaN;
-}
-
-function rangeThumbAlignedPosition(percent, thumbSizePx = 16) {
-  const normalized = clampNumber(Number(percent) || 0, 0, 100);
-  const offsetPx = thumbSizePx / 2 - (thumbSizePx * normalized) / 100;
-  return `calc(${normalized.toFixed(2)}% + ${offsetPx.toFixed(2)}px)`;
 }
 
 function syncGearboxInputs(skipInputId = "") {
@@ -4535,9 +4483,12 @@ function syncGearboxInputs(skipInputId = "") {
   if (terminalModeSelect && skipInputId !== "gearTerminalModeSelect") {
     terminalModeSelect.value = validTerminalMode(state.gearbox.terminalMode);
   }
+  const spacingModeSelect = document.getElementById("gearSpacingModeSelect");
+  if (spacingModeSelect && skipInputId !== "gearSpacingModeSelect") {
+    spacingModeSelect.value = validGearSpacingMode(state.gearbox.spacingMode);
+  }
 
   const fieldMap = [
-    ["gearFinalDriveInput", "finalDrive"],
     ["gearCountInput", "gearCount"],
     ["gearRedlineRpmInput", "redlineRpm"],
     ["gearPeakHpRpmInput", "peakHpRpm"],
@@ -4733,6 +4684,33 @@ function gearAutoStrategyKey({ raceId, tuneFocusId, trackRatio, cornerProfileId 
   return "gearAutoStrategyBalanced";
 }
 
+function recommendedGearSpacingMode({
+  raceId = state.race,
+  tuneFocusId = state.tuneFocus,
+  trackRatio = routeShapeEnabled(state.race) ? trackTypeRatio() : 0,
+  cornerProfileId = selectedCornerProfile().id,
+} = {}) {
+  const strategyKey = gearAutoStrategyKey({ raceId, tuneFocusId, trackRatio, cornerProfileId });
+  if (strategyKey === "gearAutoStrategyLaunch" || strategyKey === "gearAutoStrategyGrip") return "traction";
+  if (strategyKey === "gearAutoStrategyCorner") return "recovery";
+  if (strategyKey === "gearAutoStrategyTopSpeed") return "topSpeed";
+  return "balanced";
+}
+
+function gearSpacingTranslationKey(modeId) {
+  const keys = {
+    traction: "gearSpacingTraction",
+    balanced: "gearSpacingBalanced",
+    recovery: "gearSpacingRecovery",
+    topSpeed: "gearSpacingTopSpeed",
+  };
+  return keys[modeId] ?? "gearSpacingBalanced";
+}
+
+function gearSpacingDisplayLabel(modeId) {
+  return t(gearSpacingTranslationKey(modeId));
+}
+
 function raceGearProfile(raceId) {
   return raceGearMods[raceId] ?? raceGearMods.road;
 }
@@ -4756,7 +4734,7 @@ function refreshRecommendedGearFinalDrive() {
 
 function prepareGearCalculator() {
   const tune = buildTune();
-  resetManualGearRatios();
+  state.gearbox.spacingMode = recommendedGearSpacingMode();
   state.gearbox.finalDrive = Number(recommendedGearFinalDrive(tune).toFixed(2));
   syncGearboxInputs();
   syncGearStrategyControls();
@@ -4809,6 +4787,166 @@ function estimateFirstGearTarget({
   );
   const engineWindowAdjust = engine.id === "highRpm" ? -2 : engine.id === "lowEnd" ? 2 : 0;
   return clampNumber(midpoint + vehiclePaceAdjust + profileAdjust + engineWindowAdjust, minTarget, maxTarget);
+}
+
+function gearSpacingProfile(modeId) {
+  const profiles = {
+    traction: {
+      lowDropRpm: 1850,
+      midDropRpm: 760,
+      highBandPosition: 0.14,
+      blend: 0.64,
+    },
+    balanced: {
+      lowDropRpm: 1400,
+      midDropRpm: 260,
+      highBandPosition: 0.3,
+      blend: 0.58,
+    },
+    recovery: {
+      lowDropRpm: 900,
+      midDropRpm: -160,
+      highBandPosition: 0.28,
+      blend: 0.78,
+    },
+    topSpeed: {
+      lowDropRpm: 1050,
+      midDropRpm: -80,
+      highBandPosition: 0.52,
+      blend: 0.68,
+    },
+  };
+  return profiles[modeId] ?? profiles.balanced;
+}
+
+function engineSpacingDropAdjust(engineId) {
+  const adjustments = {
+    flatTorque: 120,
+    highRpm: -430,
+    turboHit: -360,
+    supercharged: -80,
+    lowEnd: 520,
+    instant: 460,
+  };
+  return adjustments[engineId] ?? 0;
+}
+
+function gearSpacingTargetFractions({
+  modeId,
+  gearCount,
+  redlineRpm,
+  peakHpRpm,
+  engine,
+  baseRecoveryFraction,
+}) {
+  const profile = gearSpacingProfile(modeId);
+  const rpmWindow = Math.max(0, redlineRpm - peakHpRpm);
+  const dropAdjust = engineSpacingDropAdjust(engine.id);
+  const lowDrop = Math.max(0, profile.lowDropRpm + dropAdjust);
+  const midDrop = profile.midDropRpm + dropAdjust * 0.55;
+  const steps = Math.max(1, gearCount - 2);
+
+  return Array.from({ length: Math.max(1, gearCount - 1) }, (_, index) => {
+    const progress = index / steps;
+    let targetRpm;
+
+    if (progress < 0.68) {
+      const localProgress = clampNumber(progress / 0.68, 0, 1);
+      const easedProgress = 1 - Math.pow(1 - localProgress, 1.35);
+      const drop = lowDrop * (1 - easedProgress) + midDrop * easedProgress;
+      targetRpm = peakHpRpm - drop;
+    } else {
+      const localProgress = clampNumber((progress - 0.68) / 0.32, 0, 1);
+      targetRpm = peakHpRpm + rpmWindow * profile.highBandPosition * localProgress;
+    }
+
+    const baseRecoveryRpm = redlineRpm * baseRecoveryFraction;
+    const blendedTargetRpm = targetRpm * 0.78 + baseRecoveryRpm * 0.22;
+    return clampNumber(blendedTargetRpm / redlineRpm, 0.54, 0.96);
+  });
+}
+
+function applyGearSpacingPattern(
+  ratios,
+  {
+    modeId,
+    gearCount,
+    redlineRpm,
+    peakHpRpm,
+    engine,
+    baseRecoveryFraction,
+    finalDrive,
+    tireCircumference,
+  },
+) {
+  if (!Array.isArray(ratios) || ratios.length < 3) {
+    return { ratios, targetFractions: [], modeId };
+  }
+
+  const profile = gearSpacingProfile(modeId);
+  const targetFractions = gearSpacingTargetFractions({
+    modeId,
+    gearCount,
+    redlineRpm,
+    peakHpRpm,
+    engine,
+    baseRecoveryFraction,
+  });
+  const firstRatio = ratios[0]?.ratio;
+  const topRatio = ratios[ratios.length - 1]?.ratio;
+
+  if (!Number.isFinite(firstRatio) || !Number.isFinite(topRatio) || firstRatio <= topRatio) {
+    return { ratios, targetFractions, modeId };
+  }
+
+  const totalLogDrop = Math.max(0.01, Math.log(firstRatio / topRatio));
+  const rawDrops = targetFractions.map((fraction) => Math.log(1 / clampNumber(fraction, 0.52, 0.98)));
+  const rawDropTotal = Math.max(0.01, rawDrops.reduce((total, value) => total + value, 0));
+  const scaledDrops = rawDrops.map((value) => value * (totalLogDrop / rawDropTotal));
+  const shapedRatios = [{ ...ratios[0], ratio: firstRatio }];
+
+  for (let index = 0; index < scaledDrops.length; index += 1) {
+    const previousRatio = shapedRatios[index].ratio;
+    shapedRatios[index + 1] = {
+      ...ratios[index + 1],
+      ratio: index === scaledDrops.length - 1 ? topRatio : previousRatio / Math.exp(scaledDrops[index]),
+    };
+  }
+
+  const lastIndex = ratios.length - 1;
+  const adjustedRatios = ratios.map((ratio, index) => {
+    if (index === 0 || index === lastIndex) return { ...ratio };
+    const position = index / lastIndex;
+    const middleWeight = 1 - Math.abs(position - 0.52) * 0.34;
+    const blend = clampNumber(profile.blend * middleWeight, 0.25, 0.82);
+    return {
+      ...ratio,
+      ratio: ratio.ratio * (1 - blend) + shapedRatios[index].ratio * blend,
+    };
+  });
+
+  for (let index = lastIndex - 1; index >= 1; index -= 1) {
+    adjustedRatios[index].ratio = Math.max(adjustedRatios[index].ratio, adjustedRatios[index + 1].ratio * 1.06);
+  }
+
+  for (let index = 1; index < lastIndex; index += 1) {
+    adjustedRatios[index].ratio = Math.min(adjustedRatios[index].ratio, adjustedRatios[index - 1].ratio * 0.94);
+  }
+
+  adjustedRatios.forEach((ratio) => {
+    ratio.shiftKmh = speedForGearRatio(redlineRpm, ratio.ratio, finalDrive, tireCircumference);
+  });
+
+  return { ratios: adjustedRatios, targetFractions, modeId };
+}
+
+function gearShiftRecoveryRpms(ratios, redlineRpm) {
+  if (!Array.isArray(ratios) || ratios.length < 2) return [];
+  return ratios.slice(0, -1).map((ratio, index) => {
+    const nextRatio = ratios[index + 1]?.ratio;
+    if (!Number.isFinite(ratio.ratio) || !Number.isFinite(nextRatio) || ratio.ratio <= 0) return NaN;
+    return redlineRpm * (nextRatio / ratio.ratio);
+  }).filter(Number.isFinite);
 }
 
 function cornerRecoveryRedlineFraction(engine) {
@@ -4895,9 +5033,10 @@ function applyCornerRecoveryBias(
   if (Number.isFinite(nextRatio)) targetRatio = Math.max(targetRatio, nextRatio * 1.1);
 
   const blend = clampNumber(recoveryPlan.blend, 0, 0.85);
+  const lastIndex = ratios.length - 1;
   const adjustedRatios = ratios.map((ratio, index) => {
     const distance = Math.abs(index - targetIndex);
-    if (distance > 2) return { ...ratio };
+    if (index === lastIndex || distance > 2) return { ...ratio };
 
     const localBlend = blend * Math.max(0, 1 - distance * 0.38);
     const neighborTargetRatio = targetRatio * Math.pow(1.22, targetIndex - index);
@@ -4907,11 +5046,11 @@ function applyCornerRecoveryBias(
     };
   });
 
-  for (let index = 1; index < adjustedRatios.length; index += 1) {
+  for (let index = 1; index < lastIndex; index += 1) {
     adjustedRatios[index].ratio = Math.min(adjustedRatios[index].ratio, adjustedRatios[index - 1].ratio * 0.94);
   }
 
-  for (let index = adjustedRatios.length - 2; index >= 0; index -= 1) {
+  for (let index = lastIndex - 1; index >= 0; index -= 1) {
     adjustedRatios[index].ratio = Math.max(adjustedRatios[index].ratio, adjustedRatios[index + 1].ratio * 1.06);
   }
 
@@ -4934,194 +5073,26 @@ function applyCornerRecoveryBias(
 
 function gearRatioBandProfile(gear, gearCount, isCornerTarget = false) {
   if (isCornerTarget) {
-    return {
-      roleKey: "gearBandRoleCornerTarget",
-      lowPct: 0.05,
-      highPct: 0.045,
-      lowNoteKey: "gearBandLowCorner",
-      highNoteKey: "gearBandHighCorner",
-    };
+    return { roleKey: "gearBandRoleCornerTarget" };
   }
 
   if (gear === 1) {
-    return {
-      roleKey: "gearBandRoleLaunch",
-      lowPct: 0.065,
-      highPct: 0.05,
-      lowNoteKey: "gearBandLowLaunch",
-      highNoteKey: "gearBandHighLaunch",
-    };
+    return { roleKey: "gearBandRoleLaunch" };
   }
 
   if (gear === gearCount) {
-    return {
-      roleKey: "gearBandRoleTop",
-      lowPct: 0.035,
-      highPct: 0.028,
-      lowNoteKey: "gearBandLowTop",
-      highNoteKey: "gearBandHighTop",
-    };
+    return { roleKey: "gearBandRoleTop" };
   }
 
   if (gear >= gearCount - 1) {
-    return {
-      roleKey: "gearBandRoleHigh",
-      lowPct: 0.04,
-      highPct: 0.035,
-      lowNoteKey: "gearBandLowHigh",
-      highNoteKey: "gearBandHighHigh",
-    };
+    return { roleKey: "gearBandRoleHigh" };
   }
 
   if (gear <= 3) {
-    return {
-      roleKey: "gearBandRoleLowMid",
-      lowPct: 0.05,
-      highPct: 0.045,
-      lowNoteKey: "gearBandLowLowMid",
-      highNoteKey: "gearBandHighLowMid",
-    };
+    return { roleKey: "gearBandRoleLowMid" };
   }
 
-  return {
-    roleKey: "gearBandRoleMid",
-    lowPct: 0.045,
-    highPct: 0.04,
-    lowNoteKey: "gearBandLowMid",
-    highNoteKey: "gearBandHighMid",
-  };
-}
-
-function gearRatioDisplayBounds(ratio, plan) {
-  const isCornerTarget = plan.strategyId === "corner" && ratio.gear === plan.cornerTargetGear;
-  const profile = gearRatioBandProfile(ratio.gear, plan.gearCount, isCornerTarget);
-  const suggestedRatio = Number.isFinite(ratio.suggestedRatio) ? ratio.suggestedRatio : ratio.ratio;
-  const currentRatio = Number.isFinite(ratio.ratio) ? ratio.ratio : suggestedRatio;
-  const roundedSuggestedRatio = roundGearRatio(suggestedRatio);
-  const roundedCurrentRatio = roundGearRatio(currentRatio);
-  const safeMin = roundGearRatio(suggestedRatio * (1 - profile.lowPct));
-  const safeMax = Math.max(roundGearRatio(suggestedRatio * (1 + profile.highPct)), safeMin + 0.01);
-  const displayMin = roundGearRatio(suggestedRatio * (1 - profile.lowPct * 2.35));
-  const displayMax = Math.max(
-    roundGearRatio(suggestedRatio * (1 + profile.highPct * 2.35)),
-    displayMin + 0.02,
-  );
-
-  return {
-    isCornerTarget,
-    profile,
-    roundedSuggestedRatio,
-    roundedCurrentRatio,
-    safeMin,
-    safeMax,
-    displayMin,
-    displayMax,
-  };
-}
-
-function gearRatioSharedScale(plan) {
-  const bounds = plan.ratios.map((ratio) => gearRatioDisplayBounds(ratio, plan));
-  const rawMin = Math.min(...bounds.map((band) => Math.min(band.displayMin, band.safeMin, band.roundedCurrentRatio)));
-  const rawMax = Math.max(...bounds.map((band) => Math.max(band.displayMax, band.safeMax, band.roundedCurrentRatio)));
-  const span = Math.max(0.1, rawMax - rawMin);
-
-  return {
-    displayMin: Math.max(0.01, roundGearRatio(rawMin - span * 0.04)),
-    displayMax: roundGearRatio(rawMax + span * 0.04),
-  };
-}
-
-function gearRatioSafetyBand(ratio, plan, sharedScale = null) {
-  const bounds = gearRatioDisplayBounds(ratio, plan);
-  const displayMin = sharedScale?.displayMin ?? bounds.displayMin;
-  const displayMax = Math.max(sharedScale?.displayMax ?? bounds.displayMax, displayMin + 0.02);
-  const displaySpan = Math.max(0.01, displayMax - displayMin);
-  const safeLeft = ((bounds.safeMin - displayMin) / displaySpan) * 100;
-  const safeWidth = ((bounds.safeMax - bounds.safeMin) / displaySpan) * 100;
-  const markerLeft = ((bounds.roundedCurrentRatio - displayMin) / displaySpan) * 100;
-  const suggestedLeft = ((bounds.roundedSuggestedRatio - displayMin) / displaySpan) * 100;
-  const clampedSuggestedLeft = clampNumber(suggestedLeft, 0, 100);
-
-  return {
-    isCornerTarget: bounds.isCornerTarget,
-    safeMin: bounds.safeMin,
-    safeMax: bounds.safeMax,
-    displayMin,
-    displayMax,
-    currentRatio: bounds.roundedCurrentRatio,
-    suggestedRatio: bounds.roundedSuggestedRatio,
-    isOutOfRange: bounds.roundedCurrentRatio < bounds.safeMin || bounds.roundedCurrentRatio > bounds.safeMax,
-    safeLeft: clampNumber(safeLeft, 0, 100).toFixed(2),
-    safeWidth: clampNumber(safeWidth, 0, 100).toFixed(2),
-    markerLeft: clampNumber(markerLeft, 0, 100).toFixed(2),
-    suggestedLeft: clampedSuggestedLeft.toFixed(2),
-    suggestedMarkerLeft: rangeThumbAlignedPosition(clampedSuggestedLeft),
-    role: t(bounds.profile.roleKey),
-    lowNote: t(bounds.profile.lowNoteKey),
-    highNote: t(bounds.profile.highNoteKey),
-  };
-}
-
-function resetManualGearRatios() {
-  state.gearbox.manualRatios = {};
-}
-
-function manualGearRatioEntries(gearCount) {
-  return Object.entries(state.gearbox.manualRatios ?? {})
-    .map(([gear, ratio]) => [Number(gear), Number(ratio)])
-    .filter(([gear, ratio]) => Number.isInteger(gear) && gear >= 1 && gear <= gearCount && Number.isFinite(ratio));
-}
-
-function applyManualGearRatios(baseRatios, { topTarget, topRatio, redlineRpm, finalDrive, tireCircumference }) {
-  const gearCount = baseRatios.length;
-  const manualEntries = manualGearRatioEntries(gearCount);
-  const manualGears = new Set(manualEntries.map(([gear]) => gear));
-
-  if (!manualEntries.length) {
-    return baseRatios.map((ratio) => ({
-      ...ratio,
-      suggestedRatio: ratio.ratio,
-      isManual: false,
-      isSynchronized: false,
-    }));
-  }
-
-  const anchorMap = new Map([
-    [1, baseRatios[0].ratio],
-    [gearCount, baseRatios[gearCount - 1].ratio],
-    ...manualEntries,
-  ]);
-  const anchors = Array.from(anchorMap.entries())
-    .map(([gear, ratio]) => ({ gear, ratio }))
-    .sort((a, b) => a.gear - b.gear);
-
-  for (let index = 1; index < anchors.length; index += 1) {
-    anchors[index].ratio = Math.min(anchors[index].ratio, anchors[index - 1].ratio * 0.94);
-  }
-
-  for (let index = anchors.length - 2; index >= 0; index -= 1) {
-    anchors[index].ratio = Math.max(anchors[index].ratio, anchors[index + 1].ratio * 1.06);
-  }
-
-  return baseRatios.map((ratio) => {
-    const leftAnchor = [...anchors].reverse().find((anchor) => anchor.gear <= ratio.gear) ?? anchors[0];
-    const rightAnchor = anchors.find((anchor) => anchor.gear >= ratio.gear) ?? anchors[anchors.length - 1];
-    const segment = Math.max(1, rightAnchor.gear - leftAnchor.gear);
-    const progress = (ratio.gear - leftAnchor.gear) / segment;
-    const logRatio =
-      Math.log(leftAnchor.ratio) * (1 - progress) + Math.log(rightAnchor.ratio) * progress;
-    const currentRatio = leftAnchor.gear === rightAnchor.gear ? leftAnchor.ratio : Math.exp(logRatio);
-    const shiftKmh = speedForGearRatio(redlineRpm, currentRatio, finalDrive, tireCircumference);
-
-    return {
-      ...ratio,
-      suggestedRatio: ratio.ratio,
-      ratio: currentRatio,
-      shiftKmh: Number.isFinite(shiftKmh) ? shiftKmh : topTarget * (topRatio / currentRatio),
-      isManual: manualGears.has(ratio.gear),
-      isSynchronized: !manualGears.has(ratio.gear),
-    };
-  });
+  return { roleKey: "gearBandRoleMid" };
 }
 
 function calculateGearRatios(tune = buildTune()) {
@@ -5143,6 +5114,8 @@ function calculateGearRatios(tune = buildTune()) {
   const terminalMode = validTerminalMode(state.gearbox.terminalMode);
   const gearCountAdjust = gearCount <= 5 ? 0.35 : gearCount >= 8 ? -0.2 : 0;
   const trackRatio = routeShapeEnabled(race.id) ? trackTypeRatio() : 0;
+  const selectedSpacingMode = validGearSpacingMode(state.gearbox.spacingMode);
+  const resolvedSpacingMode = selectedSpacingMode;
   const powerRatio = rpmPowerRatio(redlineRpm, peakHpRpm);
   const shiftRecoveryFraction = targetShiftRecoveryFraction({
     engine,
@@ -5200,6 +5173,18 @@ function calculateGearRatios(tune = buildTune()) {
     ratios.push({ gear, ratio, shiftKmh });
   }
 
+  const spacingPlan = applyGearSpacingPattern(ratios, {
+    modeId: resolvedSpacingMode,
+    gearCount,
+    redlineRpm,
+    peakHpRpm,
+    engine,
+    baseRecoveryFraction: shiftRecoveryFraction,
+    finalDrive,
+    tireCircumference: tireProfile.circumference,
+  });
+  ratios = spacingPlan.ratios;
+
   const cornerPlan = applyCornerRecoveryBias(ratios, {
     gearCount,
     topTarget,
@@ -5215,18 +5200,20 @@ function calculateGearRatios(tune = buildTune()) {
     tireCircumference: tireProfile.circumference,
   });
   ratios = cornerPlan.ratios;
-  ratios = applyManualGearRatios(ratios, {
-    topTarget,
-    topRatio,
-    redlineRpm,
-    finalDrive,
-    tireCircumference: tireProfile.circumference,
-  });
+  ratios = ratios.map((ratio) => ({
+    ...ratio,
+    suggestedRatio: ratio.ratio,
+    isManual: false,
+    isSynchronized: false,
+  }));
   const currentTopRatio = ratios[ratios.length - 1]?.ratio ?? topRatio;
   const currentTopTarget = speedForGearRatio(redlineRpm, currentTopRatio, finalDrive, tireProfile.circumference);
   const currentTerminalRpm = rpmForSpeedGearRatio(targetTerminalSpeed, currentTopRatio, finalDrive, tireProfile.circumference);
   const currentTerminalBandPercent = terminalPowerBandPercent(currentTerminalRpm, peakHpRpm, redlineRpm);
   const currentTerminalStatus = terminalStatusKey(currentTerminalRpm, peakHpRpm, redlineRpm);
+  const currentFirstRatio = ratios[0]?.ratio;
+  const currentFirstGearTarget = speedForGearRatio(redlineRpm, currentFirstRatio, finalDrive, tireProfile.circumference);
+  const shiftRecoveryRpms = gearShiftRecoveryRpms(ratios, redlineRpm);
   const currentSpread = ratios[0].ratio / ratios[ratios.length - 1].ratio;
   const strategyKey =
     cornerPlan.strategyId === "corner"
@@ -5252,10 +5239,16 @@ function calculateGearRatios(tune = buildTune()) {
     terminalBandPercent: currentTerminalBandPercent,
     terminalStatus: currentTerminalStatus,
     topTarget: currentTopTarget,
-    firstGearTarget: actualFirstGearTarget,
-    targetShiftRpm: redlineRpm * shiftRecoveryFraction,
+    firstGearTarget: Number.isFinite(currentFirstGearTarget) ? currentFirstGearTarget : actualFirstGearTarget,
+    targetShiftRpm: shiftRecoveryRpms.length
+      ? shiftRecoveryRpms.reduce((total, value) => total + value, 0) / shiftRecoveryRpms.length
+      : redlineRpm * shiftRecoveryFraction,
+    shiftRecoveryRpms,
     shiftRecoveryFraction,
     terminalBandPosition,
+    selectedSpacingMode,
+    resolvedSpacingMode,
+    spacingLabel: gearSpacingDisplayLabel(selectedSpacingMode),
     raceLabel: localizedOption("raceTypes", race).label,
     raceNote: localizedRaceGearNote(race.id, raceGearMod.note),
     trackTypeLabel: formatTrackTypeLabel(),
@@ -5266,7 +5259,7 @@ function calculateGearRatios(tune = buildTune()) {
     strategyId: cornerPlan.strategyId,
     strategyLabel: t(strategyKey),
     cornerTargetGear: cornerPlan.targetGear,
-    hasManualRatios: manualGearRatioEntries(gearCount).length > 0,
+    hasManualRatios: false,
     ratios,
     note:
       cornerPlan.note
@@ -5278,47 +5271,21 @@ function calculateGearRatios(tune = buildTune()) {
   };
 }
 
-function gearDecisionText(plan) {
-  return `${t("gearFormulaNote", { drive: plan.tireDriveLabel })} ${t("gearUsableNote", {
-    speed: Math.round(plan.targetTerminalSpeed),
-    rpm: Math.round(plan.terminalRpm),
-    percent: Math.round(plan.terminalBandPercent),
-  })} ${plan.note} ${t("gearDecisionSuffix", {
-    race: plan.raceLabel,
-    raceNote: plan.raceNote,
-    route: plan.trackTypeLabel,
-    corner: plan.cornerProfileLabel,
-    engine: plan.engineLabel,
-    focus: plan.tuneFocusLabel,
-  })}`;
-}
-
-function renderGearDecisionPanel(plan) {
-  const decisionPanel = document.getElementById("gearDecisionPanel");
-  if (!decisionPanel) return;
-
-  if (!plan) {
-    decisionPanel.innerHTML = "";
-    return;
-  }
-
-  decisionPanel.innerHTML = `
-    <article class="gear-decision-card">
-      <span>${t("gearSummaryDecision")}</span>
-      <strong>${escapeHtml(gearDecisionText(plan))}</strong>
-    </article>
-  `;
+function formatShiftRecoverySummary(plan) {
+  const values = (plan.shiftRecoveryRpms ?? []).filter(Number.isFinite);
+  if (!values.length) return `${Math.round(plan.targetShiftRpm)} RPM`;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  if (Math.abs(max - min) < 90) return `${Math.round(plan.targetShiftRpm)} RPM`;
+  return `${Math.round(min)}-${Math.round(max)} RPM`;
 }
 
 function renderGearCalculator(tune = buildTune()) {
   const summaryGrid = document.getElementById("gearSummaryGrid");
   const ratioGrid = document.getElementById("gearRatioGrid");
-  const finalChip = document.getElementById("gearFinalChip");
-  if (!summaryGrid || !ratioGrid || !finalChip) return;
+  if (!summaryGrid || !ratioGrid) return;
 
   if (!availabilityEnabled("gearbox")) {
-    finalChip.textContent = t("gearboxUnavailableChip");
-    renderGearDecisionPanel();
     summaryGrid.innerHTML = `
       <div class="gear-empty">
         ${t("gearboxUnavailableMessage")}
@@ -5328,11 +5295,7 @@ function renderGearCalculator(tune = buildTune()) {
     return;
   }
 
-  const finalDrive = Number.isFinite(gearNumber("finalDrive")) ? gearNumber("finalDrive") : recommendedGearFinalDrive(tune);
-  finalChip.textContent = t("gearFinalDriveChip", { value: formatGearRatio(finalDrive) });
-
   if (!gearboxReady()) {
-    renderGearDecisionPanel();
     summaryGrid.innerHTML = `
       <div class="gear-empty">
         ${t("gearEmpty")}
@@ -5343,7 +5306,6 @@ function renderGearCalculator(tune = buildTune()) {
   }
 
   const plan = calculateGearRatios(tune);
-  renderGearDecisionPanel(plan);
   summaryGrid.innerHTML = `
     <article class="gear-summary-card">
       <span>${t("gearSummaryFinal")}</span>
@@ -5369,7 +5331,7 @@ function renderGearCalculator(tune = buildTune()) {
     </article>
     <article class="gear-summary-card">
       <span>${t("gearSummaryShiftDrop")}</span>
-      <strong>${Math.round(plan.targetShiftRpm)} RPM</strong>
+      <strong>${formatShiftRecoverySummary(plan)}</strong>
     </article>
     <article class="gear-summary-card">
       <span>${t("gearSummaryTireCirc")}</span>
@@ -5385,173 +5347,56 @@ function renderGearCalculator(tune = buildTune()) {
     </article>
   `;
 
-  const sharedGearScale = gearRatioSharedScale(plan);
   ratioGrid.innerHTML = plan.ratios
     .map((ratio) => {
-      const band = gearRatioSafetyBand(ratio, plan, sharedGearScale);
-      const badges = [
-        band.isCornerTarget ? t("gearBandTarget") : "",
-        ratio.isManual ? t("gearRatioManual") : "",
-        plan.hasManualRatios && ratio.isSynchronized ? t("gearRatioSynced") : "",
-        band.isOutOfRange ? t("gearRatioOutOfRange") : "",
-      ].filter(Boolean);
+      const isCornerTarget = plan.strategyId === "corner" && ratio.gear === plan.cornerTargetGear;
+      const profile = gearRatioBandProfile(ratio.gear, plan.gearCount, isCornerTarget);
+      const badges = [isCornerTarget ? t("gearBandTarget") : ""].filter(Boolean);
       const badgeHtml = badges.map((badge) => `<span class="gear-target-badge">${escapeHtml(badge)}</span>`).join("");
-      const resetButton = ratio.isManual
-        ? `<button class="gear-ratio-reset" type="button" data-gear="${ratio.gear}">${t("gearRatioReset")}</button>`
-        : "";
+      const suggestedRatio = Number.isFinite(ratio.suggestedRatio) ? ratio.suggestedRatio : ratio.ratio;
       const speedLabel =
         ratio.gear === plan.gearCount
           ? t("gearTopRedlineSpeed", { speed: Math.round(ratio.shiftKmh) })
           : t("gearShift", { speed: Math.round(ratio.shiftKmh) });
       return `
-        <article class="gear-ratio-card ${band.isCornerTarget ? "is-target" : ""} ${ratio.isManual ? "is-manual" : ""} ${band.isOutOfRange ? "is-out-of-range" : ""}">
+        <article class="gear-ratio-card ${isCornerTarget ? "is-target" : ""}">
           <div class="gear-ratio-header">
             <div class="gear-ratio-title">
               <span>${t("gearLabel", { gear: ratio.gear })}</span>
               ${badgeHtml}
             </div>
-            <small>${escapeHtml(band.role)}</small>
+            <small>${escapeHtml(t(profile.roleKey))}</small>
           </div>
           <div class="gear-ratio-metrics">
-            <strong>${t("gearRatioCurrent", { value: formatGearRatio(band.currentRatio) })}</strong>
-            <span>${t("gearRatioSuggested", { value: formatGearRatio(band.suggestedRatio) })}</span>
-            <span>${t("gearRatioSafeRange", {
-              min: formatGearRatio(band.safeMin),
-              max: formatGearRatio(band.safeMax),
-            })}</span>
+            <strong>${t("gearRatioSuggested", { value: formatGearRatio(suggestedRatio) })}</strong>
             <span>${speedLabel}</span>
           </div>
-          <div class="gear-band">
-            <div class="gear-band-labels">
-              <span>${t("gearBandLonger")}</span>
-              <span>${t("gearBandShorter")}</span>
-            </div>
-            <div class="gear-band-control">
-              <input
-                class="gear-ratio-slider"
-                type="range"
-                min="${formatGearRatio(band.displayMin)}"
-                max="${formatGearRatio(band.displayMax)}"
-                step="0.01"
-                value="${formatGearRatio(band.currentRatio)}"
-                data-gear="${ratio.gear}"
-                style="--safe-left: ${band.safeLeft}%; --safe-width: ${band.safeWidth}%;"
-                aria-label="${escapeHtml(t("gearLabel", { gear: ratio.gear }))}"
-              />
-              <span
-                class="gear-suggested-marker"
-                style="--suggested-left: ${band.suggestedMarkerLeft};"
-                title="${escapeHtml(t("gearRatioSuggested", { value: formatGearRatio(band.suggestedRatio) }))}"
-                aria-hidden="true"
-              ></span>
-            </div>
-          </div>
-          <div class="gear-range-notes">
-            <p><strong>${t("gearBandLowLabel")}</strong>${escapeHtml(band.lowNote)}</p>
-            <p><strong>${t("gearBandHighLabel")}</strong>${escapeHtml(band.highNote)}</p>
-          </div>
-          ${resetButton}
         </article>
       `;
     })
     .join("");
 }
 
-function setManualGearRatio(gear, ratio) {
-  const gearCount = Math.round(clampNumber(Number.isFinite(gearNumber("gearCount")) ? gearNumber("gearCount") : 6, ...gearboxLimits.gearCount));
-  if (!Number.isInteger(gear) || gear < 1 || gear > gearCount || !Number.isFinite(ratio)) return;
-  state.gearbox.manualRatios = {
-    ...(state.gearbox.manualRatios ?? {}),
-    [gear]: Number(ratio.toFixed(2)),
-  };
-}
-
-function clearManualGearRatio(gear) {
-  if (!state.gearbox.manualRatios) return;
-  delete state.gearbox.manualRatios[gear];
-}
-
-function bindGearRatioControls() {
-  const ratioGrid = document.getElementById("gearRatioGrid");
-  if (!ratioGrid) return;
-  let isDraggingGearRatio = false;
-  let gearRatioCommitPending = false;
-
-  function sliderFromEvent(event) {
-    return event.target instanceof Element ? event.target.closest(".gear-ratio-slider") : null;
-  }
-
-  function updateGearRatioSliderPreview(slider) {
-    const value = Number(slider.value);
-    const card = slider.closest(".gear-ratio-card");
-    const currentValue = card?.querySelector(".gear-ratio-metrics strong");
-
-    if (currentValue && Number.isFinite(value)) {
-      currentValue.textContent = t("gearRatioCurrent", { value: formatGearRatio(value) });
-    }
-  }
-
-  function commitGearRatioChange() {
-    if (!gearRatioCommitPending) return;
-    gearRatioCommitPending = false;
-    isDraggingGearRatio = false;
-    renderGearCalculator();
-  }
-
-  ratioGrid.addEventListener("pointerdown", (event) => {
-    const slider = sliderFromEvent(event);
-    if (!slider) return;
-    isDraggingGearRatio = true;
-    slider.setPointerCapture?.(event.pointerId);
-  });
-
-  ratioGrid.addEventListener("input", (event) => {
-    const slider = sliderFromEvent(event);
-    if (!slider) return;
-    const gear = Number(slider.dataset.gear);
-    const ratio = Number(slider.value);
-    setManualGearRatio(gear, ratio);
-    gearRatioCommitPending = true;
-    updateGearRatioSliderPreview(slider);
-    if (!isDraggingGearRatio) commitGearRatioChange();
-  });
-
-  ratioGrid.addEventListener("change", (event) => {
-    if (!sliderFromEvent(event)) return;
-    commitGearRatioChange();
-  });
-
-  ratioGrid.addEventListener("pointerup", (event) => {
-    if (!sliderFromEvent(event)) return;
-    commitGearRatioChange();
-  });
-
-  ratioGrid.addEventListener("pointercancel", (event) => {
-    if (!sliderFromEvent(event)) return;
-    commitGearRatioChange();
-  });
-
-  ratioGrid.addEventListener("click", (event) => {
-    const button = event.target.closest(".gear-ratio-reset");
-    if (!button) return;
-    clearManualGearRatio(Number(button.dataset.gear));
-    renderGearCalculator();
-  });
-}
-
 function bindGearboxInputs() {
+  const spacingModeSelect = document.getElementById("gearSpacingModeSelect");
+  if (spacingModeSelect) {
+    spacingModeSelect.addEventListener("change", () => {
+      state.gearbox.spacingMode = validGearSpacingMode(spacingModeSelect.value);
+      syncGearboxInputs();
+      renderGearCalculator(buildTune());
+    });
+  }
+
   const terminalModeSelect = document.getElementById("gearTerminalModeSelect");
   if (terminalModeSelect) {
     terminalModeSelect.addEventListener("change", () => {
       state.gearbox.terminalMode = validTerminalMode(terminalModeSelect.value);
-      resetManualGearRatios();
       syncGearboxInputs();
       renderGearCalculator(buildTune());
     });
   }
 
   [
-    ["gearFinalDriveInput", "finalDrive"],
     ["gearCountInput", "gearCount"],
     ["gearRedlineRpmInput", "redlineRpm"],
     ["gearPeakHpRpmInput", "peakHpRpm"],
@@ -5564,7 +5409,6 @@ function bindGearboxInputs() {
 
     input.addEventListener("input", () => {
       if (input.value === "") {
-        resetManualGearRatios();
         state.gearbox[key] = "";
         renderGearCalculator();
         return;
@@ -5574,7 +5418,6 @@ function bindGearboxInputs() {
       if (!Number.isFinite(parsed)) return;
       const value = key === "gearCount" || key === "redlineRpm" || key === "peakHpRpm" ? Math.round(parsed) : parsed;
       if (!gearboxValueInRange(key, value)) return;
-      resetManualGearRatios();
       state.gearbox[key] = value;
       syncGearStrategyControls();
       renderGearCalculator();
@@ -5590,7 +5433,6 @@ function bindGearboxInputs() {
         state.gearbox[key] = clampNumber(value, min, max);
       }
 
-      resetManualGearRatios();
       syncGearStrategyControls();
       syncGearboxInputs();
       renderGearCalculator();
@@ -6007,17 +5849,11 @@ function serializableAdjustmentRanges() {
   );
 }
 
-function serializableManualGearRatios() {
-  const gearCount = Math.round(clampNumber(Number(state.gearbox.gearCount) || DEFAULT_GEARBOX.gearCount, ...gearboxLimits.gearCount));
-  return Object.fromEntries(
-    manualGearRatioEntries(gearCount).map(([gear, ratio]) => [gear, Number(ratio.toFixed(2))]),
-  );
-}
-
 function createSetupSavePayload() {
   normalizeVehicleSpecs();
   normalizeTrackType();
   normalizeTuneFocusIntensity();
+  const gearbox = Object.fromEntries(Object.keys(DEFAULT_GEARBOX).map((key) => [key, state.gearbox[key]]));
 
   return {
     schema: SETUP_SAVE_SCHEMA,
@@ -6042,10 +5878,7 @@ function createSetupSavePayload() {
       engine: state.engine,
       drive: state.drive,
     },
-    gearbox: {
-      ...state.gearbox,
-      manualRatios: serializableManualGearRatios(),
-    },
+    gearbox,
     adjustmentRanges: serializableAdjustmentRanges(),
     availability: serializableAvailability(),
     symptoms: {
@@ -6141,23 +5974,16 @@ function sanitizedGearbox(value) {
       nextGearbox.terminalMode = validTerminalMode(rawGearbox.terminalMode);
       return;
     }
+    if (key === "spacingMode") {
+      nextGearbox.spacingMode = validGearSpacingMode(rawGearbox.spacingMode);
+      return;
+    }
     nextGearbox[key] = sanitizedNumber(rawGearbox[key], fallback, gearboxLimits[key]);
   });
 
   nextGearbox.gearCount = Math.round(nextGearbox.gearCount);
   nextGearbox.redlineRpm = Math.round(nextGearbox.redlineRpm);
   nextGearbox.peakHpRpm = Math.round(Math.min(nextGearbox.peakHpRpm, nextGearbox.redlineRpm));
-
-  const rawManualRatios = isPlainObject(rawGearbox.manualRatios) ? rawGearbox.manualRatios : {};
-  nextGearbox.manualRatios = Object.entries(rawManualRatios).reduce((ratios, [gearKey, ratioValue]) => {
-    const gear = Number(gearKey);
-    const ratio = Number(ratioValue);
-    if (!Number.isInteger(gear) || gear < 1 || gear > nextGearbox.gearCount || !Number.isFinite(ratio)) {
-      return ratios;
-    }
-    ratios[gear] = Number(clampNumber(ratio, 0.2, 10).toFixed(2));
-    return ratios;
-  }, {});
 
   return nextGearbox;
 }
@@ -6647,7 +6473,6 @@ function init() {
   bindTuneFocusIntensityInput();
   bindVehicleInputs();
   bindGearboxInputs();
-  bindGearRatioControls();
   bindSetupJsonButtons();
   renderAvailabilityControls();
   renderAdjustmentRangeControls();
