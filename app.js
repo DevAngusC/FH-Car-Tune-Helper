@@ -183,6 +183,7 @@ const state = {
   cornerProfile: "mixed",
   tuneFocus: "balanced",
   tuneFocusIntensity: 100,
+  vehicleStrategy: "balanced",
   engine: "flatTorque",
   drive: "awd",
   vehicleName: "",
@@ -192,6 +193,10 @@ const state = {
   rearTireSpec: "265/35R19",
   frontTireSizeMm: 245,
   rearTireSizeMm: 265,
+  lateralG97: "",
+  lateralG193: "",
+  gripSourceManual: false,
+  gripSourcePreference: 50,
   powerKw: 400,
   torqueNm: 650,
   theme: "light",
@@ -215,9 +220,15 @@ const vehicleSpecLimits = {
   rearTireSizeMm: [135, 405],
   tireAspectRatio: [20, 80],
   tireWheelInch: [12, 24],
+  lateralG97: [0.5, 3.5],
+  lateralG193: [0.5, 3.8],
   powerKw: [50, 1500],
   torqueNm: [100, 2500],
 };
+
+const gripSourcePreferenceLimits = [0, 100];
+const LATERAL_G_DECISION_STEP = 0.05;
+const vehicleStrategyIds = new Set(["fixWeakness", "balanced", "amplifyStrength"]);
 
 const routeShapeLimits = {
   trackType: [0, 100],
@@ -231,12 +242,13 @@ const gearboxLimits = {
   finalDrive: [2.2, 6.5],
 };
 
+const TERMINAL_LIMIT_RPM_RESERVE_RATIO = 0.15;
 const tuneFocusIntensityLimits = [0, 150];
 const PSI_TO_BAR = 0.0689476;
 const LANGUAGE_STORAGE_KEY = "fh6-tune-lab-language";
 const SETUP_SAVE_SCHEMA = "fh6-tune-lab-setup";
 const SETUP_SAVE_SCHEMA_VERSION = 1;
-const SETUP_SAVE_APP_VERSION = "v0.8";
+const SETUP_SAVE_APP_VERSION = "v0.12";
 
 const translations = {
   zh: {
@@ -286,7 +298,7 @@ const translations = {
     labelPeakHpRpm: "最高馬力 RPM",
     labelTopSpeed: "目標終端速度",
     labelTerminalMode: "終端檔位目標",
-    terminalModeRedline: "終端上限模式",
+    terminalModeRedline: "終端上限 -15%",
     terminalModePowerBand: "延伸餘裕模式",
     labelFinalDrive: "終傳比",
     unitSecond: "秒",
@@ -364,8 +376,8 @@ const translations = {
     gearboxUnavailableChip: "齒輪箱無法調整",
     gearboxUnavailableMessage: "齒輪箱目前標記為不可調，無法產生終傳比或各檔齒比。請先使用其他仍可調項目做保守補償。",
     gearRpmNote: "紅線決定各檔最大拉轉速度，最高馬力 RPM 用來校準升檔後落點與延伸餘裕。",
-    gearTopSpeedNote: "輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留 power band 餘裕。",
-    gearTerminalModeNote: "終端上限會讓目標速度碰到紅線；延伸餘裕會讓目標速度落在最高馬力 RPM 到紅線之間。",
+    gearTopSpeedNote: "輸入你希望最高檔支援的目標速度，再用下方模式決定要落在紅線 RPM 的 85% 或保留 power band 餘裕。",
+    gearTerminalModeNote: "終端上限會讓目標速度落在紅線 RPM 的 85%；延伸餘裕會讓目標速度落在最高馬力 RPM 到紅線之間。",
     gearEmpty: "填入檔位數、紅線 RPM、最高馬力 RPM、目標終端速度與終傳比後，這裡會依基礎配置與胎規格自動計算齒比。",
     gearSummaryFinal: "建議終傳比",
     gearSummaryTop: "最高檔紅線速度",
@@ -476,7 +488,7 @@ const translations = {
     labelPeakHpRpm: "Peak HP RPM",
     labelTopSpeed: "Target Terminal Speed",
     labelTerminalMode: "Terminal Gear Target",
-    terminalModeRedline: "Terminal Limit",
+    terminalModeRedline: "Terminal Limit -15%",
     terminalModePowerBand: "Extension Reserve",
     labelFinalDrive: "Final Drive",
     unitSecond: "sec",
@@ -554,8 +566,8 @@ const translations = {
     gearboxUnavailableChip: "Gearbox locked",
     gearboxUnavailableMessage: "The gearbox is marked as locked, so final drive and per-gear ratios cannot be generated. Use other adjustable items for conservative compensation.",
     gearRpmNote: "Redline sets each gear's maximum pull; Peak HP RPM calibrates shift recovery and top-gear reserve.",
-    gearTopSpeedNote: "Enter the target speed you want top gear to support, then choose whether it should reach redline or keep power-band reserve.",
-    gearTerminalModeNote: "Terminal Limit puts the target speed at redline. Extension Reserve puts the target speed between Peak HP RPM and redline.",
+    gearTopSpeedNote: "Enter the target speed you want top gear to support, then choose whether it should land at 85% of redline RPM or keep power-band reserve.",
+    gearTerminalModeNote: "Terminal Limit puts the target speed at 85% of redline RPM. Extension Reserve puts the target speed between Peak HP RPM and redline.",
     gearEmpty: "Enter gear count, redline RPM, Peak HP RPM, target terminal speed, and final drive. The calculator will infer ratios from the base setup and tire specs.",
     gearSummaryFinal: "Suggested Final Drive",
     gearSummaryTop: "Top-Gear Redline Speed",
@@ -624,7 +636,7 @@ const translations = {
 Object.assign(translations.zh, {
   labelTopSpeed: "目標終端速度",
   gearRpmNote: "紅線決定各檔最大拉轉速度，最高馬力 RPM 用來校準升檔後落點與延伸餘裕。",
-  gearTopSpeedNote: "輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留 power band 餘裕。",
+  gearTopSpeedNote: "輸入你希望最高檔支援的目標速度，再用下方模式決定要落在紅線 RPM 的 85% 或保留 power band 餘裕。",
   gearEmpty: "填入檔位數、紅線 RPM、最高馬力 RPM、目標終端速度與終傳比後，這裡會依基礎配置與胎規格自動計算齒比。",
   gearSummaryTop: "最高檔齒比上限",
   gearSummaryUsable: "目標終端 RPM",
@@ -638,7 +650,7 @@ Object.assign(translations.zh, {
 Object.assign(translations.en, {
   labelTopSpeed: "Target Terminal Speed",
   gearRpmNote: "Redline sets each gear's maximum pull; Peak HP RPM calibrates shift recovery and top-gear reserve.",
-  gearTopSpeedNote: "Enter the target speed you want top gear to support, then choose whether it should reach redline or keep power-band reserve.",
+  gearTopSpeedNote: "Enter the target speed you want top gear to support, then choose whether it should land at 85% of redline RPM or keep power-band reserve.",
   gearEmpty: "Enter gear count, redline RPM, Peak HP RPM, target terminal speed, and final drive. The calculator will infer ratios from the base setup and tire specs.",
   gearSummaryTop: "Top-Gear Redline Speed",
   gearSummaryUsable: "Terminal RPM",
@@ -647,6 +659,84 @@ Object.assign(translations.en, {
   gearTerminalLong: "Top gear is too long; target speed is below the Peak HP range.",
   gearTerminalShort: "Top gear is too short; the car may reach redline before the target speed.",
   gearTerminalOk: "Top gear is aligned between Peak HP RPM and redline.",
+});
+
+Object.assign(translations.zh, {
+  labelLateralG97: "基準 97 km/h 側向 G",
+  labelLateralG193: "基準 193 km/h 側向 G",
+  labelGripSource: "抓地來源偏好",
+  labelVehicleStrategy: "車輛特性策略",
+  placeholderExample118: "調校前，例如 1.18",
+  placeholderExample142: "調校前，例如 1.42",
+  gripSourceAuto: "自動",
+  gripSourceManual: "手動",
+  gripSourceAero: "空力抓地",
+  gripSourceMechanical: "機械抓地 / 極速",
+  gripSourceToolSplit: "工具判斷：空力 {aero}% / 機械 {mechanical}%",
+  gripSourceManualSplit: "目前設定：空力 {aero}% / 機械 {mechanical}%",
+  gripSourceManualDeltaAero: "比工具建議多 {delta}% 空力，會提升高速彎穩定，但可能犧牲尾速。",
+  gripSourceManualDeltaMechanical: "比工具建議少 {delta}% 空力，會換取更多直線極速，但高速彎穩定會下降。",
+  gripSourceManualDeltaBalanced: "目前接近工具判斷，適合作為穩定起點。",
+  gripSourceAutoReasonAero: "基準 193 km/h 側向 G 增益較明顯，工具會保留更多空力抓地。",
+  gripSourceAutoReasonMechanical: "基準低中速側向 G 表現較關鍵，工具會偏向機械抓地與極速保留。",
+  gripSourceAutoReasonBalanced: "基準側向 G 與路線條件接近平衡；工具以 0.05G 區間判讀，避免小幅數據變動造成反覆修正。",
+  gripSourceCopy: "抓地來源",
+  lateralGCopy: "基準側向 G",
+  vehicleStrategyCopy: "車輛特性策略",
+});
+
+Object.assign(translations.en, {
+  labelLateralG97: "Baseline 97 km/h Lateral G",
+  labelLateralG193: "Baseline 193 km/h Lateral G",
+  labelGripSource: "Grip Source Bias",
+  labelVehicleStrategy: "Vehicle Trait Strategy",
+  placeholderExample118: "before tuning, e.g. 1.18",
+  placeholderExample142: "before tuning, e.g. 1.42",
+  gripSourceAuto: "Auto",
+  gripSourceManual: "Manual",
+  gripSourceAero: "Aero grip",
+  gripSourceMechanical: "Mechanical grip / speed",
+  gripSourceToolSplit: "Tool estimate: aero {aero}% / mechanical {mechanical}%",
+  gripSourceManualSplit: "Current setting: aero {aero}% / mechanical {mechanical}%",
+  gripSourceManualDeltaAero: "{delta}% more aero than the tool estimate. Better high-speed stability, but lower top-speed potential.",
+  gripSourceManualDeltaMechanical: "{delta}% less aero than the tool estimate. More straight-line speed, but less high-speed corner stability.",
+  gripSourceManualDeltaBalanced: "This is close to the tool estimate and is a stable starting point.",
+  gripSourceAutoReasonAero: "Baseline 193 km/h lateral-G gain is stronger, so the tool keeps more aero grip.",
+  gripSourceAutoReasonMechanical: "Baseline low-mid speed lateral grip is the key constraint, so the tool leans toward mechanical grip and speed reserve.",
+  gripSourceAutoReasonBalanced: "Baseline lateral-G data and route shape are balanced; the tool reads G in 0.05G bands to avoid chasing tiny stat changes.",
+  gripSourceCopy: "Grip source",
+  lateralGCopy: "Baseline lateral G",
+  vehicleStrategyCopy: "Vehicle trait strategy",
+});
+
+Object.assign(translations.zh, {
+  labelToolInsight: "工具判讀",
+  toolInsightNoG: "基準 G 未輸入",
+  toolInsightPartialG: "基準 G 未完整",
+  toolInsightLowWeak: "低速抓地偏弱",
+  toolInsightLowNormal: "低速抓地普通",
+  toolInsightLowStrong: "低速抓地強",
+  toolInsightHighWeak: "高速 G 偏弱",
+  toolInsightHighNormal: "高速 G 普通",
+  toolInsightHighStrong: "高速 G 強",
+  toolInsightGripSplit: "空力 {aero}% / 機械 {mechanical}%",
+  toolInsightStrategySuggestion: "建議偏 {strategy}",
+  toolInsightCurrentStrategy: "目前 {strategy}",
+});
+
+Object.assign(translations.en, {
+  labelToolInsight: "Tool readout",
+  toolInsightNoG: "Baseline G not entered",
+  toolInsightPartialG: "Baseline G incomplete",
+  toolInsightLowWeak: "Low-speed grip weak",
+  toolInsightLowNormal: "Low-speed grip normal",
+  toolInsightLowStrong: "Low-speed grip strong",
+  toolInsightHighWeak: "High-speed G weak",
+  toolInsightHighNormal: "High-speed G normal",
+  toolInsightHighStrong: "High-speed G strong",
+  toolInsightGripSplit: "Aero {aero}% / mechanical {mechanical}%",
+  toolInsightStrategySuggestion: "Suggested: {strategy}",
+  toolInsightCurrentStrategy: "Current: {strategy}",
 });
 
 const optionTranslations = {
@@ -718,6 +808,11 @@ const optionTranslations = {
       exit: { label: "Corner Exit", subtitle: "Earlier throttle application" },
       topSpeed: { label: "Top Speed", subtitle: "Long straights" },
       grip: { label: "Grip", subtitle: "Low-grip / bumpy stability" },
+    },
+    vehicleTraitStrategies: {
+      fixWeakness: { label: "Fix Weaknesses", subtitle: "Prioritize weak areas" },
+      balanced: { label: "Balanced", subtitle: "Use the default tool logic" },
+      amplifyStrength: { label: "Amplify Strengths", subtitle: "Lean into the car's identity" },
     },
     engineCurves: {
       flatTorque: {
@@ -1569,6 +1664,24 @@ const tuneFocusTypes = [
     },
     gearMods: { firstTarget: 2, topRatio: 0.03, curvePower: 0.05 },
     reason: "降低底盤和動力輸出的突兀感，讓濕滑、顛簸或低抓地路面更容易控制。",
+  },
+];
+
+const vehicleTraitStrategies = [
+  {
+    id: "fixWeakness",
+    label: "短板補強",
+    subtitle: "優先修正弱項",
+  },
+  {
+    id: "balanced",
+    label: "均衡配置",
+    subtitle: "維持泛用判斷",
+  },
+  {
+    id: "amplifyStrength",
+    label: "優勢放大",
+    subtitle: "強項更明確",
   },
 ];
 
@@ -2849,6 +2962,8 @@ function refreshLanguageUi() {
   syncGearStrategyControls();
   syncTrackTypeControls();
   syncVehicleInputs();
+  syncGripSourceControls();
+  syncToolInsight();
   syncTuneFocusIntensityInput();
   renderIssueCategories();
   renderIssues();
@@ -3051,6 +3166,37 @@ function cornerProfileGearMods() {
   return routeShapeEnabled() ? selectedCornerProfile().gearMods ?? {} : {};
 }
 
+function vehicleStrategyGearMods() {
+  const strategy = normalizeVehicleStrategy();
+  if (strategy === "balanced") return {};
+
+  const profile = vehicleTraitProfile();
+  if (strategy === "fixWeakness") {
+    const lowFix = profile.mechanicalWeakness;
+    const highFix = profile.aeroWeakness;
+    return {
+      firstTarget: -4.5 * lowFix + 2.5 * highFix,
+      topRatio: 0.03 * lowFix - 0.035 * highFix,
+      curvePower: -0.05 * lowFix + 0.035 * highFix,
+      finalDriveBias: 0.065 * lowFix - 0.045 * highFix,
+      shiftRecoveryBias: 0.028 * lowFix - 0.012 * highFix,
+      terminalBandBias: -0.03 * lowFix + 0.045 * highFix,
+    };
+  }
+
+  const highAmp = profile.aeroStrength;
+  const lowAmp = profile.mechanicalStrength;
+  const highSpeedReserve = highAmp * (profile.routeHighSpeedPriority ? 1 : 0.55);
+  return {
+    firstTarget: 4.5 * highAmp + 1.8 * lowAmp,
+    topRatio: -0.045 * highSpeedReserve + 0.018 * lowAmp,
+    curvePower: 0.045 * highSpeedReserve - 0.018 * lowAmp,
+    finalDriveBias: -0.07 * highSpeedReserve + 0.025 * lowAmp,
+    shiftRecoveryBias: -0.018 * highSpeedReserve + 0.01 * lowAmp,
+    terminalBandBias: 0.06 * highSpeedReserve - 0.015 * lowAmp,
+  };
+}
+
 function formatTuneFocusIntensity() {
   return `${normalizeTuneFocusIntensity()}%`;
 }
@@ -3071,6 +3217,93 @@ function tuneFocusUsesIntensity(tuneFocus = optionById(tuneFocusTypes, state.tun
 function formatTuneFocusLabel(tuneFocus = optionById(tuneFocusTypes, state.tuneFocus)) {
   const option = localizedOption("tuneFocusTypes", tuneFocus ?? tuneFocusTypes[0]);
   return tuneFocusUsesIntensity(tuneFocus) ? `${option.label} ${formatTuneFocusIntensity()}` : option.label;
+}
+
+function normalizeVehicleStrategy() {
+  if (!vehicleStrategyIds.has(state.vehicleStrategy)) state.vehicleStrategy = "balanced";
+  return state.vehicleStrategy;
+}
+
+function selectedVehicleStrategy() {
+  return optionById(vehicleTraitStrategies, normalizeVehicleStrategy()) ?? vehicleTraitStrategies[1];
+}
+
+function formatVehicleStrategyLabel() {
+  return localizedOption("vehicleTraitStrategies", selectedVehicleStrategy()).label;
+}
+
+function vehicleTraitProfile() {
+  const g = lateralGProfile();
+  const lowWeakness = g.hasLow ? clampNumber((1.12 - g.low) / 0.12, 0, 1) : 0;
+  const lowStrength = g.hasLow ? clampNumber((g.low - 1.2) / 0.16, 0, 1) : 0;
+  const highWeakness = g.hasHigh ? clampNumber((1.24 - g.high) / 0.16, 0, 1) : 0;
+  const highStrength = g.hasHigh ? clampNumber((g.high - 1.32) / 0.2, 0, 1) : 0;
+  const gainWeakness = g.hasLow && g.hasHigh ? clampNumber((0.07 - g.gain) / 0.08, 0, 1) : 0;
+  const gainStrength = g.hasLow && g.hasHigh ? clampNumber((g.gain - 0.14) / 0.12, 0, 1) : 0;
+  const routeHighSpeedPriority =
+    !routeShapeEnabled() || state.tuneFocus === "topSpeed" || state.cornerProfile === "large" || trackTypeRatio() <= 0.42;
+  const routeCornerPriority = routeShapeEnabled() && (trackTypeRatio() >= 0.55 || state.cornerProfile === "large");
+
+  return {
+    lowWeakness,
+    lowStrength,
+    highWeakness,
+    highStrength,
+    gainWeakness,
+    gainStrength,
+    mechanicalWeakness: Math.max(lowWeakness, gainWeakness * 0.75),
+    mechanicalStrength: lowStrength,
+    aeroWeakness: Math.max(highWeakness, gainWeakness * 0.45),
+    aeroStrength: Math.max(highStrength, gainStrength),
+    routeHighSpeedPriority,
+    routeCornerPriority,
+  };
+}
+
+function suggestedVehicleStrategyId() {
+  const g = lateralGProfile();
+  if (!g.hasLow && !g.hasHigh) return "balanced";
+
+  const profile = vehicleTraitProfile();
+  const weakness = Math.max(profile.mechanicalWeakness, profile.aeroWeakness);
+  const strength = Math.max(profile.mechanicalStrength, profile.aeroStrength);
+
+  if (weakness >= 0.55 && strength < 0.65) return "fixWeakness";
+  if (strength >= 0.55 && weakness < 0.85) return "amplifyStrength";
+  return "balanced";
+}
+
+function lowSpeedInsightKey(profile) {
+  if (profile.lowWeakness >= 0.45 || profile.mechanicalWeakness >= 0.7) return "toolInsightLowWeak";
+  if (profile.lowStrength >= 0.45 || profile.mechanicalStrength >= 0.55) return "toolInsightLowStrong";
+  return "toolInsightLowNormal";
+}
+
+function highSpeedInsightKey(profile) {
+  if (profile.highWeakness >= 0.45 || profile.aeroWeakness >= 0.7) return "toolInsightHighWeak";
+  if (profile.highStrength >= 0.45 || profile.aeroStrength >= 0.55) return "toolInsightHighStrong";
+  return "toolInsightHighNormal";
+}
+
+function toolInsightChips() {
+  const g = lateralGProfile();
+  const profile = vehicleTraitProfile();
+  const chips = [];
+
+  if (!g.hasLow && !g.hasHigh) {
+    chips.push({ text: t("toolInsightNoG") });
+  } else {
+    if (!g.hasLow || !g.hasHigh) chips.push({ text: t("toolInsightPartialG") });
+    if (g.hasLow) chips.push({ text: t(lowSpeedInsightKey(profile)) });
+    if (g.hasHigh) chips.push({ text: t(highSpeedInsightKey(profile)) });
+  }
+
+  const aero = activeGripAeroPercent();
+  const strategy = localizedOption("vehicleTraitStrategies", optionById(vehicleTraitStrategies, suggestedVehicleStrategyId()));
+  chips.push({ text: t("toolInsightGripSplit", { aero, mechanical: 100 - aero }), primary: true });
+  chips.push({ text: t("toolInsightStrategySuggestion", { strategy: strategy.label }), primary: true });
+
+  return chips;
 }
 
 function clampTune(tune) {
@@ -3143,6 +3376,185 @@ function normalizeVehicleSpecs() {
   state.rearTireSizeMm = rearTire.widthMm;
   state.powerKw = Math.round(clampNumber(Number.isFinite(power) ? power : 400, ...vehicleSpecLimits.powerKw));
   state.torqueNm = Math.round(clampNumber(Number.isFinite(torque) ? torque : 650, ...vehicleSpecLimits.torqueNm));
+}
+
+function normalizeOptionalLateralG(value, limitKey) {
+  if (value === "" || value === null || value === undefined) return "";
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "";
+  return Number(clampNumber(number, ...vehicleSpecLimits[limitKey]).toFixed(2));
+}
+
+function lateralGDecisionValue(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return NaN;
+  return Number((Math.floor((number + 0.000001) / LATERAL_G_DECISION_STEP) * LATERAL_G_DECISION_STEP).toFixed(2));
+}
+
+function normalizeGripSourceConfig() {
+  state.lateralG97 = normalizeOptionalLateralG(state.lateralG97, "lateralG97");
+  state.lateralG193 = normalizeOptionalLateralG(state.lateralG193, "lateralG193");
+  state.gripSourceManual = state.gripSourceManual === true;
+  const preference = Number(state.gripSourcePreference);
+  state.gripSourcePreference = Math.round(clampNumber(Number.isFinite(preference) ? preference : 50, ...gripSourcePreferenceLimits) / 5) * 5;
+}
+
+function lateralGProfile() {
+  normalizeGripSourceConfig();
+  const rawLow = Number(state.lateralG97);
+  const rawHigh = Number(state.lateralG193);
+  const hasLow = Number.isFinite(rawLow) && rawLow > 0;
+  const hasHigh = Number.isFinite(rawHigh) && rawHigh > 0;
+  const low = hasLow ? lateralGDecisionValue(rawLow) : null;
+  const high = hasHigh ? lateralGDecisionValue(rawHigh) : null;
+  return {
+    rawLow: hasLow ? rawLow : null,
+    rawHigh: hasHigh ? rawHigh : null,
+    low,
+    high,
+    hasLow,
+    hasHigh,
+    gain: hasLow && hasHigh ? high - low : 0,
+    ratio: hasLow && hasHigh ? high / low : 1,
+  };
+}
+
+function vehicleStrategyAeroBias() {
+  const strategy = normalizeVehicleStrategy();
+  if (strategy === "balanced") return 0;
+
+  const profile = vehicleTraitProfile();
+  if (strategy === "fixWeakness") {
+    return profile.aeroWeakness * 12 - profile.mechanicalWeakness * 14;
+  }
+
+  const aeroWeight = profile.routeHighSpeedPriority && !profile.routeCornerPriority ? 9 : 15;
+  const mechanicalWeight = profile.routeHighSpeedPriority ? 11 : 7;
+  return profile.aeroStrength * aeroWeight - profile.mechanicalStrength * mechanicalWeight;
+}
+
+function automaticGripAeroPercent() {
+  normalizeVehicleSpecs();
+  normalizeVehicleStrategy();
+  normalizeGripSourceConfig();
+  const g = lateralGProfile();
+  const routeCornerBias = routeShapeEnabled() ? (trackTypeRatio() - 0.5) * 34 : -18;
+  const raceBias = {
+    road: 3,
+    rally: -14,
+    offroad: -22,
+    dragQuarter: -34,
+    dragHalf: -20,
+    drift: -12,
+  }[state.race] ?? 0;
+  const cornerBias = {
+    mixed: 0,
+    large: 10,
+    medium: 4,
+    small: -6,
+  }[state.cornerProfile] ?? 0;
+  const focusBias =
+    {
+      balanced: 0,
+      stability: 15,
+      agility: -7,
+      exit: -10,
+      topSpeed: -20,
+      grip: 6,
+    }[state.tuneFocus] ?? 0;
+  const scaledFocusBias = focusBias * tuneFocusIntensityMultiplier();
+  const powerBias = clampNumber(powerIndex() * 5, -4, 13);
+  const weightBias = clampNumber(vehicleWeightIndex() * 3, -4, 8);
+  const driveBias = { fwd: 0, rwd: 3, awd: -3 }[state.drive] ?? 0;
+
+  let gBias = 0;
+  if (g.hasLow && g.hasHigh) {
+    gBias += clampNumber((g.gain - 0.08) * 135, -18, 24);
+    if (g.low < 1.08 && g.gain < 0.16) gBias -= 8;
+    if (g.low >= 1.22 && g.gain <= 0.1) gBias -= 7;
+    if (g.low < 1.05 && g.high >= 1.28) gBias += 7;
+  } else if (g.hasHigh) {
+    gBias += clampNumber((g.high - 1.25) * 18, -8, 12);
+  } else if (g.hasLow) {
+    gBias -= clampNumber((1.18 - g.low) * 14, -8, 10);
+  }
+
+  const rawAeroPercent = clampNumber(
+    50 +
+      routeCornerBias +
+      raceBias +
+      cornerBias +
+      scaledFocusBias +
+      powerBias +
+      weightBias +
+      driveBias +
+      gBias +
+      vehicleStrategyAeroBias(),
+    10,
+    90,
+  );
+  return Math.round(rawAeroPercent / 5) * 5;
+}
+
+function activeGripAeroPercent() {
+  normalizeGripSourceConfig();
+  const preference = Number(state.gripSourcePreference);
+  const manualMechanical = clampNumber(Number.isFinite(preference) ? preference : 50, ...gripSourcePreferenceLimits);
+  return state.gripSourceManual ? 100 - manualMechanical : automaticGripAeroPercent();
+}
+
+function activeGripMechanicalPercent() {
+  return Math.round(100 - activeGripAeroPercent());
+}
+
+function gripSourceDeltaAeroPercent() {
+  return Math.round(activeGripAeroPercent() - automaticGripAeroPercent());
+}
+
+function gripSourceHintText() {
+  const autoAero = automaticGripAeroPercent();
+  const autoMechanical = 100 - autoAero;
+  const activeAero = activeGripAeroPercent();
+  const activeMechanical = 100 - activeAero;
+  const delta = gripSourceDeltaAeroPercent();
+  const g = lateralGProfile();
+  let reasonKey = "gripSourceAutoReasonBalanced";
+  if (g.hasLow && g.hasHigh && g.gain > 0.14) reasonKey = "gripSourceAutoReasonAero";
+  if ((g.hasLow && g.hasHigh && g.gain < 0.06) || activeAero < 42) reasonKey = "gripSourceAutoReasonMechanical";
+  const base = t("gripSourceToolSplit", { aero: autoAero, mechanical: autoMechanical });
+  const reason = t(reasonKey);
+  const separator = currentLanguage() === "en" ? " " : "。";
+
+  if (!state.gripSourceManual) return [base, reason].join(separator);
+  const current = t("gripSourceManualSplit", { aero: activeAero, mechanical: activeMechanical });
+  const deltaText =
+    Math.abs(delta) < 4
+      ? t("gripSourceManualDeltaBalanced")
+      : delta > 0
+        ? t("gripSourceManualDeltaAero", { delta: Math.abs(delta) })
+        : t("gripSourceManualDeltaMechanical", { delta: Math.abs(delta) });
+  return [base, current, deltaText].join(separator);
+}
+
+function formatOptionalG(value) {
+  if (value === "" || value === null || value === undefined) return "";
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "";
+  return number.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function gripSourceCompactLabel() {
+  const aero = activeGripAeroPercent();
+  const key = state.gripSourceManual ? "gripSourceManualSplit" : "gripSourceToolSplit";
+  return `${t("gripSourceCopy")}: ${t(key, { aero, mechanical: 100 - aero })}`;
+}
+
+function lateralGCopyLabel() {
+  normalizeGripSourceConfig();
+  const parts = [];
+  if (state.lateralG97 !== "") parts.push(`97 km/h ${formatOptionalG(state.lateralG97)}G`);
+  if (state.lateralG193 !== "") parts.push(`193 km/h ${formatOptionalG(state.lateralG193)}G`);
+  return parts.length ? `${t("lateralGCopy")}: ${parts.join(" / ")}` : "";
 }
 
 function vehicleWeightIndex() {
@@ -3251,6 +3663,84 @@ function powertrainDynamicsMods() {
     diffRearAccel: state.drive !== "fwd" ? -launchLoad * 2.5 : 0,
     diffFrontAccel: state.drive !== "rwd" ? -launchLoad * 1.5 : 0,
     diffCenter: state.drive === "awd" ? -tractionLoad * 2 : 0,
+  };
+}
+
+function gripSourceDynamicsMods() {
+  const aeroPercent = activeGripAeroPercent();
+  const aeroShift = clampNumber((aeroPercent - 50) / 50, -0.9, 0.9);
+  const mechanicalShift = -aeroShift;
+  const g = lateralGProfile();
+  const lowGripNeed = g.hasLow ? clampNumber((1.16 - g.low) * 1.4, -0.45, 0.85) : 0;
+  const highGain = g.hasLow && g.hasHigh ? clampNumber((g.gain - 0.08) * 3.2, -0.7, 0.9) : 0;
+  const aeroSupport = Math.max(0, aeroShift);
+  const speedReserve = Math.max(0, mechanicalShift);
+
+  return {
+    tireFront: -0.14 * speedReserve - 0.05 * lowGripNeed + 0.04 * aeroSupport,
+    tireRear: -0.12 * speedReserve - 0.04 * lowGripNeed + 0.03 * aeroSupport,
+    finalDrive: 0.09 * aeroShift - 0.06 * speedReserve,
+    camberFront: -0.18 * speedReserve + 0.04 * aeroSupport - 0.05 * lowGripNeed,
+    camberRear: -0.12 * speedReserve + 0.03 * aeroSupport,
+    toeFront: 0.012 * speedReserve - 0.006 * aeroSupport,
+    toeRear: 0.018 * aeroSupport - 0.008 * speedReserve,
+    arbFront: 1.8 * aeroSupport - 2.2 * speedReserve - 0.8 * lowGripNeed,
+    arbRear: 1.4 * aeroSupport - 1.7 * speedReserve,
+    springFront: 5.4 * aeroSupport - 3.8 * speedReserve + 1.6 * highGain,
+    springRear: 5.0 * aeroSupport - 3.4 * speedReserve + 1.8 * highGain,
+    rideFront: -2.8 * aeroSupport + 2.0 * speedReserve + 0.6 * lowGripNeed,
+    rideRear: -2.5 * aeroSupport + 2.1 * speedReserve + 0.7 * lowGripNeed,
+    reboundFront: 2.6 * aeroSupport - 1.6 * speedReserve + 0.8 * highGain,
+    reboundRear: 2.4 * aeroSupport - 1.4 * speedReserve + 0.9 * highGain,
+    bumpFront: 1.4 * aeroSupport - 0.9 * speedReserve + 0.4 * highGain,
+    bumpRear: 1.3 * aeroSupport - 0.8 * speedReserve + 0.4 * highGain,
+    aeroFront: 15 * aeroShift + 3 * highGain,
+    aeroRear: 18 * aeroShift + 4 * highGain,
+    brakePressure: 1.4 * aeroSupport - 0.8 * speedReserve,
+    diffFrontAccel: -1.4 * speedReserve,
+    diffRearAccel: -1.6 * speedReserve,
+    diffCenter: state.drive === "awd" ? 2 * aeroSupport - 2 * speedReserve : 0,
+  };
+}
+
+function vehicleStrategyDynamicsMods() {
+  const strategy = normalizeVehicleStrategy();
+  if (strategy === "balanced") return {};
+
+  const profile = vehicleTraitProfile();
+  const weaknessMode = strategy === "fixWeakness" ? 1 : 0;
+  const strengthMode = strategy === "amplifyStrength" ? 1 : 0;
+  const lowFix = profile.mechanicalWeakness * weaknessMode;
+  const highFix = profile.aeroWeakness * weaknessMode;
+  const lowAmp = profile.mechanicalStrength * strengthMode;
+  const highAmp = profile.aeroStrength * strengthMode;
+  const highCornerAmp = highAmp * (profile.routeCornerPriority ? 1 : 0.62);
+  const highSpeedReserve = highAmp * (profile.routeHighSpeedPriority ? 1 : 0.35);
+
+  return {
+    tireFront: -0.18 * lowFix - 0.08 * lowAmp + 0.04 * highFix + 0.05 * highCornerAmp,
+    tireRear: -0.16 * lowFix - 0.06 * lowAmp + 0.03 * highFix + 0.04 * highCornerAmp,
+    finalDrive: 0.06 * lowFix - 0.08 * highSpeedReserve - 0.04 * highFix,
+    camberFront: -0.08 * lowFix - 0.04 * lowAmp + 0.05 * highFix + 0.04 * highCornerAmp,
+    camberRear: -0.04 * lowFix - 0.03 * lowAmp + 0.04 * highFix + 0.03 * highCornerAmp,
+    toeFront: 0.01 * lowAmp - 0.006 * highCornerAmp,
+    toeRear: 0.018 * highFix + 0.015 * highCornerAmp - 0.006 * lowAmp,
+    arbFront: -2.4 * lowFix + 0.9 * lowAmp + 1.4 * highFix + 1.8 * highCornerAmp,
+    arbRear: -1.9 * lowFix + 1.2 * lowAmp + 1.1 * highFix + 1.5 * highCornerAmp,
+    springFront: -4.6 * lowFix + 1.8 * lowAmp + 4.8 * highFix + 5.8 * highCornerAmp,
+    springRear: -4.2 * lowFix + 1.6 * lowAmp + 4.5 * highFix + 5.4 * highCornerAmp,
+    rideFront: 1.8 * lowFix - 1.8 * highFix - 2.4 * highCornerAmp,
+    rideRear: 2.0 * lowFix - 1.6 * highFix - 2.1 * highCornerAmp,
+    reboundFront: -1.5 * lowFix + 0.6 * lowAmp + 2.2 * highFix + 2.8 * highCornerAmp,
+    reboundRear: -1.4 * lowFix + 0.6 * lowAmp + 2.0 * highFix + 2.6 * highCornerAmp,
+    bumpFront: -1.0 * lowFix + 0.5 * lowAmp + 1.2 * highFix + 1.5 * highCornerAmp,
+    bumpRear: -0.9 * lowFix + 0.5 * lowAmp + 1.1 * highFix + 1.4 * highCornerAmp,
+    aeroFront: 5 * highFix + 9 * highCornerAmp - 5 * highSpeedReserve - 3 * lowAmp,
+    aeroRear: 7 * highFix + 11 * highCornerAmp - 6 * highSpeedReserve - 4 * lowAmp,
+    brakePressure: -1.6 * lowFix + 1.5 * highFix + 1.2 * highCornerAmp,
+    diffFrontAccel: state.drive !== "rwd" ? -2.2 * lowFix - 1.2 * lowAmp : 0,
+    diffRearAccel: state.drive !== "fwd" ? -2.8 * lowFix - 1.5 * lowAmp : 0,
+    diffCenter: state.drive === "awd" ? -2.4 * lowFix + 1.8 * highCornerAmp : 0,
   };
 }
 
@@ -3402,6 +3892,8 @@ function buildBaseTune() {
   addMods(tune, vehicleDynamicsMods());
   addMods(tune, powertrainDynamicsMods());
   addMods(tune, tireSizeDynamicsMods());
+  addMods(tune, gripSourceDynamicsMods());
+  addMods(tune, vehicleStrategyDynamicsMods());
 
   if (state.race === "drift") {
     tune.diffRearAccel = Math.max(tune.diffRearAccel, 88);
@@ -3762,6 +4254,7 @@ function renderOptions(containerId, options, groupName) {
   const optionGroupKey = {
     race: "raceTypes",
     tuneFocus: "tuneFocusTypes",
+    vehicleStrategy: "vehicleTraitStrategies",
     engine: "engineCurves",
     drive: "driveTypes",
   }[groupName];
@@ -3810,14 +4303,19 @@ function syncConfigControls() {
   renderConfigSelect("raceSelect", raceTypes, state.race, "raceTypes");
   renderConfigSelect("cornerProfileSelect", cornerProfileTypes, state.cornerProfile, "cornerProfileTypes");
   renderConfigSelect("tuneFocusSelect", tuneFocusTypes, state.tuneFocus, "tuneFocusTypes");
+  renderConfigSelect("vehicleStrategySelect", vehicleTraitStrategies, normalizeVehicleStrategy(), "vehicleTraitStrategies");
   renderConfigSelect("engineSelect", engineCurves, state.engine, "engineCurves");
   renderConfigSelect("driveSelect", driveTypes, state.drive, "driveTypes");
   syncTrackTypeControls();
   syncTuneFocusIntensityInput();
   syncVehicleInputs();
+  syncGripSourceControls();
+  syncToolInsight();
 }
 
-function updateLiveTune() {
+function updateLiveTune(skipGripInputId = "") {
+  syncGripSourceControls(skipGripInputId);
+  syncToolInsight();
   renderResult();
 }
 
@@ -3877,6 +4375,7 @@ function bindConfigSelects() {
     ["raceSelect", "race"],
     ["cornerProfileSelect", "cornerProfile"],
     ["tuneFocusSelect", "tuneFocus"],
+    ["vehicleStrategySelect", "vehicleStrategy"],
     ["engineSelect", "engine"],
     ["driveSelect", "drive"],
   ].forEach(([selectId, stateKey]) => {
@@ -3892,7 +4391,7 @@ function bindConfigSelects() {
         syncConfigControls();
       }
       if (stateKey === "tuneFocus") syncTuneFocusIntensityInput();
-      if (["race", "cornerProfile", "tuneFocus", "engine", "drive"].includes(stateKey)) resetManualGearRatios();
+      if (["race", "cornerProfile", "tuneFocus", "vehicleStrategy", "engine", "drive"].includes(stateKey)) resetManualGearRatios();
       updateLiveTune();
     });
   });
@@ -4035,6 +4534,7 @@ function selectedOptions() {
     race: localizedOption("raceTypes", optionById(raceTypes, state.race)),
     cornerProfile: localizedOption("cornerProfileTypes", selectedCornerProfile()),
     tuneFocus: localizedOption("tuneFocusTypes", optionById(tuneFocusTypes, state.tuneFocus)),
+    vehicleStrategy: localizedOption("vehicleTraitStrategies", selectedVehicleStrategy()),
     engine: localizedOption("engineCurves", optionById(engineCurves, state.engine)),
     drive: localizedOption("driveTypes", optionById(driveTypes, state.drive)),
   };
@@ -4067,6 +4567,7 @@ function tireSpecLabel() {
 
 function vehicleSpecCopyLines() {
   normalizeVehicleSpecs();
+  const lateralGLine = lateralGCopyLabel();
   const lines = [
     ...(normalizedVehicleName() ? [`${t("vehicleSpecName")}: ${normalizedVehicleName()}`] : []),
     `${t("vehicleSpecWeight")}: ${Math.round(state.carWeight)} kg`,
@@ -4074,6 +4575,9 @@ function vehicleSpecCopyLines() {
     `${t("vehicleSpecRear")}: ${formatSpecPercent(100 - state.frontWeightPercent)}%`,
     `${t("vehicleSpecFrontTire")}: ${state.frontTireSpec}`,
     `${t("vehicleSpecRearTire")}: ${state.rearTireSpec}`,
+    ...(lateralGLine ? [lateralGLine] : []),
+    gripSourceCompactLabel(),
+    `${t("vehicleStrategyCopy")}: ${formatVehicleStrategyLabel()}`,
     `${t("vehicleSpecPower")}: ${state.powerKw} kW`,
     `${t("vehicleSpecTorque")}: ${state.torqueNm} N.m`,
     `${t("routeShapeCopy")}: ${formatTrackTypeLabel()}`,
@@ -4151,7 +4655,7 @@ function renderSummary() {
 }
 
 function renderSelectionPreview() {
-  const { race, tuneFocus, engine, drive } = selectedOptions();
+  const { race, tuneFocus, vehicleStrategy, engine, drive } = selectedOptions();
   const routeLabel = formatTrackTypeLabel();
   const html = [
     vehicleNameLabel(),
@@ -4159,6 +4663,7 @@ function renderSelectionPreview() {
     routeLabel,
     formatCornerProfileLabel(),
     formatTuneFocusLabel(tuneFocus),
+    vehicleStrategy.label,
     engine.label,
     `${drive.label} ${drive.subtitle}`,
     vehicleSpecLabel(),
@@ -4405,6 +4910,40 @@ function syncVehicleInputs(skipInputId = "") {
   if (rearWeightOutput) rearWeightOutput.textContent = `${t("rearBalance")} ${formatSpecPercent(100 - state.frontWeightPercent)}%`;
 }
 
+function syncGripSourceControls(skipInputId = "") {
+  normalizeGripSourceConfig();
+  const lateralG97Input = document.getElementById("lateralG97Input");
+  const lateralG193Input = document.getElementById("lateralG193Input");
+  const manualToggle = document.getElementById("gripSourceManualToggle");
+  const modeLabel = document.getElementById("gripSourceModeLabel");
+  const slider = document.getElementById("gripSourceSlider");
+  const output = document.getElementById("gripSourceOutput");
+  const hint = document.getElementById("gripSourceHint");
+  const mechanicalPercent = activeGripMechanicalPercent();
+  const aeroPercent = 100 - mechanicalPercent;
+
+  if (lateralG97Input && skipInputId !== "lateralG97Input") lateralG97Input.value = formatOptionalG(state.lateralG97);
+  if (lateralG193Input && skipInputId !== "lateralG193Input") lateralG193Input.value = formatOptionalG(state.lateralG193);
+  if (manualToggle) manualToggle.checked = state.gripSourceManual;
+  if (modeLabel) modeLabel.textContent = state.gripSourceManual ? t("gripSourceManual") : t("gripSourceAuto");
+  if (slider && skipInputId !== "gripSourceSlider") slider.value = mechanicalPercent;
+  if (slider) slider.disabled = !state.gripSourceManual;
+  if (output) output.textContent = `${aeroPercent}% / ${mechanicalPercent}%`;
+  if (hint) hint.textContent = gripSourceHintText();
+}
+
+function syncToolInsight() {
+  const chipsContainer = document.getElementById("toolInsightChips");
+  if (!chipsContainer) return;
+
+  chipsContainer.innerHTML = toolInsightChips()
+    .map(
+      (chip) =>
+        `<span class="tool-insight-chip ${chip.primary ? "is-primary" : ""}">${escapeHtml(chip.text)}</span>`,
+    )
+    .join("");
+}
+
 function specValueInRange(stateKey, value) {
   const [min, max] = vehicleSpecLimits[stateKey] ?? [-Infinity, Infinity];
   return value >= min && value <= max;
@@ -4494,6 +5033,59 @@ function bindVehicleInputs() {
       updateLiveTune();
     });
   });
+}
+
+function bindGripSourceInputs() {
+  [
+    ["lateralG97Input", "lateralG97"],
+    ["lateralG193Input", "lateralG193"],
+  ].forEach(([inputId, stateKey]) => {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    input.addEventListener("focus", () => input.select());
+    input.addEventListener("input", () => {
+      if (input.value.trim() === "") {
+        state[stateKey] = "";
+        syncGripSourceControls(inputId);
+        updateLiveTune(inputId);
+        return;
+      }
+      const value = Number(input.value);
+      if (!Number.isFinite(value)) return;
+      const [min, max] = vehicleSpecLimits[stateKey];
+      if (value < min || value > max) return;
+      state[stateKey] = value;
+      syncGripSourceControls(inputId);
+      updateLiveTune(inputId);
+    });
+    input.addEventListener("change", () => {
+      state[stateKey] = normalizeOptionalLateralG(input.value, stateKey);
+      syncGripSourceControls();
+      updateLiveTune();
+    });
+  });
+
+  const manualToggle = document.getElementById("gripSourceManualToggle");
+  if (manualToggle) {
+    manualToggle.addEventListener("change", () => {
+      const autoMechanical = 100 - automaticGripAeroPercent();
+      state.gripSourceManual = manualToggle.checked;
+      if (state.gripSourceManual) state.gripSourcePreference = autoMechanical;
+      syncGripSourceControls();
+      updateLiveTune();
+    });
+  }
+
+  const slider = document.getElementById("gripSourceSlider");
+  if (slider) {
+    slider.addEventListener("input", () => {
+      state.gripSourceManual = true;
+      state.gripSourcePreference = Number(slider.value);
+      syncGripSourceControls("gripSourceSlider");
+      updateLiveTune("gripSourceSlider");
+    });
+  }
 }
 
 function gearboxDefaultValue(key) {
@@ -4658,7 +5250,7 @@ function engineShiftRecoveryBias(engineId) {
   return biases[engineId] ?? 0;
 }
 
-function targetShiftRecoveryFraction({ engine, raceId, tuneFocusId, trackRatio, powerRatio }) {
+function targetShiftRecoveryFraction({ engine, raceId, tuneFocusId, trackRatio, powerRatio, strategyGearMods = {} }) {
   const cornerBias = routeShapeEnabled(raceId) ? clampNumber((trackRatio - 0.55) * 0.08, -0.025, 0.045) : 0;
   const focusBias =
     tuneFocusId === "exit" || tuneFocusId === "agility"
@@ -4677,7 +5269,11 @@ function targetShiftRecoveryFraction({ engine, raceId, tuneFocusId, trackRatio, 
           ? 0.015
           : 0;
 
-  return clampNumber(powerRatio + engineShiftRecoveryBias(engine.id) + cornerBias + focusBias + raceBias, 0.62, 0.96);
+  return clampNumber(
+    powerRatio + engineShiftRecoveryBias(engine.id) + cornerBias + focusBias + raceBias + combinedGearMod("shiftRecoveryBias", strategyGearMods),
+    0.62,
+    0.96,
+  );
 }
 
 function powerToWeightIndex() {
@@ -4686,7 +5282,7 @@ function powerToWeightIndex() {
   return clampNumber((powerToWeight - 400 / 1500) / 0.16, -1.4, 2.4);
 }
 
-function targetTerminalBandPosition({ raceId, tuneFocusId, trackRatio, cornerProfileId, engineId }) {
+function targetTerminalBandPosition({ raceId, tuneFocusId, trackRatio, cornerProfileId, engineId, strategyGearMods = {} }) {
   let position = 0.62;
 
   if (raceId === "dragHalf" || tuneFocusId === "topSpeed") position += 0.14;
@@ -4702,12 +5298,16 @@ function targetTerminalBandPosition({ raceId, tuneFocusId, trackRatio, cornerPro
   if (engineId === "lowEnd" || engineId === "instant") position -= 0.07;
 
   const weakPowerBias = clampNumber(-powerToWeightIndex() * 0.08, -0.08, 0.12);
-  return clampNumber(position + weakPowerBias, 0.38, 0.9);
+  return clampNumber(position + weakPowerBias + combinedGearMod("terminalBandBias", strategyGearMods), 0.38, 0.9);
 }
 
 function targetTerminalRpm(peakHpRpm, redlineRpm, bandPosition) {
   const rpmWindow = Math.max(0, redlineRpm - peakHpRpm);
   return peakHpRpm + rpmWindow * clampNumber(bandPosition, 0, 1);
+}
+
+function terminalLimitTargetRpm(redlineRpm) {
+  return Math.max(1000, redlineRpm * (1 - TERMINAL_LIMIT_RPM_RESERVE_RATIO));
 }
 
 function terminalPowerBandPercent(terminalRpm, peakHpRpm, redlineRpm) {
@@ -4741,11 +5341,13 @@ function recommendedGearFinalDrive(tune = buildTune()) {
   const raceGearMod = raceGearProfile(state.race);
   const trackGearMod = trackTypeGearMods();
   const cornerGearMod = cornerProfileGearMods();
+  const strategyGearMod = vehicleStrategyGearMods();
   return clampNumber(
     tune.finalDrive +
       (Number(raceGearMod.finalDriveBias) || 0) +
       (Number(trackGearMod.finalDriveBias) || 0) +
-      (Number(cornerGearMod.finalDriveBias) || 0),
+      (Number(cornerGearMod.finalDriveBias) || 0) +
+      (Number(strategyGearMod.finalDriveBias) || 0),
     ...gearboxLimits.finalDrive,
   );
 }
@@ -4794,6 +5396,7 @@ function estimateFirstGearTarget({
   cornerGearMods,
   focusGearMods,
   engineGearMods,
+  strategyGearMods,
   focusIntensity,
 }) {
   const [minTarget, maxTarget] = focusFirstGearRange(tuneFocus.id, raceGearMod, focusIntensity);
@@ -4806,6 +5409,7 @@ function estimateFirstGearTarget({
     cornerGearMods,
     focusGearMods,
     engineGearMods,
+    strategyGearMods,
   );
   const engineWindowAdjust = engine.id === "highRpm" ? -2 : engine.id === "lowEnd" ? 2 : 0;
   return clampNumber(midpoint + vehiclePaceAdjust + profileAdjust + engineWindowAdjust, minTarget, maxTarget);
@@ -5135,6 +5739,7 @@ function calculateGearRatios(tune = buildTune()) {
   const focusIntensity = tuneFocusIntensityMultiplier();
   const focusGearMods = scaledGearMods(tuneFocus.gearMods ?? {}, focusIntensity);
   const engineGearMods = engine.gearMods ?? {};
+  const strategyGearMods = vehicleStrategyGearMods();
   const gearCount = Math.round(clampNumber(gearNumber("gearCount"), ...gearboxLimits.gearCount));
   const redlineRpm = Math.round(clampNumber(gearNumber("redlineRpm"), ...gearboxLimits.redlineRpm));
   const peakHpRpm = Math.round(clampNumber(Math.min(gearNumber("peakHpRpm"), redlineRpm), ...gearboxLimits.peakHpRpm));
@@ -5150,21 +5755,28 @@ function calculateGearRatios(tune = buildTune()) {
     tuneFocusId: tuneFocus.id,
     trackRatio,
     powerRatio,
+    strategyGearMods,
   });
   const terminalBandPosition =
     terminalMode === "redline"
-      ? 1
+      ? terminalPowerBandPercent(terminalLimitTargetRpm(redlineRpm), peakHpRpm, redlineRpm) / 100
       : targetTerminalBandPosition({
           raceId: race.id,
           tuneFocusId: tuneFocus.id,
           trackRatio,
           cornerProfileId: selectedCornerProfile().id,
           engineId: engine.id,
+          strategyGearMods,
         });
-  const desiredTerminalRpm = terminalMode === "redline" ? redlineRpm : targetTerminalRpm(peakHpRpm, redlineRpm, terminalBandPosition);
+  const desiredTerminalRpm =
+    terminalMode === "redline" ? terminalLimitTargetRpm(redlineRpm) : targetTerminalRpm(peakHpRpm, redlineRpm, terminalBandPosition);
   const formulaTopRatio = gearRatioForSpeed(desiredTerminalRpm, targetTerminalSpeed, finalDrive, tireProfile.circumference);
   const baseTopRatio = Number.isFinite(formulaTopRatio) ? formulaTopRatio : 0.85;
-  const topRatio = clampNumber(baseTopRatio, 0.45, 2.2);
+  const topRatio = clampNumber(
+    baseTopRatio + combinedGearMod("topRatio", raceGearMod, trackGearMods, cornerGearMods, focusGearMods, engineGearMods, strategyGearMods),
+    0.45,
+    2.2,
+  );
   const topTarget = speedForGearRatio(redlineRpm, topRatio, finalDrive, tireProfile.circumference);
   const firstGearTarget = estimateFirstGearTarget({
     tuneFocus,
@@ -5174,6 +5786,7 @@ function calculateGearRatios(tune = buildTune()) {
     cornerGearMods,
     focusGearMods,
     engineGearMods,
+    strategyGearMods,
     focusIntensity,
   });
   const speedSpread = topTarget / firstGearTarget + gearCountAdjust * 0.08;
@@ -5186,7 +5799,7 @@ function calculateGearRatios(tune = buildTune()) {
     1 +
       rpmCurveAdjust +
       abilityCurveAdjust +
-      combinedGearMod("curvePower", raceGearMod, trackGearMods, cornerGearMods, focusGearMods, engineGearMods),
+      combinedGearMod("curvePower", raceGearMod, trackGearMods, cornerGearMods, focusGearMods, engineGearMods, strategyGearMods),
     0.78,
     1.35,
   );
@@ -5709,6 +6322,7 @@ function settingExplanation(card, tune) {
     `${t("vehicleSpecRearTire")} ${state.rearTireSpec}`,
     `${state.powerKw} kW`,
     `${state.torqueNm} N.m`,
+    gripSourceCompactLabel(),
   ].join(separator);
   const unit = settingUnit(card);
   const rangeText = adjustmentRangeText(key);
@@ -6018,6 +6632,7 @@ function createSetupSavePayload() {
   normalizeVehicleSpecs();
   normalizeTrackType();
   normalizeTuneFocusIntensity();
+  normalizeVehicleStrategy();
 
   return {
     schema: SETUP_SAVE_SCHEMA,
@@ -6030,6 +6645,8 @@ function createSetupSavePayload() {
       frontWeightPercent: state.frontWeightPercent,
       frontTireSpec: state.frontTireSpec,
       rearTireSpec: state.rearTireSpec,
+      lateralG97: state.lateralG97,
+      lateralG193: state.lateralG193,
       powerKw: state.powerKw,
       torqueNm: state.torqueNm,
     },
@@ -6039,6 +6656,9 @@ function createSetupSavePayload() {
       cornerProfile: state.cornerProfile,
       tuneFocus: state.tuneFocus,
       tuneFocusIntensity: state.tuneFocusIntensity,
+      vehicleStrategy: normalizeVehicleStrategy(),
+      gripSourceManual: state.gripSourceManual,
+      gripSourcePreference: state.gripSourcePreference,
       engine: state.engine,
       drive: state.drive,
     },
@@ -6228,6 +6848,9 @@ function applySetupSavePayload(payload) {
   state.cornerProfile = validOptionId(cornerProfileTypes, config.cornerProfile, "mixed");
   state.tuneFocus = validOptionId(tuneFocusTypes, config.tuneFocus, "balanced");
   state.tuneFocusIntensity = sanitizedNumber(config.tuneFocusIntensity, 100, tuneFocusIntensityLimits, true);
+  state.vehicleStrategy = validOptionId(vehicleTraitStrategies, config.vehicleStrategy, "balanced");
+  state.gripSourceManual = config.gripSourceManual === true;
+  state.gripSourcePreference = sanitizedNumber(config.gripSourcePreference, 50, gripSourcePreferenceLimits, true);
   state.engine = validOptionId(engineCurves, config.engine, "flatTorque");
   state.drive = validOptionId(driveTypes, config.drive, "awd");
   state.vehicleName = sanitizedText(vehicle.vehicleName ?? payload.vehicleName, 80);
@@ -6235,6 +6858,8 @@ function applySetupSavePayload(payload) {
   state.frontWeightPercent = sanitizedNumber(vehicle.frontWeightPercent, 52, vehicleSpecLimits.frontWeightPercent, true);
   state.frontTireSpec = parseTireSpec(vehicle.frontTireSpec, "245/35R19").spec;
   state.rearTireSpec = parseTireSpec(vehicle.rearTireSpec, "265/35R19").spec;
+  state.lateralG97 = normalizeOptionalLateralG(vehicle.lateralG97, "lateralG97");
+  state.lateralG193 = normalizeOptionalLateralG(vehicle.lateralG193, "lateralG193");
   state.powerKw = sanitizedNumber(vehicle.powerKw, 400, vehicleSpecLimits.powerKw, true);
   state.torqueNm = sanitizedNumber(vehicle.torqueNm, 650, vehicleSpecLimits.torqueNm, true);
   state.gearbox = sanitizedGearbox(payload.gearbox);
@@ -6253,6 +6878,8 @@ function applySetupSavePayload(payload) {
   normalizeVehicleSpecs();
   normalizeTrackType();
   normalizeTuneFocusIntensity();
+  normalizeVehicleStrategy();
+  normalizeGripSourceConfig();
 }
 
 function refreshAfterSetupLoad() {
@@ -6268,6 +6895,8 @@ function refreshAfterSetupLoad() {
   syncGearStrategyControls();
   syncTuneFocusIntensityInput();
   syncVehicleInputs();
+  syncGripSourceControls();
+  syncToolInsight();
   renderIssueCategories();
   renderIssues();
   renderSelectedIssues();
@@ -6597,6 +7226,7 @@ function resetAll() {
   state.cornerProfile = "mixed";
   state.tuneFocus = "balanced";
   state.tuneFocusIntensity = 100;
+  state.vehicleStrategy = "balanced";
   state.engine = "flatTorque";
   state.drive = "awd";
   state.vehicleName = "";
@@ -6606,6 +7236,10 @@ function resetAll() {
   state.rearTireSpec = "265/35R19";
   state.frontTireSizeMm = 245;
   state.rearTireSizeMm = 265;
+  state.lateralG97 = "";
+  state.lateralG193 = "";
+  state.gripSourceManual = false;
+  state.gripSourcePreference = 50;
   state.powerKw = 400;
   state.torqueNm = 650;
   state.gearbox = createDefaultGearbox();
@@ -6628,6 +7262,8 @@ function resetAll() {
   syncGearboxInputs();
   syncGearStrategyControls();
   syncVehicleInputs();
+  syncGripSourceControls();
+  syncToolInsight();
   syncTuneFocusIntensityInput();
   renderSummary();
   renderSelectionPreview();
@@ -6646,6 +7282,7 @@ function init() {
   bindTrackTypeInput();
   bindTuneFocusIntensityInput();
   bindVehicleInputs();
+  bindGripSourceInputs();
   bindGearboxInputs();
   bindGearRatioControls();
   bindSetupJsonButtons();
@@ -6657,6 +7294,8 @@ function init() {
   syncGearStrategyControls();
   syncTuneFocusIntensityInput();
   syncVehicleInputs();
+  syncGripSourceControls();
+  syncToolInsight();
   renderIssueCategories();
   renderIssues();
   renderSelectedIssues();

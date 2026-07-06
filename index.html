@@ -208,6 +208,44 @@
                 <input id="inlineRearTireSizeInput" type="text" value="265/35R19" placeholder="265/35R19" autocomplete="off" />
               </span>
             </label>
+            <label class="config-control" for="lateralG97Input">
+              <span class="spec-label" data-i18n="labelLateralG97">基準 97 km/h 側向 G</span>
+              <span class="spec-control">
+                <input id="lateralG97Input" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" data-i18n-placeholder="placeholderExample118" placeholder="調校前，例如 1.18" />
+                <span class="spec-unit">G</span>
+              </span>
+            </label>
+            <label class="config-control" for="lateralG193Input">
+              <span class="spec-label" data-i18n="labelLateralG193">基準 193 km/h 側向 G</span>
+              <span class="spec-control">
+                <input id="lateralG193Input" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" data-i18n-placeholder="placeholderExample142" placeholder="調校前，例如 1.42" />
+                <span class="spec-unit">G</span>
+              </span>
+            </label>
+            <div class="config-control grip-source-control">
+              <div class="grip-source-head">
+                <span class="spec-label" data-i18n="labelGripSource">抓地來源偏好</span>
+              </div>
+              <span class="range-control grip-source-range">
+                <label class="grip-source-toggle" for="gripSourceManualToggle">
+                  <input id="gripSourceManualToggle" type="checkbox" />
+                  <span id="gripSourceModeLabel">自動</span>
+                </label>
+                <span class="range-edge-label" data-i18n="gripSourceAero">空力抓地</span>
+                <input id="gripSourceSlider" type="range" min="0" max="100" step="5" value="50" />
+                <span class="range-edge-label" data-i18n="gripSourceMechanical">機械抓地 / 極速</span>
+                <output id="gripSourceOutput" for="gripSourceSlider">50%</output>
+              </span>
+              <span class="spec-note compact grip-source-hint" id="gripSourceHint"></span>
+            </div>
+            <label class="config-control vehicle-strategy-control" for="vehicleStrategySelect">
+              <span class="spec-label" data-i18n="labelVehicleStrategy">車輛特性策略</span>
+              <select id="vehicleStrategySelect"></select>
+            </label>
+            <div class="config-control tool-insight-control" id="toolInsightPanel">
+              <span class="spec-label" data-i18n="labelToolInsight">工具判讀</span>
+              <div class="tool-insight-chips" id="toolInsightChips"></div>
+            </div>
           </div>
 
           <div class="availability-panel" aria-label="Adjustable tune parts">
@@ -292,15 +330,15 @@
                   <input id="gearTopSpeedInput" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="例如 312" data-i18n-placeholder="placeholderExample312" />
                   <span class="spec-unit">km/h</span>
                 </span>
-                <span class="spec-note compact" data-i18n="gearTopSpeedNote">輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留 power band 餘裕。</span>
+                <span class="spec-note compact" data-i18n="gearTopSpeedNote">輸入你希望最高檔支援的目標速度，再用下方模式決定要落在紅線 RPM 的 85% 或保留 power band 餘裕。</span>
               </label>
               <label class="gear-field" for="gearTerminalModeSelect">
                 <span class="spec-label" data-i18n="labelTerminalMode">終端檔位目標</span>
                 <select id="gearTerminalModeSelect">
-                  <option value="redline" data-i18n="terminalModeRedline">終端上限模式</option>
+                  <option value="redline" data-i18n="terminalModeRedline">終端上限 -15%</option>
                   <option value="powerBand" data-i18n="terminalModePowerBand" selected>延伸餘裕模式</option>
                 </select>
-                <span class="spec-note compact" data-i18n="gearTerminalModeNote">終端上限會讓目標速度碰到紅線；延伸餘裕會讓目標速度落在最高馬力 RPM 到紅線之間。</span>
+                <span class="spec-note compact" data-i18n="gearTerminalModeNote">終端上限會讓目標速度落在紅線 RPM 的 85%；延伸餘裕會讓目標速度落在最高馬力 RPM 到紅線之間。</span>
               </label>
               <div class="gear-decision-panel" id="gearDecisionPanel" aria-live="polite"></div>
             </div>
@@ -357,6 +395,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=20260703l"></script>
+    <script src="app.js?v=20260705d"></script>
   </body>
 </html>

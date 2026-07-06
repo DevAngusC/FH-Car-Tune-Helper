@@ -652,12 +652,13 @@ h3 {
 
 .tune-config-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 10px;
 }
 
 .config-control {
   min-width: 0;
+  grid-column: span 3;
   display: grid;
   align-content: start;
   gap: 7px;
@@ -666,6 +667,104 @@ h3 {
 .track-type-control .range-control {
   grid-template-columns: auto minmax(86px, 1fr) auto auto;
   gap: 8px;
+}
+
+.grip-source-control {
+  grid-column: span 5;
+}
+
+.vehicle-strategy-control {
+  grid-column: span 3;
+}
+
+.tool-insight-control {
+  grid-column: 1 / -1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--panel-strong);
+}
+
+.tool-insight-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tool-insight-chip {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: var(--chip-bg);
+  color: var(--chip-ink);
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.tool-insight-chip.is-primary {
+  border-color: rgba(0, 184, 217, 0.35);
+  background: var(--cyan-bg);
+  color: var(--cyan-text);
+}
+
+.config-control[for="lateralG97Input"],
+.config-control[for="lateralG193Input"] {
+  grid-column: span 2;
+}
+
+.grip-source-head {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.grip-source-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: var(--chip-bg);
+  color: var(--chip-ink);
+  font-size: 0.76rem;
+  font-weight: 950;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.grip-source-toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--blue);
+}
+
+.grip-source-control .range-control {
+  grid-template-columns: auto auto minmax(96px, 1fr) auto auto;
+  gap: 8px;
+}
+
+.grip-source-control .range-control output {
+  min-width: 82px;
+}
+
+.grip-source-range input:disabled {
+  opacity: 0.72;
+  cursor: default;
+}
+
+.grip-source-hint {
+  min-height: 32px;
+  line-height: 1.35;
 }
 
 .range-edge-label {
@@ -1990,6 +2089,14 @@ h3 {
     grid-column: span 1;
   }
 
+  .tune-config-grid > .grip-source-control {
+    grid-column: span 2;
+  }
+
+  .tune-config-grid > .tool-insight-control {
+    grid-column: 1 / -1;
+  }
+
   .setting-card,
   .setting-card.wide {
     grid-column: span 1;
@@ -2064,7 +2171,12 @@ h3 {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .track-type-control .range-edge-label {
+  .grip-source-control .range-control {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .track-type-control .range-edge-label,
+  .grip-source-range .range-edge-label {
     display: none;
   }
 
