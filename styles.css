@@ -998,10 +998,35 @@ h3 {
   background: var(--panel);
 }
 
+.adjustment-range-card-header {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .adjustment-range-title {
   color: var(--strong);
   font-size: 0.82rem;
   font-weight: 950;
+}
+
+.range-link-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 950;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.range-link-toggle input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--blue);
 }
 
 .adjustment-field-grid {

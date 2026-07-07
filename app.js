@@ -77,6 +77,7 @@ const adjustmentRangeFields = [
 ];
 
 const adjustmentRangeValueLimits = [0, 9999];
+const DEFAULT_SPRING_RANGE_LINKED = false;
 const adjustableSettingIds = new Set(adjustmentRangeGroups.map((group) => group.id));
 const adjustableTuneKeyMeta = Object.fromEntries(
   adjustmentRangeGroups.flatMap((group) => [
@@ -198,6 +199,7 @@ const state = {
   language: "zh",
   gearbox: createDefaultGearbox(),
   adjustmentRanges: createAdjustmentRanges(),
+  springRangeLinked: DEFAULT_SPRING_RANGE_LINKED,
   availability: createAvailability(),
   symptomMode: "linked",
   activeIssueCategory: "steering",
@@ -280,6 +282,8 @@ const translations = {
     availabilityOn: "可調",
     availabilityOff: "無法調整",
     rangeTitle: "彈簧 / 空力範圍",
+    springRangeLinkLabel: "前後連動",
+    springRangeLinkHint: "開啟時前後彈簧範圍會同步。",
     gearTitle: "齒比計算器",
     labelGearCount: "總共有幾個檔位",
     labelRedlineRpm: "紅線 RPM",
@@ -448,6 +452,8 @@ const translations = {
     availabilityOn: "Adjustable",
     availabilityOff: "Locked",
     rangeTitle: "Spring / Aero Range",
+    springRangeLinkLabel: "Link F/R",
+    springRangeLinkHint: "Keeps front and rear spring ranges synced.",
     gearTitle: "Gear Ratio Calculator",
     labelGearCount: "Number of Gears",
     labelRedlineRpm: "Redline RPM",
@@ -2604,6 +2610,35 @@ function normalizeAdjustmentRange(groupId, shouldMutate = false) {
   return normalized;
 }
 
+function springRangeLinked() {
+  return state.springRangeLinked === true;
+}
+
+function linkedSpringRangeField(field) {
+  const linkedFields = {
+    frontMin: "rearMin",
+    frontMax: "rearMax",
+    rearMin: "frontMin",
+    rearMax: "frontMax",
+  };
+  return linkedFields[field] ?? "";
+}
+
+function syncSpringRangeFromFront() {
+  const range = normalizeAdjustmentRange("spring", true);
+  if (!range) return;
+  range.rearMin = range.frontMin;
+  range.rearMax = range.frontMax;
+  state.adjustmentRanges.spring = range;
+}
+
+function syncLinkedSpringRangeValue(field, value) {
+  if (!springRangeLinked()) return;
+  const linkedField = linkedSpringRangeField(field);
+  if (!linkedField) return;
+  state.adjustmentRanges.spring[linkedField] = value;
+}
+
 function adjustmentRangeSummary(groupId) {
   const range = normalizeAdjustmentRange(groupId);
   if (!range) return "";
@@ -4236,6 +4271,19 @@ function renderAdjustmentRangeControls() {
     .map((group) => {
       const localizedGroup = localizedAdjustmentRangeGroup(group);
       const range = normalizeAdjustmentRange(group.id, true);
+      const linkControl =
+        group.id === "spring"
+          ? `
+            <label class="range-link-toggle" for="springRangeLinkedInput" title="${t("springRangeLinkHint")}">
+              <input
+                id="springRangeLinkedInput"
+                type="checkbox"
+                ${springRangeLinked() ? "checked" : ""}
+              />
+              <span>${t("springRangeLinkLabel")}</span>
+            </label>
+          `
+          : "";
       const fields = adjustmentRangeFields
         .map(([field, label]) => {
           const localizedLabel = localizedAdjustmentRangeField(field, label);
@@ -4260,7 +4308,10 @@ function renderAdjustmentRangeControls() {
 
       return `
         <article class="adjustment-range-card">
-          <div class="adjustment-range-title">${localizedGroup.label}</div>
+          <div class="adjustment-range-card-header">
+            <div class="adjustment-range-title">${localizedGroup.label}</div>
+            ${linkControl}
+          </div>
           <div class="adjustment-field-grid">${fields}</div>
         </article>
       `;
@@ -4278,13 +4329,16 @@ function syncAdjustmentRangeInputs(skipInputId = "") {
       if (input && input.id !== skipInputId) input.value = formatAdjustmentNumber(range[field]);
     });
   });
+
+  const springLinkInput = document.getElementById("springRangeLinkedInput");
+  if (springLinkInput) springLinkInput.checked = springRangeLinked();
 }
 
 function bindAdjustmentRangeInputs() {
   const grid = document.getElementById("adjustmentRangeGrid");
   if (!grid) return;
 
-  grid.querySelectorAll("input").forEach((input) => {
+  grid.querySelectorAll("input[data-range-group]").forEach((input) => {
     input.addEventListener("focus", () => input.select());
 
     input.addEventListener("input", () => {
@@ -4295,6 +4349,14 @@ function bindAdjustmentRangeInputs() {
       const groupId = input.dataset.rangeGroup;
       const field = input.dataset.rangeField;
       state.adjustmentRanges[groupId][field] = value;
+      if (groupId === "spring") {
+        syncLinkedSpringRangeValue(field, value);
+        const linkedField = linkedSpringRangeField(field);
+        const linkedInput = document.getElementById(`adjustment-spring-${linkedField}`);
+        if (springRangeLinked() && linkedInput && linkedInput.id !== input.id) {
+          linkedInput.value = input.value;
+        }
+      }
       updateLiveTune();
     });
 
@@ -4306,11 +4368,24 @@ function bindAdjustmentRangeInputs() {
       state.adjustmentRanges[groupId][field] = Number.isFinite(value)
         ? clampNumber(value, adjustmentRangeValueLimits[0], adjustmentRangeValueLimits[1])
         : defaults[field];
+      if (groupId === "spring") {
+        syncLinkedSpringRangeValue(field, state.adjustmentRanges[groupId][field]);
+      }
       normalizeAdjustmentRange(groupId, true);
       syncAdjustmentRangeInputs();
       updateLiveTune();
     });
   });
+
+  const springLinkInput = document.getElementById("springRangeLinkedInput");
+  if (springLinkInput) {
+    springLinkInput.addEventListener("change", () => {
+      state.springRangeLinked = springLinkInput.checked;
+      if (springRangeLinked()) syncSpringRangeFromFront();
+      syncAdjustmentRangeInputs();
+      updateLiveTune();
+    });
+  }
 
   const resetButton = document.getElementById("resetAdjustmentRangesButton");
   if (resetButton) {
@@ -5849,6 +5924,12 @@ function serializableAdjustmentRanges() {
   );
 }
 
+function serializableAdjustmentRangeOptions() {
+  return {
+    springLinked: springRangeLinked(),
+  };
+}
+
 function createSetupSavePayload() {
   normalizeVehicleSpecs();
   normalizeTrackType();
@@ -5880,6 +5961,7 @@ function createSetupSavePayload() {
     },
     gearbox,
     adjustmentRanges: serializableAdjustmentRanges(),
+    adjustmentRangeOptions: serializableAdjustmentRangeOptions(),
     availability: serializableAvailability(),
     symptoms: {
       activeIssueCategory: state.activeIssueCategory,
@@ -5963,6 +6045,13 @@ function sanitizedAdjustmentRanges(value) {
   });
 
   return nextRanges;
+}
+
+function sanitizedAdjustmentRangeOptions(value) {
+  const rawOptions = isPlainObject(value) ? value : {};
+  return {
+    springLinked: rawOptions.springLinked === true,
+  };
 }
 
 function sanitizedGearbox(value) {
@@ -6065,6 +6154,8 @@ function applySetupSavePayload(payload) {
   state.torqueNm = sanitizedNumber(vehicle.torqueNm, 650, vehicleSpecLimits.torqueNm, true);
   state.gearbox = sanitizedGearbox(payload.gearbox);
   state.adjustmentRanges = sanitizedAdjustmentRanges(payload.adjustmentRanges);
+  state.springRangeLinked = sanitizedAdjustmentRangeOptions(payload.adjustmentRangeOptions).springLinked;
+  if (springRangeLinked()) syncSpringRangeFromFront();
   state.availability = sanitizedAvailability(payload.availability);
   state.activeIssueCategory = sanitizedCategoryId(symptoms.activeIssueCategory, "steering");
   state.solutionActiveIssueCategory = sanitizedCategoryId(symptoms.solutionActiveIssueCategory, "steering");
@@ -6436,6 +6527,7 @@ function resetAll() {
   state.torqueNm = 650;
   state.gearbox = createDefaultGearbox();
   state.adjustmentRanges = createAdjustmentRanges();
+  state.springRangeLinked = DEFAULT_SPRING_RANGE_LINKED;
   state.availability = createAvailability();
   state.activeIssueCategory = "steering";
   state.solutionActiveIssueCategory = "steering";
