@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FH6 Tune Lab</title>
-    <link rel="stylesheet" href="styles.css?v=20260703l" />
+    <link rel="stylesheet" href="styles.css?v=20260707b" />
   </head>
   <body>
     <main class="app-shell">
@@ -15,6 +15,7 @@
         </div>
         <div class="topbar-controls">
           <button class="utility-button ghost topbar-solution-button" id="solutionButton" type="button" data-i18n="buttonTuneSolutions">調校應對方案</button>
+          <button class="utility-button ghost topbar-solution-button" id="encyclopediaButton" type="button" data-i18n="buttonTuneEncyclopedia">調校百科</button>
           <label class="language-toggle" for="languageSelect">
             <span class="sr-only" data-i18n="languageLabel">語言</span>
             <select id="languageSelect" aria-label="語言">
@@ -352,8 +353,26 @@
           </div>
         </section>
       </section>
+
+      <section class="encyclopedia-page is-hidden" id="encyclopediaPage" aria-label="Tuning encyclopedia">
+        <div class="result-toolbar">
+          <button class="utility-button ghost" id="backFromEncyclopediaButton" type="button" data-i18n="buttonBackBase">返回基礎數值</button>
+          <div class="selected-tags" id="encyclopediaTags"></div>
+        </div>
+        <section class="encyclopedia-stage" aria-label="Tuning part encyclopedia">
+          <div class="encyclopedia-layout">
+            <div class="encyclopedia-detail-panel">
+              <div class="encyclopedia-detail" id="encyclopediaDetail"></div>
+            </div>
+            <aside class="encyclopedia-parts-panel">
+              <p class="picker-label" data-i18n="encyclopediaPartsLabel">改車部件</p>
+              <div class="encyclopedia-part-list" id="encyclopediaPartList"></div>
+            </aside>
+          </div>
+        </section>
+      </section>
     </main>
 
-    <script src="app.js?v=20260707a"></script>
+    <script src="app.js?v=20260707b"></script>
   </body>
 </html>

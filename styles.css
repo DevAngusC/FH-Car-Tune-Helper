@@ -171,27 +171,31 @@ button {
 
 body[data-view="result"] .app-shell,
 body[data-view="gear"] .app-shell,
-body[data-view="symptoms"] .app-shell {
+body[data-view="symptoms"] .app-shell,
+body[data-view="encyclopedia"] .app-shell {
   padding-top: 12px;
   padding-bottom: 18px;
 }
 
 body[data-view="result"] .topbar,
 body[data-view="gear"] .topbar,
-body[data-view="symptoms"] .topbar {
+body[data-view="symptoms"] .topbar,
+body[data-view="encyclopedia"] .topbar {
   align-items: center;
   margin-bottom: 8px;
 }
 
 body[data-view="result"] .topbar .eyebrow,
 body[data-view="gear"] .topbar .eyebrow,
-body[data-view="symptoms"] .topbar .eyebrow {
+body[data-view="symptoms"] .topbar .eyebrow,
+body[data-view="encyclopedia"] .topbar .eyebrow {
   display: none;
 }
 
 body[data-view="result"] h1,
 body[data-view="gear"] h1,
-body[data-view="symptoms"] h1 {
+body[data-view="symptoms"] h1,
+body[data-view="encyclopedia"] h1 {
   font-size: clamp(1.45rem, 2vw, 2rem);
   line-height: 1;
 }
@@ -320,7 +324,8 @@ h3 {
 .config-page,
 .result-page,
 .gear-page,
-.symptom-page {
+.symptom-page,
+.encyclopedia-page {
   display: grid;
   gap: 12px;
 }
@@ -335,6 +340,7 @@ h3 {
 .choice-panel,
 .tune-stage,
 .gear-stage,
+.encyclopedia-stage,
 .feedback-stage,
 .result-toolbar {
   border: 1px solid var(--line);
@@ -1808,6 +1814,194 @@ h3 {
   line-height: 1.4;
 }
 
+.encyclopedia-stage {
+  padding: 12px;
+}
+
+.encyclopedia-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  grid-template-areas: "parts detail";
+  gap: 12px;
+  min-height: min(640px, calc(100vh - 210px));
+}
+
+.encyclopedia-detail-panel,
+.encyclopedia-parts-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  padding: 12px;
+  max-height: calc(100vh - 210px);
+  overflow: auto;
+}
+
+.encyclopedia-detail-panel {
+  grid-area: detail;
+}
+
+.encyclopedia-parts-panel {
+  grid-area: parts;
+  padding: 8px;
+  overflow: visible;
+}
+
+.encyclopedia-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.encyclopedia-heading h2 {
+  font-size: clamp(1.74rem, 2.64vw, 2.7rem);
+}
+
+.encyclopedia-heading p:last-child {
+  max-width: 520px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.2rem;
+  font-weight: 820;
+  line-height: 1.35;
+}
+
+.encyclopedia-stage .eyebrow,
+.encyclopedia-stage .picker-label {
+  font-size: 0.94rem;
+}
+
+.encyclopedia-part-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.encyclopedia-part-button {
+  width: 100%;
+  min-height: 32px;
+  display: grid;
+  align-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px 7px;
+  background: var(--tooltip-bg);
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 950;
+  line-height: 1.1;
+  text-align: left;
+}
+
+.encyclopedia-part-button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.encyclopedia-part-button small {
+  display: none;
+}
+
+.encyclopedia-part-button.is-active {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.encyclopedia-part-button.is-active small {
+  color: var(--blue-text);
+}
+
+.encyclopedia-info {
+  display: grid;
+  gap: 12px;
+}
+
+.encyclopedia-info-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.encyclopedia-info h3 {
+  margin: 0;
+  color: var(--heading);
+  font-size: clamp(1.62rem, 2.4vw, 2.4rem);
+  line-height: 1.05;
+}
+
+.encyclopedia-summary {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px 12px;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 1.08rem;
+  font-weight: 850;
+  line-height: 1.42;
+}
+
+.encyclopedia-effect-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.encyclopedia-effect-block,
+.encyclopedia-tips {
+  border-radius: 8px;
+  padding: 11px;
+}
+
+.encyclopedia-effect-block h4,
+.encyclopedia-tips h4 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.encyclopedia-effect-block ul,
+.encyclopedia-tips ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: 0.98rem;
+  font-weight: 820;
+  line-height: 1.36;
+}
+
+.encyclopedia-effect-block.is-increase {
+  border: 1px solid rgba(34, 197, 94, 0.38);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.encyclopedia-effect-block.is-increase h4 {
+  color: var(--green);
+}
+
+.encyclopedia-effect-block.is-decrease {
+  border: 1px solid rgba(249, 115, 22, 0.36);
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.encyclopedia-effect-block.is-decrease h4 {
+  color: var(--orange);
+}
+
+.encyclopedia-tips {
+  border: 1px solid rgba(37, 99, 235, 0.24);
+  background: var(--blue-soft);
+}
+
+.encyclopedia-tips h4 {
+  color: var(--blue-text);
+}
+
 .advice-chip {
   align-self: start;
   border: 1px solid rgba(249, 115, 22, 0.28);
@@ -1827,6 +2021,10 @@ h3 {
 
   .symptom-picker {
     grid-template-columns: minmax(150px, 180px) minmax(280px, 1fr) minmax(340px, 1fr);
+  }
+
+  .encyclopedia-layout {
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
   }
 
   .gear-calculator-layout {
@@ -1884,7 +2082,8 @@ h3 {
   .result-toolbar,
   .availability-heading,
   .adjustment-range-heading,
-  .stage-header {
+  .stage-header,
+  .encyclopedia-heading {
     align-items: stretch;
     flex-direction: column;
   }
@@ -1911,6 +2110,8 @@ h3 {
   .option-grid.compact,
   .option-grid.drive-grid,
   .symptom-picker,
+  .encyclopedia-layout,
+  .encyclopedia-effect-grid,
   .meter-grid,
   .availability-grid,
   .tune-config-grid,
@@ -1920,6 +2121,16 @@ h3 {
   .setup-grid,
   .issue-grid {
     grid-template-columns: 1fr;
+  }
+
+  .encyclopedia-layout {
+    grid-template-areas:
+      "parts"
+      "detail";
+  }
+
+  .encyclopedia-part-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .setting-card,
@@ -1938,12 +2149,15 @@ h3 {
 
   .symptom-sidebar,
   .symptom-detail,
-  .symptom-advice {
+  .symptom-advice,
+  .encyclopedia-detail-panel,
+  .encyclopedia-parts-panel {
     max-height: none;
   }
 
   .tune-stage,
   .gear-stage,
+  .encyclopedia-stage,
   .feedback-stage,
   .inline-config,
   .choice-panel,
