@@ -206,6 +206,7 @@ const state = {
   issues: new Set(),
   solutionActiveIssueCategory: "steering",
   solutionIssues: new Set(),
+  activeEncyclopediaPart: "frontTirePressure",
   appliedSymptomAdjustments: [],
   appliedSymptomAdjustmentSeq: 0,
 };
@@ -231,6 +232,7 @@ const gearboxLimits = {
   peakHpRpm: [2500, 12000],
   topSpeedKmh: [80, 600],
   finalDrive: [2.2, 6.5],
+  gearRatio: [0.48, 6],
 };
 
 const tuneFocusIntensityLimits = [0, 150];
@@ -607,6 +609,28 @@ Object.assign(translations.en, {
   gearTerminalLong: "Top gear is too long; target speed is below the Peak HP range.",
   gearTerminalShort: "Top gear is too short; the car may reach redline before the target speed.",
   gearTerminalOk: "Top gear is aligned between Peak HP RPM and redline.",
+});
+
+Object.assign(translations.zh, {
+  buttonTuneEncyclopedia: "調校百科",
+  encyclopediaEyebrow: "Tune Wiki",
+  encyclopediaTitle: "調校百科",
+  encyclopediaIntro: "選擇右側部件，查看數值增加或減少會如何影響車輛動態。",
+  encyclopediaPartsLabel: "改車部件",
+  encyclopediaIncrease: "增加數值",
+  encyclopediaDecrease: "減少數值",
+  encyclopediaTips: "調校提示",
+});
+
+Object.assign(translations.en, {
+  buttonTuneEncyclopedia: "Tune Wiki",
+  encyclopediaEyebrow: "Tune Wiki",
+  encyclopediaTitle: "Tuning Encyclopedia",
+  encyclopediaIntro: "Select a part on the right to see how increasing or decreasing the value changes vehicle behavior.",
+  encyclopediaPartsLabel: "Tuning Parts",
+  encyclopediaIncrease: "Increase Value",
+  encyclopediaDecrease: "Decrease Value",
+  encyclopediaTips: "Tuning Tips",
 });
 
 const optionTranslations = {
@@ -2515,6 +2539,549 @@ const allIssueTypes = Array.from(
     .values(),
 );
 
+const tuningEncyclopediaItems = [
+  {
+    id: "frontTirePressure",
+    category: "tire",
+    zh: {
+      title: "前胎壓",
+      categoryLabel: "車胎壓",
+      summary: "前胎壓主要影響轉向初段、前輪抓地與煞車時的前端穩定。",
+      increase: ["轉向反應會變快，但前輪接地面可能變小。", "高速直線阻力略降，但彎中前抓地可能下降。", "過高時容易推頭、煞車進彎變飄。"],
+      decrease: ["前輪接地感增加，低速入彎抓地較好。", "過低時胎壁變形變多，轉向會變鈍。", "太低會讓前輪升溫、拖速，甚至產生模糊的推頭。"],
+      tips: ["一次調整 0.02 到 0.05 BAR。", "如果只有入彎推頭，先小幅降低前胎壓；如果轉向太神經質，再提高一點。"],
+    },
+    en: {
+      title: "Front Tire Pressure",
+      categoryLabel: "Tire Pressure",
+      summary: "Front pressure mainly changes initial steering response, front grip, and braking stability.",
+      increase: ["Sharper initial response, but the contact patch may shrink.", "Slightly less rolling drag, but less front grip mid-corner.", "Too high can cause entry understeer and a floaty brake-in feel."],
+      decrease: ["More front bite and better low-speed entry grip.", "Too low makes the tire sidewall feel lazy.", "Excessively low pressure adds heat, drag, and vague understeer."],
+      tips: ["Adjust in 0.02 to 0.05 BAR steps.", "For entry understeer, lower front pressure slightly; for nervous steering, raise it slightly."],
+    },
+  },
+  {
+    id: "rearTirePressure",
+    category: "tire",
+    zh: {
+      title: "後胎壓",
+      categoryLabel: "車胎壓",
+      summary: "後胎壓主要影響出彎牽引、車尾穩定與高速轉向時的後輪支撐。",
+      increase: ["車尾反應變快，出彎比較容易旋轉。", "高速阻力略降，但後輪抓地會變少。", "過高時容易出彎打滑或高速車尾不安定。"],
+      decrease: ["後輪接地感和出彎牽引會增加。", "車尾會更穩，但轉向可能變得比較鈍。", "太低會拖慢加速，車尾回饋會變模糊。"],
+      tips: ["後驅大馬力車通常比前胎更敏感。", "出彎打滑先小幅降低後胎壓；轉向不足太重時不要只靠後胎壓解決。"],
+    },
+    en: {
+      title: "Rear Tire Pressure",
+      categoryLabel: "Tire Pressure",
+      summary: "Rear pressure mainly affects exit traction, rear stability, and high-speed rear support.",
+      increase: ["The rear rotates more quickly.", "Slightly less rolling drag, but less rear grip.", "Too high can cause exit wheelspin or high-speed rear instability."],
+      decrease: ["More rear contact feel and better throttle traction.", "The rear becomes calmer, but rotation may slow down.", "Too low can hurt acceleration and make rear feedback vague."],
+      tips: ["High-power RWD cars are especially sensitive to rear pressure.", "For exit wheelspin, lower rear pressure slightly before making big differential changes."],
+    },
+  },
+  {
+    id: "finalDrive",
+    category: "gearing",
+    zh: {
+      title: "終傳比",
+      categoryLabel: "齒比",
+      summary: "終傳比會同時縮短或放長所有檔位，是加速與尾速取捨的核心設定。",
+      increase: ["所有檔位變短，加速和回速更快。", "更容易讓引擎保持在動力帶內。", "過高會讓低檔打滑、最高檔太早碰轉速上限。"],
+      decrease: ["所有檔位變長，尾速和高速延伸更好。", "低檔輸出變溫和，較容易控油。", "過低會讓出彎回速慢，最後幾檔可能拉不起來。"],
+      tips: ["先用終傳比定大方向，再微調單檔齒比。", "如果最後兩檔常用不到，通常終傳或高檔齒比太長。"],
+    },
+    en: {
+      title: "Final Drive",
+      categoryLabel: "Gearing",
+      summary: "Final drive shortens or lengthens every gear at once, making it the main acceleration vs top-speed control.",
+      increase: ["All gears become shorter for stronger acceleration and recovery.", "The engine stays in the power band more easily.", "Too high causes wheelspin and early redline in top gear."],
+      decrease: ["All gears become longer for more top-speed extension.", "Low-gear torque becomes easier to manage.", "Too low hurts corner-exit recovery and can make upper gears unreachable."],
+      tips: ["Set the broad direction with final drive, then refine individual gears.", "If the last two gears are rarely reachable, final drive or upper gears are probably too long."],
+    },
+  },
+  {
+    id: "frontCamber",
+    category: "alignment",
+    zh: {
+      title: "前外傾角",
+      categoryLabel: "定位",
+      summary: "前外傾角影響前輪在彎中的接地角度，是中高速轉向抓地的重要來源。",
+      increase: ["更多負外傾可增加彎中前輪抓地。", "高速彎前端支撐會更好。", "過多會降低直線煞車和低速接地。"],
+      decrease: ["直線煞車和低速接地更平均。", "輪胎磨耗和溫度更容易穩定。", "過少會讓彎中前輪外側撐不住，產生推頭。"],
+      tips: ["FH 中通常不要為了彎中抓地把外傾拉到極端。", "如果入彎正常但彎中推頭，可小幅增加前負外傾。"],
+    },
+    en: {
+      title: "Front Camber",
+      categoryLabel: "Alignment",
+      summary: "Front camber changes how the front tire sits in a corner and strongly affects mid-corner grip.",
+      increase: ["More negative camber can add mid-corner front grip.", "High-speed front support improves.", "Too much reduces straight braking and low-speed contact."],
+      decrease: ["More even contact for braking and low speed.", "Tire temperature and wear are easier to stabilize.", "Too little camber causes the outside front to overload mid-corner."],
+      tips: ["Avoid extreme camber values for general FH use.", "If entry is fine but mid-corner pushes wide, add a little front negative camber."],
+    },
+  },
+  {
+    id: "rearCamber",
+    category: "alignment",
+    zh: {
+      title: "後外傾角",
+      categoryLabel: "定位",
+      summary: "後外傾角影響後輪彎中支撐、出彎牽引與車尾穩定。",
+      increase: ["更多負外傾會讓高速彎後輪支撐更強。", "車尾在長彎中比較穩。", "過多會犧牲直線加速接地，出彎較容易打滑。"],
+      decrease: ["出彎牽引和直線加速接地更好。", "車尾旋轉會更容易。", "過少時高速彎後輪支撐不足，車尾可能漂。"],
+      tips: ["後驅車若出彎打滑，先避免後外傾過大。", "高速彎車尾浮動時，可小幅增加後負外傾。"],
+    },
+    en: {
+      title: "Rear Camber",
+      categoryLabel: "Alignment",
+      summary: "Rear camber affects rear support, exit traction, and rear stability.",
+      increase: ["More negative camber improves rear support in fast corners.", "The rear feels calmer in long bends.", "Too much hurts straight-line traction and exit drive."],
+      decrease: ["Better straight-line and exit traction.", "The rear rotates more easily.", "Too little rear camber can make the rear float in fast corners."],
+      tips: ["For RWD exit wheelspin, make sure rear camber is not excessive.", "For high-speed rear float, add rear negative camber in small steps."],
+    },
+  },
+  {
+    id: "frontToe",
+    category: "alignment",
+    zh: {
+      title: "前束角",
+      categoryLabel: "定位",
+      summary: "前束角主要改變轉向靈敏度和直線穩定，是很敏感的小幅調整項。",
+      increase: ["偏前束外會讓轉向更快、更願意入彎。", "低速反應會變活。", "過多會讓直線不穩、拖速並增加輪胎溫度。"],
+      decrease: ["轉向會更穩、更不神經質。", "直線穩定和高速可控性較好。", "過度偏內會讓入彎反應變慢。"],
+      tips: ["前束通常只需要非常小的數值。", "如果高速左右飄，先把前束往保守方向收。"],
+    },
+    en: {
+      title: "Front Toe",
+      categoryLabel: "Alignment",
+      summary: "Front toe changes steering sharpness and straight-line stability. It is very sensitive.",
+      increase: ["More toe-out sharpens turn-in.", "Low-speed response feels more alive.", "Too much causes wander, drag, and tire heat."],
+      decrease: ["Steering becomes calmer and less nervous.", "Straight-line and high-speed stability improve.", "Too much toe-in slows turn-in response."],
+      tips: ["Front toe usually needs tiny changes only.", "If the car wanders at speed, reduce aggressive front toe first."],
+    },
+  },
+  {
+    id: "rearToe",
+    category: "alignment",
+    zh: {
+      title: "後束角",
+      categoryLabel: "定位",
+      summary: "後束角影響車尾跟隨性、出彎穩定與高速方向穩定。",
+      increase: ["偏後束內會讓車尾更穩，出彎比較不甩。", "高速直線和高速彎更安心。", "過多會讓車子不願意旋轉並拖慢速度。"],
+      decrease: ["車尾會更願意旋轉，轉向更靈活。", "低速彎更容易把車頭帶進彎。", "過少或偏外會讓車尾不安定。"],
+      tips: ["後束比前束更容易影響車尾安全感。", "高速車尾晃動時，先保守增加一點後束內。"],
+    },
+    en: {
+      title: "Rear Toe",
+      categoryLabel: "Alignment",
+      summary: "Rear toe affects rear tracking, exit stability, and high-speed confidence.",
+      increase: ["More rear toe-in makes the rear calmer.", "Exit and high-speed stability improve.", "Too much makes the car reluctant to rotate and adds drag."],
+      decrease: ["The rear rotates more willingly.", "The car turns into slow corners more easily.", "Too little or toe-out can make the rear unstable."],
+      tips: ["Rear toe has a strong effect on rear confidence.", "For high-speed rear wiggle, add a small amount of rear toe-in."],
+    },
+  },
+  {
+    id: "caster",
+    category: "alignment",
+    zh: {
+      title: "主銷後傾",
+      categoryLabel: "定位",
+      summary: "主銷後傾影響方向盤回正、彎中外傾增益與高速穩定。",
+      increase: ["方向盤回正更強，高速穩定更好。", "轉向時會產生更多動態外傾，彎中前抓地可能增加。", "過高會讓轉向變重，低速反應變慢。"],
+      decrease: ["低速轉向更輕、更直接。", "車頭初段反應可能更快。", "過低會讓高速穩定和彎中支撐下降。"],
+      tips: ["主銷後傾適合用來微調轉向重量和高速信心。", "不要把它當成修正嚴重推頭的主要手段。"],
+    },
+    en: {
+      title: "Caster",
+      categoryLabel: "Alignment",
+      summary: "Caster affects steering self-centering, dynamic camber gain, and high-speed stability.",
+      increase: ["Stronger self-centering and better high-speed stability.", "More dynamic camber while steering can help mid-corner front grip.", "Too much makes steering heavy and slow at low speed."],
+      decrease: ["Lighter and more direct low-speed steering.", "Initial response can feel quicker.", "Too little hurts high-speed confidence and corner support."],
+      tips: ["Use caster to tune steering weight and confidence.", "Do not rely on caster alone to fix major understeer."],
+    },
+  },
+  {
+    id: "frontArb",
+    category: "suspension",
+    zh: {
+      title: "前防傾桿",
+      categoryLabel: "防傾桿",
+      summary: "前防傾桿控制前軸側傾與左右輪負載轉移，直接影響轉向與前輪抓地。",
+      increase: ["車頭反應更快，側傾更少。", "高速變線更俐落。", "過硬會減少前輪彎中抓地，造成推頭。"],
+      decrease: ["前輪在彎中更容易貼地，機械抓地增加。", "低抓地路面更穩。", "過軟會讓反應變慢、車身晃動變多。"],
+      tips: ["入彎推頭通常不要先加硬前防傾。", "車頭太慢但不推頭時，可小幅加硬前防傾。"],
+    },
+    en: {
+      title: "Front Anti-Roll Bar",
+      categoryLabel: "Anti-Roll Bars",
+      summary: "The front ARB controls front roll and lateral load transfer, directly changing steering and front grip.",
+      increase: ["Sharper front response and less roll.", "Cleaner high-speed direction changes.", "Too stiff reduces mid-corner front grip and causes understeer."],
+      decrease: ["The front tires can stay planted more easily.", "Better stability on low-grip surfaces.", "Too soft makes response slow and body movement larger."],
+      tips: ["For entry understeer, avoid stiffening the front ARB first.", "If the nose is lazy but not pushing, add a little front ARB."],
+    },
+  },
+  {
+    id: "rearArb",
+    category: "suspension",
+    zh: {
+      title: "後防傾桿",
+      categoryLabel: "防傾桿",
+      summary: "後防傾桿控制後軸側傾與旋轉，是調整轉向不足/過度的重要項目。",
+      increase: ["車尾更願意旋轉，減少推頭。", "中低速轉向更靈活。", "過硬會讓出彎打滑、車尾突然甩出。"],
+      decrease: ["車尾更穩，出彎牽引更好。", "高速彎更不容易甩尾。", "過軟會讓車子轉不進去，推頭變重。"],
+      tips: ["AWD 推頭常會用後防傾桿幫忙旋轉。", "後驅出彎甩尾時，先小幅放軟後防傾。"],
+    },
+    en: {
+      title: "Rear Anti-Roll Bar",
+      categoryLabel: "Anti-Roll Bars",
+      summary: "The rear ARB controls rear roll and rotation. It is a key understeer/oversteer lever.",
+      increase: ["More rotation and less understeer.", "Better agility in slow and medium corners.", "Too stiff causes exit oversteer or snap rotation."],
+      decrease: ["A calmer rear and better exit traction.", "More stability in fast corners.", "Too soft makes the car reluctant to rotate."],
+      tips: ["AWD understeer is often helped by a slightly stiffer rear ARB.", "For RWD exit oversteer, soften the rear ARB slightly."],
+    },
+  },
+  {
+    id: "frontSpring",
+    category: "suspension",
+    zh: {
+      title: "前彈簧",
+      categoryLabel: "彈簧",
+      summary: "前彈簧影響前軸支撐、煞車重心轉移和路面吸收能力。",
+      increase: ["煞車和轉向時車頭支撐更強。", "高速壓縮和大起伏更不容易到底。", "過硬會讓前輪吃不住路面，低速推頭或跳動。"],
+      decrease: ["前輪更容易吸收路面，機械抓地增加。", "入彎重量轉移更明顯。", "過軟會讓車頭下沉太多，反應變慢。"],
+      tips: ["重車或高速車需要足夠前彈簧支撐。", "顛簸路線不要只追求硬彈簧。"],
+    },
+    en: {
+      title: "Front Springs",
+      categoryLabel: "Springs",
+      summary: "Front springs affect front support, braking weight transfer, and bump absorption.",
+      increase: ["More front support under braking and steering.", "Less bottoming over fast compression and large bumps.", "Too stiff makes the front skip and understeer on rough surfaces."],
+      decrease: ["More front mechanical grip and bump absorption.", "More obvious entry weight transfer.", "Too soft makes the nose dive and response slow."],
+      tips: ["Heavy or high-speed cars need enough front spring support.", "On bumpy routes, do not chase stiffness alone."],
+    },
+  },
+  {
+    id: "rearSpring",
+    category: "suspension",
+    zh: {
+      title: "後彈簧",
+      categoryLabel: "彈簧",
+      summary: "後彈簧影響出彎牽引、車尾支撐與加速時的姿態。",
+      increase: ["車尾支撐更好，轉向更願意旋轉。", "高速壓縮更穩。", "過硬會降低出彎牽引，容易打滑。"],
+      decrease: ["後輪更容易貼地，出彎牽引增加。", "車尾更穩、更容易控油。", "過軟會讓車尾晃動或加速時蹲太多。"],
+      tips: ["大扭力後驅若出彎滑，先檢查後彈簧是否太硬。", "車尾慢半拍又晃時，可能是後彈簧或阻尼太軟。"],
+    },
+    en: {
+      title: "Rear Springs",
+      categoryLabel: "Springs",
+      summary: "Rear springs affect exit traction, rear support, and acceleration posture.",
+      increase: ["More rear support and rotation.", "More stable over high-speed compression.", "Too stiff reduces exit traction and causes wheelspin."],
+      decrease: ["The rear tires stay planted more easily.", "A calmer rear and smoother throttle application.", "Too soft can make the rear float or squat too much."],
+      tips: ["For high-torque RWD exit slip, check if rear springs are too stiff.", "If the rear reacts late and floats, rear spring or damping may be too soft."],
+    },
+  },
+  {
+    id: "frontRideHeight",
+    category: "suspension",
+    zh: {
+      title: "前車高",
+      categoryLabel: "車高",
+      summary: "前車高影響重心、前端空氣效率、壓縮行程與入彎姿態。",
+      increase: ["前端更不容易觸底，顛簸容錯更好。", "重心略升，轉向反應可能變慢。", "過高會降低穩定和空力效率。"],
+      decrease: ["重心降低，鋪裝路面反應更直接。", "高速穩定和前端貼地感可能增加。", "過低會觸底，反而失去抓地。"],
+      tips: ["低車高只在不觸底時才有幫助。", "跳台、路肩或越野路線要保留行程。"],
+    },
+    en: {
+      title: "Front Ride Height",
+      categoryLabel: "Ride Height",
+      summary: "Front ride height affects center of gravity, front aero efficiency, compression travel, and entry posture.",
+      increase: ["More clearance and bump tolerance.", "Slightly higher center of gravity and slower response.", "Too high reduces stability and aero efficiency."],
+      decrease: ["Lower center of gravity and sharper paved-road response.", "More high-speed front planted feel.", "Too low bottoms out and loses grip."],
+      tips: ["Low ride height only helps when the car does not bottom out.", "Jumps, curbs, and dirt need travel reserve."],
+    },
+  },
+  {
+    id: "rearRideHeight",
+    category: "suspension",
+    zh: {
+      title: "後車高",
+      categoryLabel: "車高",
+      summary: "後車高影響車尾穩定、出彎牽引和高速空力姿態。",
+      increase: ["車尾行程增加，顛簸和跳躍容錯更好。", "可能增加車頭指向感。", "過高會讓高速車尾漂、重心升高。"],
+      decrease: ["車尾更貼地，高速穩定可能增加。", "出彎姿態更低更穩。", "過低會觸底，後輪抓地突然流失。"],
+      tips: ["前後車高差會改變車身姿態，不要只看單一端。", "高速尾部不穩時，先確認後車高沒有太高或太低到底。"],
+    },
+    en: {
+      title: "Rear Ride Height",
+      categoryLabel: "Ride Height",
+      summary: "Rear ride height affects rear stability, exit traction, and aero posture.",
+      increase: ["More rear travel and bump tolerance.", "Can make the nose feel more eager.", "Too high raises CG and can make the rear float at speed."],
+      decrease: ["More rear planted feel and high-speed stability.", "Lower, calmer exit posture.", "Too low bottoms out and suddenly loses rear grip."],
+      tips: ["Front-to-rear rake matters, so do not tune one end in isolation.", "For high-speed rear instability, check that rear height is not too high or bottoming out."],
+    },
+  },
+  {
+    id: "frontRebound",
+    category: "damping",
+    zh: {
+      title: "前回彈阻尼",
+      categoryLabel: "回彈阻尼",
+      summary: "前回彈控制前懸吊伸長速度，影響煞車放開、轉向接續與路面貼合。",
+      increase: ["車頭回彈較慢，轉向姿態更穩。", "快速左右切換時前端較不晃。", "過高會讓前輪無法快速貼回路面，產生跳動或推頭。"],
+      decrease: ["前輪更快貼回地面，顛簸抓地更好。", "轉向重量轉移更自然。", "過低會讓車頭浮動、連續彎支撐不足。"],
+      tips: ["回彈通常比壓縮更敏感。", "如果路面顛簸時前端彈跳，先降低前回彈。"],
+    },
+    en: {
+      title: "Front Rebound Damping",
+      categoryLabel: "Rebound Damping",
+      summary: "Front rebound controls how quickly the front suspension extends after compression.",
+      increase: ["Slower front extension and a steadier steering platform.", "Less front movement in quick transitions.", "Too high keeps the front tire from returning to the road and causes skip or understeer."],
+      decrease: ["The front tire returns to the road faster over bumps.", "Weight transfer feels more natural.", "Too low makes the nose float and lose support in linked corners."],
+      tips: ["Rebound is usually more sensitive than bump.", "If the front skips over rough roads, reduce front rebound first."],
+    },
+  },
+  {
+    id: "rearRebound",
+    category: "damping",
+    zh: {
+      title: "後回彈阻尼",
+      categoryLabel: "回彈阻尼",
+      summary: "後回彈控制後懸吊伸長速度，影響出彎牽引、車尾穩定與轉向後段。",
+      increase: ["車尾姿態更穩，連續彎較不晃。", "出彎時後軸支撐更明確。", "過高會讓後輪遇到顛簸時抓地中斷，容易甩。"],
+      decrease: ["後輪更快貼回地面，顛簸牽引更好。", "車尾更柔和，出彎比較好控。", "過低會讓車尾上下晃，轉向後段不穩。"],
+      tips: ["後驅出彎遇顛簸打滑，常常是後回彈太高。", "高速車尾浮動則可能需要略加後回彈。"],
+    },
+    en: {
+      title: "Rear Rebound Damping",
+      categoryLabel: "Rebound Damping",
+      summary: "Rear rebound controls rear suspension extension and affects exit traction and rear stability.",
+      increase: ["A steadier rear platform in linked corners.", "Clearer rear support on exit.", "Too high interrupts rear grip over bumps and can cause oversteer."],
+      decrease: ["Rear tires return to the road faster over bumps.", "A softer, more manageable rear on throttle.", "Too low makes the rear float and oscillate."],
+      tips: ["RWD exit slip over bumps often points to excessive rear rebound.", "High-speed rear float may need a little more rear rebound."],
+    },
+  },
+  {
+    id: "frontBump",
+    category: "damping",
+    zh: {
+      title: "前壓縮阻尼",
+      categoryLabel: "壓縮阻尼",
+      summary: "前壓縮控制前懸吊被壓縮的速度，影響煞車、入彎與撞路肩反應。",
+      increase: ["煞車點頭較少，前端支撐更硬。", "高速壓縮時比較穩。", "過高會讓前輪撞到顛簸時彈開，失去抓地。"],
+      decrease: ["前輪更能吸收路肩和顛簸。", "入彎時重量轉移更柔和。", "過低會讓車頭下沉太快，反應變慢。"],
+      tips: ["壓縮阻尼不宜高過回彈太多。", "常壓路肩的車要保留前壓縮吸收能力。"],
+    },
+    en: {
+      title: "Front Bump Damping",
+      categoryLabel: "Bump Damping",
+      summary: "Front bump controls how quickly the front suspension compresses under braking, entry, and curbs.",
+      increase: ["Less brake dive and firmer front support.", "More stable during high-speed compression.", "Too high makes the front bounce off bumps and lose grip."],
+      decrease: ["Better curb and bump absorption.", "Smoother entry weight transfer.", "Too low lets the nose dive too quickly."],
+      tips: ["Bump should usually stay lower than rebound.", "Cars that use curbs need enough front bump compliance."],
+    },
+  },
+  {
+    id: "rearBump",
+    category: "damping",
+    zh: {
+      title: "後壓縮阻尼",
+      categoryLabel: "壓縮阻尼",
+      summary: "後壓縮控制後懸吊被壓縮的速度，影響加速蹲伏、路肩吸收與車尾支撐。",
+      increase: ["加速時車尾支撐更強，不容易蹲太多。", "高速壓縮更穩。", "過高會降低後輪吸收能力，出彎容易滑。"],
+      decrease: ["後輪更能吸收顛簸，牽引較好。", "加速姿態更柔和。", "過低會讓車尾蹲太多，方向變慢。"],
+      tips: ["大扭力車可略加後壓縮控制蹲伏。", "越野或顛簸路線要避免後壓縮過硬。"],
+    },
+    en: {
+      title: "Rear Bump Damping",
+      categoryLabel: "Bump Damping",
+      summary: "Rear bump controls rear compression, affecting squat, curb absorption, and rear support.",
+      increase: ["More rear support under acceleration.", "More stable during high-speed compression.", "Too high reduces rear absorption and can cause exit slip."],
+      decrease: ["Better bump absorption and rear traction.", "Smoother acceleration posture.", "Too low lets the rear squat too much and slows response."],
+      tips: ["High-torque cars may need slightly more rear bump to control squat.", "Avoid excessive rear bump on rough or off-road routes."],
+    },
+  },
+  {
+    id: "frontAero",
+    category: "aero",
+    zh: {
+      title: "前空力",
+      categoryLabel: "空力",
+      summary: "前空力增加高速前輪下壓力，主要影響高速入彎和高速彎指向。",
+      increase: ["高速前端抓地增加，推頭減少。", "高速入彎更有信心。", "過高會增加阻力，並可能讓車尾相對變輕。"],
+      decrease: ["尾速和加速延伸較好。", "高速前端反應會變鈍。", "過低時高速彎容易推頭。"],
+      tips: ["前空力要和後空力一起看。", "高速推頭可加前空力，但要注意尾速損失。"],
+    },
+    en: {
+      title: "Front Aero",
+      categoryLabel: "Aero",
+      summary: "Front aero adds high-speed front downforce, mainly changing fast entry and fast-corner direction.",
+      increase: ["More high-speed front grip and less understeer.", "More confidence on fast entry.", "Too much adds drag and can make the rear feel relatively light."],
+      decrease: ["Better top-speed and acceleration extension.", "Slower high-speed front response.", "Too low causes fast-corner understeer."],
+      tips: ["Front aero must be considered together with rear aero.", "For high-speed understeer, add front aero but watch top-speed loss."],
+    },
+  },
+  {
+    id: "rearAero",
+    category: "aero",
+    zh: {
+      title: "後空力",
+      categoryLabel: "空力",
+      summary: "後空力增加高速後輪下壓力，主要影響高速穩定和車尾安全感。",
+      increase: ["高速車尾更穩，出彎高速段更安心。", "高速煞車和變線更穩。", "過高會犧牲尾速，並可能加重高速推頭。"],
+      decrease: ["尾速和高速加速更好。", "車尾更靈活。", "過低會讓高速車尾飄或過度轉向。"],
+      tips: ["高速尾部不穩先加後空力。", "如果車子高速太推，可能是後空力相對前空力太多。"],
+    },
+    en: {
+      title: "Rear Aero",
+      categoryLabel: "Aero",
+      summary: "Rear aero adds high-speed rear downforce and mainly affects stability and rear confidence.",
+      increase: ["A calmer rear at high speed.", "More stable high-speed braking and lane changes.", "Too much costs top speed and can add high-speed understeer."],
+      decrease: ["Better top speed and high-speed acceleration.", "A more agile rear.", "Too little makes the rear float or oversteer at speed."],
+      tips: ["For high-speed rear instability, add rear aero first.", "If the car pushes at high speed, rear aero may be too high relative to front aero."],
+    },
+  },
+  {
+    id: "brakeBalance",
+    category: "brake",
+    zh: {
+      title: "煞車平衡",
+      categoryLabel: "煞車",
+      summary: "煞車平衡決定煞車力偏前或偏後，影響入彎穩定和煞車旋轉。",
+      increase: ["更偏前輪，煞車時較穩。", "後輪比較不容易鎖死。", "過度偏前會增加入彎推頭。"],
+      decrease: ["更偏後輪，煞車時車尾更願意旋轉。", "可改善入彎轉不進去。", "過度偏後會讓煞車不穩或甩尾。"],
+      tips: ["高速車通常需要較保守的前偏。", "入彎煞車尾巴甩，先把平衡往前調。"],
+    },
+    en: {
+      title: "Brake Balance",
+      categoryLabel: "Brakes",
+      summary: "Brake balance shifts braking force front or rear, changing entry stability and rotation.",
+      increase: ["More front-biased and more stable under braking.", "Rear lockup is less likely.", "Too much front bias adds entry understeer."],
+      decrease: ["More rear-biased and more rotation under braking.", "Can help a car that refuses to turn on entry.", "Too much rear bias makes braking unstable or oversteery."],
+      tips: ["High-speed cars usually need conservative front bias.", "If the rear steps out while braking, move balance forward."],
+    },
+  },
+  {
+    id: "brakePressure",
+    category: "brake",
+    zh: {
+      title: "煞車壓力",
+      categoryLabel: "煞車",
+      summary: "煞車壓力影響最大煞車力和鎖死敏感度。",
+      increase: ["煞車力更強，煞車距離可能縮短。", "踏板反應更敏感。", "過高會更容易鎖死或觸發 ABS，入彎不穩。"],
+      decrease: ["煞車更容易細膩控制。", "鎖死機率降低。", "過低會讓煞車距離變長。"],
+      tips: ["如果常鎖死或 ABS 介入太多，降低壓力。", "如果煞車距離太長且可控，再逐步提高。"],
+    },
+    en: {
+      title: "Brake Pressure",
+      categoryLabel: "Brakes",
+      summary: "Brake pressure changes maximum braking force and lockup sensitivity.",
+      increase: ["Stronger braking and potentially shorter stopping distance.", "More sensitive pedal response.", "Too high locks tires or triggers ABS too easily."],
+      decrease: ["More progressive braking control.", "Lower lockup risk.", "Too low increases stopping distance."],
+      tips: ["If ABS or lockup appears too often, reduce pressure.", "If braking is stable but too weak, raise pressure gradually."],
+    },
+  },
+  {
+    id: "frontDiffAccel",
+    category: "diff",
+    zh: {
+      title: "前差速器加速",
+      categoryLabel: "差速器",
+      summary: "前差加速影響前輪帶動車頭的能力，主要用於 FWD/AWD 出彎。",
+      increase: ["出彎前輪拉力更強。", "AWD/FWD 低速出彎更有推進感。", "過高會讓車頭推直，油門一踩就轉不進去。"],
+      decrease: ["油門下轉向更自然。", "前輪較不會互相拉扯。", "過低會讓內側前輪打滑，出彎效率下降。"],
+      tips: ["FWD 推頭常和前差加速過高有關。", "AWD 想要更強出彎牽引時可小幅提高。"],
+    },
+    en: {
+      title: "Front Diff Accel",
+      categoryLabel: "Differential",
+      summary: "Front accel lock changes how strongly the front axle pulls the car on throttle.",
+      increase: ["Stronger front pull on exit.", "More drive in AWD/FWD low-speed exits.", "Too high makes the nose push wide under throttle."],
+      decrease: ["More natural steering on throttle.", "Less front tire binding.", "Too low lets the inside front spin and hurts exit efficiency."],
+      tips: ["FWD power understeer is often linked to excessive front accel lock.", "For AWD exit drive, increase it in small steps."],
+    },
+  },
+  {
+    id: "frontDiffDecel",
+    category: "diff",
+    zh: {
+      title: "前差速器減速",
+      categoryLabel: "差速器",
+      summary: "前差減速影響收油和煞車入彎時前軸的穩定與轉向。",
+      increase: ["入彎時前軸更穩，方向較不亂。", "高速煞車更安定。", "過高會讓車頭不願意轉。"],
+      decrease: ["收油入彎更靈活。", "車頭更容易指向彎心。", "過低會讓前軸不穩或內輪鎖定感變強。"],
+      tips: ["入彎推頭可小幅降低前差減速。", "煞車時車頭晃動可略加。"],
+    },
+    en: {
+      title: "Front Diff Decel",
+      categoryLabel: "Differential",
+      summary: "Front decel lock affects front-axle behavior while lifting or braking into a corner.",
+      increase: ["More stable front axle on entry.", "Calmer high-speed braking.", "Too high makes the nose reluctant to turn."],
+      decrease: ["More agile lift-off entry.", "The nose points into the corner more easily.", "Too low can make the front axle feel unstable."],
+      tips: ["For entry understeer, lower front decel slightly.", "For braking instability, add a little."],
+    },
+  },
+  {
+    id: "rearDiffAccel",
+    category: "diff",
+    zh: {
+      title: "後差速器加速",
+      categoryLabel: "差速器",
+      summary: "後差加速影響後輪出彎鎖定，是 RWD/AWD 出彎牽引和甩尾傾向的關鍵。",
+      increase: ["出彎兩側後輪更一起推，牽引更直接。", "車尾更願意用油門旋轉。", "過高會打滑、甩尾或外拋。"],
+      decrease: ["出彎更柔和，較不容易突然甩。", "低抓地路面更容易控油。", "過低會讓內側後輪空轉，推進力下降。"],
+      tips: ["後驅出彎太滑，先降低後差加速。", "如果出彎沒力但不打滑，可小幅提高。"],
+    },
+    en: {
+      title: "Rear Diff Accel",
+      categoryLabel: "Differential",
+      summary: "Rear accel lock is a key RWD/AWD exit traction and throttle-rotation setting.",
+      increase: ["Both rear tires drive together more strongly.", "More throttle rotation.", "Too high causes wheelspin, oversteer, or power push."],
+      decrease: ["Smoother exit and less sudden oversteer.", "Easier throttle control on low grip.", "Too low lets the inside rear spin and hurts drive."],
+      tips: ["For RWD exit oversteer, lower rear accel lock first.", "If exit drive is weak but stable, increase slightly."],
+    },
+  },
+  {
+    id: "rearDiffDecel",
+    category: "diff",
+    zh: {
+      title: "後差速器減速",
+      categoryLabel: "差速器",
+      summary: "後差減速影響收油、煞車和入彎時車尾是否穩定。",
+      increase: ["入彎車尾更穩，不容易突然旋轉。", "高速煞車更安心。", "過高會讓車子轉不進彎，推頭加重。"],
+      decrease: ["收油入彎更願意旋轉。", "可幫助車頭指向彎心。", "過低會讓車尾過度靈活，煞車入彎容易甩。"],
+      tips: ["入彎甩尾通常要提高後差減速。", "入彎太死、轉不進去時可小幅降低。"],
+    },
+    en: {
+      title: "Rear Diff Decel",
+      categoryLabel: "Differential",
+      summary: "Rear decel lock changes rear stability while lifting, braking, and entering corners.",
+      increase: ["A calmer rear on entry.", "More confidence under high-speed braking.", "Too high makes the car refuse to rotate and adds understeer."],
+      decrease: ["More lift-off rotation.", "Helps the nose point into the corner.", "Too low makes the rear too lively under braking."],
+      tips: ["For entry oversteer, raise rear decel.", "If entry is too dead, lower it slightly."],
+    },
+  },
+  {
+    id: "centerDiff",
+    category: "diff",
+    zh: {
+      title: "中央差速器",
+      categoryLabel: "差速器",
+      summary: "中央差速器決定 AWD 動力偏前或偏後，影響出彎推頭、車尾旋轉和高速穩定。",
+      increase: ["更偏後驅，車尾更願意旋轉。", "出彎可用油門幫助轉向。", "過高會讓車尾更容易滑。"],
+      decrease: ["更偏前驅，直線牽引和穩定感增加。", "車尾較不容易甩。", "過低會加重油門推頭。"],
+      tips: ["AWD 想減少推頭通常會稍微往後調。", "雨天、越野或高馬力不穩時，可以往前收一點。"],
+    },
+    en: {
+      title: "Center Differential",
+      categoryLabel: "Differential",
+      summary: "The center diff sets AWD front/rear torque split, changing throttle understeer, rotation, and stability.",
+      increase: ["More rear-biased and more rotation.", "Throttle can help point the car on exit.", "Too much rear bias makes the rear slide more easily."],
+      decrease: ["More front-biased with more straight traction and stability.", "The rear is less likely to step out.", "Too much front bias adds throttle understeer."],
+      tips: ["To reduce AWD understeer, move slightly rearward.", "For rain, dirt, or unstable high-power cars, move slightly forward."],
+    },
+  },
+];
+
 const settingCards = [
   ["前胎胎壓", "tireFront", "BAR", "熱胎後落在 2.20 到 2.35 BAR 附近為目標"],
   ["後胎胎壓", "tireRear", "BAR", "驅動輪可略低，換取出彎牽引"],
@@ -2842,6 +3409,7 @@ function refreshLanguageUi() {
   renderIssueCategories();
   renderIssues();
   renderSelectedIssues();
+  renderEncyclopedia();
   renderResult();
   renderGearCalculator();
 }
@@ -4158,6 +4726,7 @@ function renderSelectionPreview() {
   document.getElementById("resultTags").innerHTML = html;
   document.getElementById("liveConfigTags").innerHTML = html;
   document.getElementById("gearTags").innerHTML = html;
+  document.getElementById("encyclopediaTags").innerHTML = html;
   document.getElementById("symptomTags").innerHTML = isStandaloneSymptomMode()
     ? `<span>${t("solutionModeChip")}</span>`
     : html;
@@ -4168,6 +4737,85 @@ function escapeHtml(value) {
     const entities = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
     return entities[char];
   });
+}
+
+function localizedEncyclopediaItem(item) {
+  return {
+    ...item,
+    ...(item[currentLanguage()] ?? item.zh),
+  };
+}
+
+function activeEncyclopediaItem() {
+  const item = optionById(tuningEncyclopediaItems, state.activeEncyclopediaPart) ?? tuningEncyclopediaItems[0];
+  state.activeEncyclopediaPart = item.id;
+  return item;
+}
+
+function renderEncyclopediaList(activeId) {
+  const list = document.getElementById("encyclopediaPartList");
+  if (!list) return;
+
+  list.innerHTML = tuningEncyclopediaItems
+    .map((item) => {
+      const localizedItem = localizedEncyclopediaItem(item);
+      return `
+        <button class="encyclopedia-part-button ${item.id === activeId ? "is-active" : ""}" type="button" data-part-id="${item.id}">
+          <span>${escapeHtml(localizedItem.title)}</span>
+          <small>${escapeHtml(localizedItem.categoryLabel)}</small>
+        </button>
+      `;
+    })
+    .join("");
+
+  list.querySelectorAll("[data-part-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeEncyclopediaPart = button.dataset.partId;
+      renderEncyclopedia();
+    });
+  });
+}
+
+function encyclopediaList(items) {
+  return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+}
+
+function renderEncyclopediaDetail(item) {
+  const detail = document.getElementById("encyclopediaDetail");
+  if (!detail) return;
+
+  const localizedItem = localizedEncyclopediaItem(item);
+  detail.innerHTML = `
+    <article class="encyclopedia-info">
+      <div class="encyclopedia-info-head">
+        <div>
+          <p class="picker-label">${escapeHtml(localizedItem.categoryLabel)}</p>
+          <h3>${escapeHtml(localizedItem.title)}</h3>
+        </div>
+      </div>
+      <p class="encyclopedia-summary">${escapeHtml(localizedItem.summary)}</p>
+      <div class="encyclopedia-effect-grid">
+        <section class="encyclopedia-effect-block is-increase">
+          <h4>${escapeHtml(t("encyclopediaIncrease"))}</h4>
+          ${encyclopediaList(localizedItem.increase)}
+        </section>
+        <section class="encyclopedia-effect-block is-decrease">
+          <h4>${escapeHtml(t("encyclopediaDecrease"))}</h4>
+          ${encyclopediaList(localizedItem.decrease)}
+        </section>
+      </div>
+      <section class="encyclopedia-tips">
+        <h4>${escapeHtml(t("encyclopediaTips"))}</h4>
+        ${encyclopediaList(localizedItem.tips)}
+      </section>
+    </article>
+  `;
+}
+
+function renderEncyclopedia() {
+  const item = activeEncyclopediaItem();
+  renderEncyclopediaList(item.id);
+  renderEncyclopediaDetail(item);
 }
 
 function recommendationMarkup(option, reason) {
@@ -4551,6 +5199,10 @@ function validGearSpacingMode(value) {
 
 function formatGearRatio(value) {
   return Number.isFinite(value) ? value.toFixed(2) : "--";
+}
+
+function clampGearRatio(value) {
+  return clampNumber(value, ...gearboxLimits.gearRatio);
 }
 
 function syncGearboxInputs(skipInputId = "") {
@@ -5009,6 +5661,7 @@ function applyGearSpacingPattern(
   }
 
   adjustedRatios.forEach((ratio) => {
+    ratio.ratio = clampGearRatio(ratio.ratio);
     ratio.shiftKmh = speedForGearRatio(redlineRpm, ratio.ratio, finalDrive, tireCircumference);
   });
 
@@ -5130,6 +5783,7 @@ function applyCornerRecoveryBias(
   }
 
   adjustedRatios.forEach((ratio) => {
+    ratio.ratio = clampGearRatio(ratio.ratio);
     ratio.shiftKmh = speedForGearRatio(redlineRpm, ratio.ratio, finalDrive, tireCircumference);
     if (!Number.isFinite(ratio.shiftKmh)) ratio.shiftKmh = topTarget * (topRatio / ratio.ratio);
   });
@@ -5212,7 +5866,7 @@ function calculateGearRatios(tune = buildTune()) {
   const desiredTerminalRpm = terminalMode === "redline" ? redlineRpm : targetTerminalRpm(peakHpRpm, redlineRpm, terminalBandPosition);
   const formulaTopRatio = gearRatioForSpeed(desiredTerminalRpm, targetTerminalSpeed, finalDrive, tireProfile.circumference);
   const baseTopRatio = Number.isFinite(formulaTopRatio) ? formulaTopRatio : 0.85;
-  const topRatio = clampNumber(baseTopRatio, 0.45, 2.2);
+  const topRatio = clampGearRatio(baseTopRatio);
   const topTarget = speedForGearRatio(redlineRpm, topRatio, finalDrive, tireProfile.circumference);
   const firstGearTarget = estimateFirstGearTarget({
     tuneFocus,
@@ -5242,7 +5896,7 @@ function calculateGearRatios(tune = buildTune()) {
 
   for (let gear = 1; gear <= gearCount; gear += 1) {
     const position = (gearCount - gear) / Math.max(1, gearCount - 1);
-    const ratio = topRatio * Math.pow(spread, Math.pow(position, curvePower));
+    const ratio = clampGearRatio(topRatio * Math.pow(spread, Math.pow(position, curvePower)));
     const formulaShiftKmh = speedForGearRatio(redlineRpm, ratio, finalDrive, tireProfile.circumference);
     const shiftKmh = Number.isFinite(formulaShiftKmh) ? formulaShiftKmh : topTarget * (topRatio / ratio);
     ratios.push({ gear, ratio, shiftKmh });
@@ -5522,6 +6176,7 @@ function setView(view) {
   document.getElementById("resultPage").classList.toggle("is-hidden", view !== "result");
   document.getElementById("gearPage").classList.toggle("is-hidden", view !== "gear");
   document.getElementById("symptomPage").classList.toggle("is-hidden", view !== "symptoms");
+  document.getElementById("encyclopediaPage").classList.toggle("is-hidden", view !== "encyclopedia");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -6188,6 +6843,7 @@ function refreshAfterSetupLoad() {
   renderIssueCategories();
   renderIssues();
   renderSelectedIssues();
+  renderEncyclopedia();
   renderSummary();
   renderSelectionPreview();
   renderResult();
@@ -6237,6 +6893,12 @@ function openSymptomPage(mode) {
   renderSelectedIssues();
   renderAdvice();
   setView("symptoms");
+}
+
+function openEncyclopediaPage() {
+  renderSelectionPreview();
+  renderEncyclopedia();
+  setView("encyclopedia");
 }
 
 function availabilityGroupsForAdviceTarget(target) {
@@ -6531,6 +7193,7 @@ function resetAll() {
   state.availability = createAvailability();
   state.activeIssueCategory = "steering";
   state.solutionActiveIssueCategory = "steering";
+  state.activeEncyclopediaPart = "frontTirePressure";
   state.issues.clear();
   state.solutionIssues.clear();
   state.appliedSymptomAdjustments = [];
@@ -6541,6 +7204,7 @@ function resetAll() {
   renderIssueCategories();
   renderIssues();
   renderSelectedIssues();
+  renderEncyclopedia();
   renderAvailabilityControls();
   syncAdjustmentRangeInputs();
   syncGearboxInputs();
@@ -6577,6 +7241,7 @@ function init() {
   renderIssueCategories();
   renderIssues();
   renderSelectedIssues();
+  renderEncyclopedia();
   renderSummary();
   renderSelectionPreview();
   renderResult();
@@ -6591,6 +7256,8 @@ function init() {
   document.getElementById("startTestButton").addEventListener("click", () => openSymptomPage("linked"));
 
   document.getElementById("solutionButton").addEventListener("click", () => openSymptomPage("standalone"));
+
+  document.getElementById("encyclopediaButton").addEventListener("click", openEncyclopediaPage);
 
   document.getElementById("gearButton").addEventListener("click", () => {
     prepareGearCalculator();
@@ -6607,6 +7274,11 @@ function init() {
   });
 
   document.getElementById("backToResultButton").addEventListener("click", () => {
+    renderResult();
+    setView("result");
+  });
+
+  document.getElementById("backFromEncyclopediaButton").addEventListener("click", () => {
     renderResult();
     setView("result");
   });
