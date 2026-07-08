@@ -1,116 +1,115 @@
 # FH6 Tune Lab
 
-FH6 Tune Lab 是一個非官方 Forza Horizon 6 車輛基礎調校輔助工具。使用者可以輸入目標比賽、賽道型態、調校取向、引擎曲線、驅動形式、車重、配重、馬力、扭力、胎規格、可調範圍等資訊，工具會依這些條件產出一組可作為試車起點的調校建議。
+FH6 Tune Lab is an unofficial Forza Horizon 6 tuning helper. The repository now contains two independent tools:
 
-這個工具不是物理模擬器，也不是保證最快的最終設定。它的定位是幫玩家快速建立合理的初始值，再依照車輛手感、賽道條件與個人駕駛習慣繼續微調。
+- **Web tuning helper**: static HTML/CSS/JS in the repository root.
+- **Telemetry desktop tool**: Electron app in `desktop/` for FH6 UDP telemetry recording and replay.
 
-## 版本狀態
+The two tools are intentionally separated. The root website does not import Electron, Node.js, or any desktop telemetry code, so the original web deployment path stays static and deployable.
 
-目前版本：`v0.13`
+## Release
 
-此版本會同步更新到 `main`。
+Current release branch: `v1.01`
 
-## v0.13 更新重點
+Base branch: `main`
 
-v0.13 主要新增「調校百科」，並修正齒比計算器的各檔齒比可用範圍。
+## v1.01 Features
 
-### 與 v0.12 的差異
+### Web Tuning Helper
 
-- 新增「調校百科」按鈕，位置在「調校應對方案」旁邊。
-- 新增調校百科頁面，可以查詢各調校部件數值增加或減少時對車輛動態的影響。
-- 百科部件清單改為左側雙欄小按鈕，右側保留主要閱讀內容。
-- 百科頁移除多餘標題說明，讓內容直接聚焦在目前選取的部件。
-- 百科頁的 `FH6 Tune Lab` 標題尺寸已和基礎調校頁一致。
-- 百科頁支援繁體中文、英文與 dark mode。
-- 齒比計算器的所有檔位齒比會限制在 `0.48 - 6.00`。
-- 齒比限制會套用在最高檔計算、各檔齒比生成、齒比間距修正與彎道回速修正之後。
+- Keeps the existing static deploy model: `index.html`, `styles.css`, and `app.js`.
+- Adds deeper tuning encyclopedia content for vehicle layout, engine type, part interactions, tire temperature reading, adjustment timing, and common mistakes.
+- Keeps the web app independent from the desktop telemetry app.
 
-## 調校百科
+### Telemetry Desktop Tool
 
-調校百科目前包含以下部件與說明：
+- Adds a desktop Electron app under `desktop/`.
+- Reads FH6 Forza Data Out UDP telemetry on port `5300` by default.
+- Provides two modes:
+  - `Live Monitor`: realtime vehicle data, UDP listener status, and manual session recording.
+  - `Race Review`: recorded session browser, lap/session replay, timeline scrubber, route map, and elevation profile.
+- Records raw telemetry samples to `samples.ndjson`.
+- Writes session metadata to `session.json`.
+- Writes deterministic summary and replay data to `summary.json`.
+- Reconstructs the track shape from recorded vehicle `x/z` positions.
+- Uses vehicle `y` position as elevation data for uphill/downhill review.
+- Supports route coloring by speed, throttle, brake, or plain line.
+- Auto-names new recordings with local system time, for example `20260708 19:34`.
+- Allows post-session record naming in Race Review.
+- Keeps AI/LM Studio analysis out of this phase until telemetry recording and replay are stable.
 
-- 前胎壓、後胎壓
-- 終傳比
-- 前外傾角、後外傾角
-- 前束角、後束角
-- 主銷後傾
-- 前防傾桿、後防傾桿
-- 前彈簧、後彈簧
-- 前車高、後車高
-- 前回彈阻尼、後回彈阻尼
-- 前壓縮阻尼、後壓縮阻尼
-- 前空力、後空力
-- 煞車平衡、煞車壓力
-- 前差速器加速、前差速器減速
-- 後差速器加速、後差速器減速
-- 中央差速器
+## Repository Layout
 
-每個部件會顯示：
+```text
+.
+├── index.html          # Static web tuning helper entry
+├── styles.css          # Static web tuning helper styles
+├── app.js              # Static web tuning helper logic
+├── desktop/            # Electron telemetry desktop app
+│   ├── package.json
+│   ├── src/
+│   └── test/
+└── README.md
+```
 
-- 數值增加時的影響
-- 數值減少時的影響
-- 實際調校提示
+## Deploy Web Tuning Helper
 
-這個頁面適合用來理解「為什麼要調這個數值」，而不是只照抄建議值。
+Deploy the repository root as a static website. No build command is required.
 
-## 齒比計算器
+Expected static files:
 
-齒比計算器會依以下資料產生建議：
+```text
+index.html
+styles.css
+app.js
+```
 
-- 檔位數
-- 紅線 RPM
-- 最高馬力 RPM
-- 目標終端速度
-- 齒比間距模式
-- 終端檔位目標
-- 終傳比
-- 前後胎規格
-- 驅動形式
-- 目前基礎配置中的比賽、賽道、彎型、引擎與調校取向
+Do not use `desktop/` as the web publish directory. The desktop app has its own Node/Electron dependencies and is not required for the website.
 
-v0.13 起，各檔齒比建議值會被限制在 `0.48 - 6.00`。這更接近遊戲內可設定範圍，也能避免計算器產出無法直接套用的齒比。
+## Run Telemetry Desktop Tool
 
-## 主要功能
+```powershell
+cd desktop
+npm.cmd install
+npm.cmd start
+```
 
-- 基礎配置與建議數值整合在同一頁。
-- 目標比賽選擇。
-- 賽道型態滑桿。
-- 彎型分布選擇。
-- 調校取向與取向強度。
-- 引擎曲線與驅動形式選擇。
-- 車重、前後配重、馬力、扭力與胎規格輸入。
-- 胎壓單位使用 BAR。
-- 可調項目開關，可關閉遊戲內無法調整的項目。
-- 彈簧與空力可調範圍輸入。
-- 防傾桿固定使用 `1 - 65` 範圍。
-- 回彈阻尼與壓縮阻尼固定使用 `1 - 20` 範圍。
-- 齒比計算器提供終傳比與各檔齒比建議。
-- 車況調校頁面可依試車症狀產生修正建議。
-- 調校應對方案可查詢常見症狀的處理方向。
-- 調校百科可查詢各部件增加或減少數值的影響。
-- 複製建議數值。
-- 儲存與載入設定 JSON。
-- 繁體中文與英文介面。
-- Light mode 與 dark mode。
+In FH6 Data Out settings, send UDP telemetry to the machine running the desktop app:
 
-## 基本使用流程
+- Same PC: `127.0.0.1`
+- Default UDP port: `5300`
+- Different PC on LAN: use the desktop app machine's LAN IP
 
-1. 選擇目標比賽。
-2. 設定賽道型態、彎型分布、調校取向、引擎曲線與驅動形式。
-3. 輸入車重、配重、馬力、扭力與前後胎規格。
-4. 依照遊戲內改裝狀態，關閉無法調整的項目。
-5. 設定彈簧與空力可調範圍。
-6. 查看基礎建議數值。
-7. 需要齒比時，進入齒比計算器產生終傳比與各檔齒比。
-8. 試車後若出現轉向不足、轉向過度、車尾不穩、煞車不穩等狀況，可進入車況調校頁面微調。
-9. 若想了解某個部件的調整方向，可進入調校百科查詢。
+## Test
 
-## 注意事項
+Root web syntax check:
 
-- 本工具提供的是 FH 風格調校起點，不是真實賽車工程模擬器。
-- 齒比、空力、懸吊、胎壓與差速器仍需要實際試車確認。
-- 若遊戲內某個項目無法調整，工具只能用其他可調項目做保守補償，無法完全取代該項目的作用。
-- 調校百科提供的是常見方向與副作用，實際效果仍會受到車種、輪胎、改裝、驅動形式與賽道影響。
+```powershell
+node --check app.js
+```
+
+Desktop telemetry tests:
+
+```powershell
+cd desktop
+npm.cmd test
+```
+
+## Session Files
+
+Recorded telemetry sessions are stored by the desktop app under Electron `userData` unless `FH6_TELEMETRY_SESSION_DIR` is set.
+
+Each completed recording contains:
+
+- `session.json`: session metadata and display name.
+- `samples.ndjson`: full raw telemetry sample stream.
+- `summary.json`: stats, rule findings, replay frames, lap grouping, route bounds, and elevation bounds.
+
+## Notes
+
+- FH6 telemetry does not provide an official race map image. The desktop app rebuilds route shape from recorded vehicle positions.
+- Tire pressure and tire inner/middle/outer temperature fields are shown only if FH6 Data Out exposes them in the decoded telemetry packet.
+- `co-driver-reference/` is a local research folder only and is ignored by git.
 
 ## License
 

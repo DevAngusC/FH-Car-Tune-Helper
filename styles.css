@@ -1950,21 +1950,41 @@ h3 {
   gap: 10px;
 }
 
+.encyclopedia-deep-content {
+  display: grid;
+  gap: 10px;
+}
+
+.encyclopedia-learning-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .encyclopedia-effect-block,
-.encyclopedia-tips {
+.encyclopedia-context,
+.encyclopedia-engine-context,
+.encyclopedia-interaction,
+.encyclopedia-learning-block {
   border-radius: 8px;
   padding: 11px;
 }
 
 .encyclopedia-effect-block h4,
-.encyclopedia-tips h4 {
+.encyclopedia-context h4,
+.encyclopedia-engine-context h4,
+.encyclopedia-interaction h4,
+.encyclopedia-learning-block h4 {
   margin: 0 0 8px;
   font-size: 1rem;
   font-weight: 950;
 }
 
 .encyclopedia-effect-block ul,
-.encyclopedia-tips ul {
+.encyclopedia-context ul,
+.encyclopedia-engine-context ul,
+.encyclopedia-interaction ul,
+.encyclopedia-learning-block ul {
   display: grid;
   gap: 7px;
   margin: 0;
@@ -1973,6 +1993,165 @@ h3 {
   font-size: 0.98rem;
   font-weight: 820;
   line-height: 1.36;
+}
+
+.encyclopedia-context {
+  border: 1px solid rgba(14, 165, 233, 0.28);
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.encyclopedia-context h4 {
+  color: var(--blue-text);
+}
+
+.encyclopedia-engine-context {
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  background: rgba(234, 179, 8, 0.08);
+}
+
+.encyclopedia-engine-context h4 {
+  color: var(--orange-text);
+}
+
+.encyclopedia-interaction {
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  background: rgba(6, 182, 212, 0.08);
+}
+
+.encyclopedia-interaction h4 {
+  color: var(--cyan-text);
+}
+
+.encyclopedia-tire-temperature {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(250, 204, 21, 0.34);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(250, 204, 21, 0.07);
+}
+
+.tire-temp-head {
+  display: grid;
+  gap: 6px;
+}
+
+.tire-temp-head h4,
+.tire-temp-focus h5,
+.tire-temp-order h5,
+.tire-temp-card h5,
+.tire-temp-moment h5 {
+  margin: 0;
+  font-weight: 950;
+}
+
+.tire-temp-head h4 {
+  color: var(--orange-text);
+  font-size: 1rem;
+}
+
+.tire-temp-head p,
+.tire-temp-focus > p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.98rem;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.tire-temp-zone-grid,
+.tire-temp-moment-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.tire-temp-zone-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tire-temp-moment-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 8px;
+}
+
+.tire-temp-card,
+.tire-temp-moment,
+.tire-temp-focus,
+.tire-temp-order {
+  border: 1px solid rgba(249, 115, 22, 0.22);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.tire-temp-card,
+.tire-temp-moment {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+}
+
+.tire-temp-focus,
+.tire-temp-order {
+  padding: 11px;
+}
+
+.tire-temp-card h5,
+.tire-temp-moment h5,
+.tire-temp-focus h5,
+.tire-temp-order h5 {
+  color: var(--orange-text);
+  font-size: 0.92rem;
+}
+
+.tire-temp-card p,
+.tire-temp-moment p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.42;
+}
+
+.tire-temp-card strong,
+.tire-temp-moment strong {
+  margin-right: 6px;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.tire-temp-card strong::after,
+.tire-temp-moment strong::after {
+  content: ":";
+}
+
+.tire-temp-order ul {
+  display: grid;
+  gap: 7px;
+  margin: 8px 0 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 820;
+  line-height: 1.42;
+}
+
+.encyclopedia-learning-block.is-timing {
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.07);
+}
+
+.encyclopedia-learning-block.is-timing h4 {
+  color: var(--green);
+}
+
+.encyclopedia-learning-block.is-mistakes {
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  background: rgba(239, 68, 68, 0.07);
+}
+
+.encyclopedia-learning-block.is-mistakes h4 {
+  color: var(--danger);
 }
 
 .encyclopedia-effect-block.is-increase {
@@ -1991,15 +2170,6 @@ h3 {
 
 .encyclopedia-effect-block.is-decrease h4 {
   color: var(--orange);
-}
-
-.encyclopedia-tips {
-  border: 1px solid rgba(37, 99, 235, 0.24);
-  background: var(--blue-soft);
-}
-
-.encyclopedia-tips h4 {
-  color: var(--blue-text);
 }
 
 .advice-chip {
@@ -2112,6 +2282,9 @@ h3 {
   .symptom-picker,
   .encyclopedia-layout,
   .encyclopedia-effect-grid,
+  .encyclopedia-learning-grid,
+  .tire-temp-zone-grid,
+  .tire-temp-moment-grid,
   .meter-grid,
   .availability-grid,
   .tune-config-grid,

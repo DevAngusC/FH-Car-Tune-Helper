@@ -619,7 +619,16 @@ Object.assign(translations.zh, {
   encyclopediaPartsLabel: "改車部件",
   encyclopediaIncrease: "增加數值",
   encyclopediaDecrease: "減少數值",
-  encyclopediaTips: "調校提示",
+  encyclopediaVehicleContext: "車型影響",
+  encyclopediaEngineContext: "引擎類型影響",
+  encyclopediaPartInteractions: "部件互相影響",
+  encyclopediaTireTemperature: "胎溫判讀",
+  tireTempCold: "冷",
+  tireTempOverheated: "過熱",
+  tireTempRead: "判讀",
+  tireTempAdjust: "調整",
+  encyclopediaAdjustmentTiming: "調整時機",
+  encyclopediaCommonMistakes: "常見誤區",
 });
 
 Object.assign(translations.en, {
@@ -630,7 +639,16 @@ Object.assign(translations.en, {
   encyclopediaPartsLabel: "Tuning Parts",
   encyclopediaIncrease: "Increase Value",
   encyclopediaDecrease: "Decrease Value",
-  encyclopediaTips: "Tuning Tips",
+  encyclopediaVehicleContext: "Vehicle Layout Impact",
+  encyclopediaEngineContext: "Engine Type Impact",
+  encyclopediaPartInteractions: "Part Interactions",
+  encyclopediaTireTemperature: "Tire Temperature Reading",
+  tireTempCold: "Cold",
+  tireTempOverheated: "Overheated",
+  tireTempRead: "Read",
+  tireTempAdjust: "Adjust",
+  encyclopediaAdjustmentTiming: "When to Adjust",
+  encyclopediaCommonMistakes: "Common Mistakes",
 });
 
 const optionTranslations = {
@@ -3082,6 +3100,1022 @@ const tuningEncyclopediaItems = [
   },
 ];
 
+const encyclopediaVehicleContextNotes = {
+  zh: {
+    default: ["同一個調整在不同車重、配重、驅動形式與引擎位置上反應會不同，先判斷車子主要負載在哪一端，再決定調整幅度。"],
+    frontTirePressure: [
+      "前置或前配重高的車，前胎承受煞車與入彎負載更大，胎壓過高會更容易推頭。",
+      "FWD 和 AWD 前輪同時負責轉向與輸出，前胎壓太低會讓反應變鈍，太高則會降低出彎前輪抓地。",
+      "重車通常需要更保守的小幅調整，避免胎壓變化同時放大煞車和轉向不穩。",
+    ],
+    rearTirePressure: [
+      "RWD、後置或後配重高的車，後胎壓會直接影響出彎牽引和高速車尾安定。",
+      "中置車後胎壓太高時，車尾可能變得很快但不容易接住；太低則會讓車尾反應慢半拍。",
+      "高扭力車若出彎容易空轉，通常先小幅降低後胎壓，再動差速器或後彈簧。",
+    ],
+    finalDrive: [
+      "低扭力或高轉馬力車常需要較短齒比讓轉速保持在出力區；大扭力車齒比太短會更容易打滑。",
+      "RWD 起步和低速出彎比 AWD 更容易受齒比影響，終傳太高會把輪上扭力放大到超過後胎可承受範圍。",
+      "高速賽道與重車要確認高檔仍拉得動，齒比太長看似有尾速，但可能進不到有效轉速區。",
+    ],
+    frontAlignment: [
+      "前置或前配重高的車，前輪更容易在入彎和煞車時過載，需要用外傾角與前束保留前端支撐。",
+      "中置車前端較敏感，前束或外傾改太多會讓車頭很銳利，但可控範圍變窄。",
+      "FWD 前輪同時負責拉車與轉向，過度激進的前束會增加輪胎熱與直線拖滯。",
+    ],
+    rearAlignment: [
+      "後置或後配重高的車，後輪定位會強烈影響高速安全感，後束太少或後外傾不足都可能讓車尾漂。",
+      "中置車車尾慣性集中，後輪定位改動會很直接，通常需要比前置車更小步調整。",
+      "RWD 出彎牽引不足時，先確認後外傾沒有過多，否則直線接地和油門牽引會被犧牲。",
+    ],
+    caster: [
+      "前置重車加高後傾能提升高速回正和彎中支撐，但低速轉向會更重。",
+      "中置與輕量車本來反應快，後傾過高可能讓前端變得太積極，連續彎需要更細膩控制。",
+      "FWD 若前輪負擔很高，後傾可以幫助彎中支撐，但不能取代胎壓、外傾角與防傾桿調整。",
+    ],
+    frontArb: [
+      "前置或前配重高的車，前防傾太硬會把更多橫向負載壓在外側前輪，推頭會更明顯。",
+      "重車加硬前防傾能壓住側傾，但若路面顛簸或連續彎多，前輪機械抓地會被犧牲。",
+      "中置車前防傾加太多會讓指向很快，但前端極限來得突然，需要配合後防傾一起看。",
+    ],
+    rearArb: [
+      "AWD 和前置車常用較高後防傾幫助車尾旋轉，但過高會讓出彎車尾突然滑。",
+      "RWD 高馬力車後防傾太硬時，油門一開會更容易把後輪抓地打破。",
+      "中置或後置車的後防傾非常敏感，小幅增加就可能明顯改變車尾反應。",
+    ],
+    frontSpring: [
+      "重車或前配重高的車，前彈簧需要足夠支撐，否則煞車點頭和入彎慣性會放大。",
+      "前置引擎車前彈簧太硬容易推頭；中置車前彈簧過硬會讓指向很尖，但抓地窗口變窄。",
+      "顛簸、越野或路肩多的路線要保留吸收能力，前彈簧過硬會讓輪胎離地。",
+    ],
+    rearSpring: [
+      "RWD、高扭力、後置或後配重高的車，後彈簧太硬會直接降低出彎牽引。",
+      "中置車後彈簧過硬會讓車尾反應變快，極限附近比較突然；過軟則會讓車尾延遲和晃動。",
+      "重車後彈簧太軟會加速蹲伏過多，出彎方向會慢，且高速壓縮時車尾支撐不足。",
+    ],
+    frontRideHeight: [
+      "前置重車若前車高太低，煞車或路肩壓縮時容易觸底，前輪抓地會突然消失。",
+      "高速車降低前車高可提升前端貼地感，但需要確認彈簧與阻尼能支撐住壓縮行程。",
+      "越野和拉力車前端需要行程，低車高帶來的反應提升通常不值得犧牲吸收能力。",
+    ],
+    rearRideHeight: [
+      "後置或後配重高的車，後車高太高會讓高速車尾漂，太低則可能壓縮到底後突然失去抓地。",
+      "RWD 高扭力車需要足夠後端行程吸收加速蹲伏，否則出彎抓地會不穩定。",
+      "中置車前後車高差會明顯影響轉向姿態，後端變化不宜一次調太多。",
+    ],
+    frontRebound: [
+      "前置重車需要更多前回彈控制車頭回升，但太高會讓前輪在顛簸後貼不回路面。",
+      "中置車前端負載較輕，前回彈過高會讓連續彎前輪支撐變硬且失去流暢感。",
+      "FWD 若前回彈太高，出彎補油時前輪可能更難維持貼地和轉向。",
+    ],
+    rearRebound: [
+      "RWD、後置或中置車的後回彈會強烈影響出彎牽引，太高會讓後輪在顛簸後抓地中斷。",
+      "後配重高的車需要足夠後回彈穩住車尾，但過量會讓車尾在極限附近突然鬆開。",
+      "重車若後回彈太低，連續彎會有車尾上下晃和慢半拍的感覺。",
+    ],
+    frontBump: [
+      "前置重車煞車時前壓縮負擔大，前壓縮太低會點頭太多，太高則會撞開路面抓地。",
+      "路肩多或顛簸路線需要較柔和前壓縮，讓前輪能吃進路面而不是彈開。",
+      "中置車前端反應快，前壓縮過硬會讓入彎初段變尖銳且容錯下降。",
+    ],
+    rearBump: [
+      "RWD 和高扭力車可用後壓縮控制加速蹲伏，但過高會犧牲後輪吸收能力和出彎牽引。",
+      "後置或後配重高的車，後壓縮太硬會讓車尾在顛簸和路肩上更容易跳動。",
+      "越野、拉力或路面起伏大時，後壓縮要保留行程，避免落地或補油時突然滑動。",
+    ],
+    frontAero: [
+      "高速車或前端偏輕的車，加前空力能改善高速入彎推頭，但會增加阻力。",
+      "中置和後置車若前端高速變輕，前空力可以補指向，但要避免讓車尾相對太輕。",
+      "低速多彎賽道前空力效果有限，機械抓地、彈簧和防傾通常更優先。",
+    ],
+    rearAero: [
+      "後置、中置或高馬力 RWD 車常需要更多後空力穩住高速車尾。",
+      "後空力太多會讓高速更穩，但也可能讓前端相對不足，形成高速推頭。",
+      "高速長彎和重車更依賴後空力穩定姿態；短小彎則要注意不要犧牲太多尾速。",
+    ],
+    brake: [
+      "前置或前配重高的車煞車時前輪負載更大，通常可以承受較多前煞比例。",
+      "中置與後置車煞車時後軸仍有較多負載，煞車太偏前會浪費後輪抓地，太偏後則容易入彎甩。",
+      "重車需要更保守的煞車壓力調整，因為鎖死或 ABS 介入會更明顯破壞入彎姿態。",
+    ],
+    frontDiff: [
+      "FWD 的前差會同時影響牽引和轉向，鎖定太高會油門推頭，太低會內側前輪空轉。",
+      "AWD 前差加速過高會讓車頭在出彎被拉直，需要配合中央差速器和後差一起看。",
+      "前置高扭力車更容易把前輪推到抓地極限，前差調整要比低馬力車更保守。",
+    ],
+    rearDiff: [
+      "RWD 和 AWD 的後差會決定油門下車尾是穩定推進，還是用油門旋轉。",
+      "後置或中置車後軸負載高，後差加速太高時出彎滑動會更突然。",
+      "高扭力車後差要保守起步，先確定後胎、後彈簧和後阻尼沒有讓牽引不足。",
+    ],
+    centerDiff: [
+      "AWD 中央差速越偏後，越像 RWD，出彎旋轉更好但車尾更容易滑。",
+      "前置 AWD 若推頭明顯，可以逐步往後偏；高馬力或低抓地時則需要保留前軸牽引。",
+      "中置或後置 AWD 往後偏會很有效，但也更容易讓高速和出彎變得敏感。",
+    ],
+  },
+  en: {
+    default: ["The same adjustment reacts differently across weight, weight balance, drivetrain, and engine position. Identify which axle carries the main load before choosing the adjustment size."],
+    frontTirePressure: [
+      "Front-engine or front-heavy cars load the front tires heavily under braking and entry, so high front pressure can make understeer worse.",
+      "FWD and AWD front tires steer and drive the car, so pressure that is too low dulls response, while pressure that is too high reduces exit grip.",
+      "Heavy cars usually need smaller pressure steps because braking and steering stability change together.",
+    ],
+    rearTirePressure: [
+      "RWD, rear-engine, and rear-heavy cars are very sensitive to rear pressure because it controls exit traction and high-speed rear confidence.",
+      "Mid-engine cars can feel quick but hard to catch when rear pressure is too high; too low can make the rear respond late.",
+      "On high-torque cars with exit wheelspin, lower rear pressure slightly before making large differential or rear spring changes.",
+    ],
+    finalDrive: [
+      "Low-torque or high-RPM cars often need shorter gearing to stay in the power range; high-torque cars can spin tires if gearing is too short.",
+      "RWD starts and slow exits are more sensitive to final drive than AWD, because short gearing multiplies rear-wheel torque quickly.",
+      "On fast tracks and heavy cars, make sure the upper gears are still reachable. A long ratio may show more top speed but fail to pull into the useful RPM range.",
+    ],
+    frontAlignment: [
+      "Front-engine or front-heavy cars overload the front tires more under braking and entry, so camber and toe must preserve front support.",
+      "Mid-engine cars react quickly to front alignment changes. Too much toe or camber can make the nose sharp but narrow the control window.",
+      "FWD front tires must steer and drive, so aggressive front toe adds heat, drag, and power-on instability.",
+    ],
+    rearAlignment: [
+      "Rear-engine or rear-heavy cars rely heavily on rear alignment for high-speed confidence. Too little rear toe or rear camber can make the rear float.",
+      "Mid-engine cars have concentrated rear inertia, so rear alignment changes are direct and should be made in small steps.",
+      "If a RWD car lacks exit traction, check that rear camber is not excessive before changing power settings.",
+    ],
+    caster: [
+      "Front-heavy cars can use more caster for self-centering and mid-corner support, but low-speed steering gets heavier.",
+      "Mid-engine and light cars already respond quickly, so high caster can make the front end too eager in linked corners.",
+      "On FWD cars, caster can help front support, but it does not replace tire pressure, camber, and anti-roll tuning.",
+    ],
+    frontArb: [
+      "Front-engine or front-heavy cars can understeer more when the front anti-roll bar is too stiff, because the outside front tire takes more lateral load.",
+      "Heavy cars may need front roll control, but too much stiffness sacrifices mechanical grip on bumps and linked corners.",
+      "Mid-engine cars can become very sharp with more front bar, but the front limit arrives more suddenly.",
+    ],
+    rearArb: [
+      "AWD and front-engine cars often use more rear bar to help rotation, but too much can make the rear step out on exit.",
+      "High-power RWD cars lose rear traction quickly when the rear bar is too stiff under throttle.",
+      "Mid-engine and rear-engine cars are very sensitive to rear bar changes, so small increases can noticeably change rear behavior.",
+    ],
+    frontSpring: [
+      "Heavy or front-heavy cars need enough front spring support, otherwise brake dive and entry inertia become larger.",
+      "Front-engine cars can understeer when front springs are too stiff. Mid-engine cars can become sharp but narrow in grip window.",
+      "Bumpy, rally, and curb-heavy routes need compliance. Too much front spring can lift the tire off the surface.",
+    ],
+    rearSpring: [
+      "RWD, high-torque, rear-engine, and rear-heavy cars lose exit traction quickly when rear springs are too stiff.",
+      "Mid-engine cars react quickly to rear spring stiffness. Too stiff feels sudden near the limit; too soft creates delay and rear float.",
+      "Heavy cars with rear springs that are too soft can squat too much and lose rear support in fast compression.",
+    ],
+    frontRideHeight: [
+      "Front-heavy cars that sit too low can bottom under braking or curbs, causing sudden front grip loss.",
+      "Lower front height can improve fast-road front confidence, but only if springs and damping keep enough compression travel.",
+      "Rally and off-road cars need front travel. The sharper response from low ride height is usually not worth losing compliance.",
+    ],
+    rearRideHeight: [
+      "Rear-engine or rear-heavy cars can float at speed if the rear is too high, or lose grip suddenly if it bottoms out.",
+      "High-torque RWD cars need enough rear travel to absorb squat, otherwise exit traction becomes inconsistent.",
+      "Mid-engine cars respond clearly to rake changes, so rear height should not be moved too much at once.",
+    ],
+    frontRebound: [
+      "Front-heavy cars need enough front rebound to control nose rise, but too much keeps the front tire from returning to the road over bumps.",
+      "Mid-engine cars carry less front load, so excessive front rebound can make linked-corner support feel harsh and less fluid.",
+      "On FWD cars, too much front rebound can reduce front tire contact during power-on exit.",
+    ],
+    rearRebound: [
+      "RWD, rear-engine, and mid-engine cars are sensitive to rear rebound because it affects exit traction after bumps.",
+      "Rear-heavy cars need enough rear rebound to calm the platform, but too much can make the rear release suddenly near the limit.",
+      "Heavy cars with rear rebound that is too low can feel floaty and delayed through linked corners.",
+    ],
+    frontBump: [
+      "Front-heavy cars put large compression load into the front under braking. Too little front bump dives, too much bounces off the road.",
+      "Curb-heavy and bumpy routes need softer front bump so the tire absorbs the surface instead of skipping.",
+      "Mid-engine cars already have quick front response, so excessive front bump makes entry sharp with less margin.",
+    ],
+    rearBump: [
+      "RWD and high-torque cars can use rear bump to control squat, but too much costs rear absorption and exit grip.",
+      "Rear-engine or rear-heavy cars can hop more over curbs and bumps when rear bump is too stiff.",
+      "Off-road, rally, and rough routes need rear compression travel to avoid sudden slide after landings or throttle inputs.",
+    ],
+    frontAero: [
+      "Fast cars or cars with a light front end can use front aero to reduce high-speed understeer, but drag increases.",
+      "Mid-engine and rear-engine cars may need front aero when the nose gets light at speed, but too much can make the rear feel relatively light.",
+      "On low-speed technical tracks, front aero has limited effect, so mechanical grip, springs, and anti-roll bars usually come first.",
+    ],
+    rearAero: [
+      "Rear-engine, mid-engine, and high-power RWD cars often need more rear aero for high-speed rear stability.",
+      "Too much rear aero calms the rear but can make the front feel weak, creating high-speed understeer.",
+      "Fast sweepers and heavy cars rely more on rear aero stability. Tight tracks should avoid giving away too much top speed.",
+    ],
+    brake: [
+      "Front-engine or front-heavy cars load the front tires heavily under braking and can usually use more front bias.",
+      "Mid-engine and rear-engine cars keep more rear load while braking. Too much front bias wastes rear grip, too much rear bias causes entry oversteer.",
+      "Heavy cars need conservative pressure steps because lockup or ABS intervention disrupts corner entry more strongly.",
+    ],
+    frontDiff: [
+      "On FWD cars, front diff settings affect traction and steering at the same time. Too much lock causes power understeer; too little spins the inside tire.",
+      "On AWD cars, high front accel lock pulls the nose wide on exit, so it must be considered with center and rear diff settings.",
+      "Front-engine high-torque cars reach front tire grip limits sooner, so front diff changes should be conservative.",
+    ],
+    rearDiff: [
+      "RWD and AWD rear diff settings decide whether throttle gives stable drive or throttle rotation.",
+      "Rear-engine and mid-engine cars carry more rear load, so excessive rear accel lock can make exit slides more sudden.",
+      "High-torque cars should start conservative, after confirming rear tires, rear springs, and rear damping are not causing the traction issue.",
+    ],
+    centerDiff: [
+      "More rear-biased AWD behaves closer to RWD, improving rotation but making the rear easier to slide.",
+      "Front-engine AWD cars with understeer can move rearward gradually. High-power or low-grip builds should keep enough front drive.",
+      "Mid-engine or rear-engine AWD responds strongly to rear bias and can become sensitive at speed and on exit.",
+    ],
+  },
+};
+
+const encyclopediaVehicleContextAliases = {
+  frontCamber: "frontAlignment",
+  frontToe: "frontAlignment",
+  rearCamber: "rearAlignment",
+  rearToe: "rearAlignment",
+  brakeBalance: "brake",
+  brakePressure: "brake",
+  frontDiffAccel: "frontDiff",
+  frontDiffDecel: "frontDiff",
+  rearDiffAccel: "rearDiff",
+  rearDiffDecel: "rearDiff",
+};
+
+function encyclopediaVehicleContextFor(item) {
+  const language = currentLanguage();
+  const notes = encyclopediaVehicleContextNotes[language] ?? encyclopediaVehicleContextNotes.zh;
+  const key = encyclopediaVehicleContextAliases[item.id] ?? item.id;
+  return notes[key] ?? notes[item.category] ?? notes.default ?? [];
+}
+
+const encyclopediaEngineContextNotes = {
+  zh: {
+    default: ["引擎類型會改變扭力來得早晚、油門是否突然，以及車子在出彎和高速延伸時需要的穩定程度。"],
+    tirePressure: [
+      "渦輪爆發型、低轉大扭力型和電動瞬間扭力型容易在補油瞬間打破輪胎抓地，驅動輪胎壓通常要用較小步調調整。",
+      "高轉馬力型與平坦扭力型輸出較線性，胎壓主要用來修正轉向反應和高速支撐，不需要過度依賴胎壓壓制打滑。",
+    ],
+    finalDrive: [
+      "高轉馬力型通常需要齒比讓轉速留在高轉輸出區；低轉大扭力型可以承受較長齒比，避免低檔輪上扭力過大。",
+      "渦輪爆發型要避免升檔後掉出增壓區；電動瞬間扭力型則常需要較長或較保守齒比，讓起步和低速出彎不要過度打滑。",
+    ],
+    frontAlignment: [
+      "高轉馬力型與平坦扭力型前端負載變化較可預期，前定位可以偏向彎中支撐和轉向精準度。",
+      "渦輪爆發型、低轉大扭力型或電動瞬間扭力型在補油時更容易把車頭推出去，FWD/AWD 前束與外傾不宜過度激進。",
+    ],
+    rearAlignment: [
+      "高扭力或渦輪爆發型車若出彎滑，後外傾過多會讓直線接地不足，後束也要保留足夠穩定。",
+      "高轉馬力型通常可以更重視高速彎後輪支撐；平坦扭力型則比較適合用小幅定位修正手感。",
+    ],
+    caster: [
+      "高轉馬力型和高速取向車可用較高後傾增加彎中支撐和高速回正。",
+      "低轉大扭力、渦輪爆發或電動瞬間扭力車若低速補油已經很敏感，後傾不宜讓前端反應過度尖銳。",
+    ],
+    frontArb: [
+      "高轉馬力型高速彎負載較高，前防傾可以用來控制車身側傾，但過硬會犧牲彎中前輪抓地。",
+      "低轉大扭力、渦輪爆發或電動瞬間扭力型出彎推頭時，不要只加硬前防傾，應先確認驅動輪牽引和差速器設定。",
+    ],
+    rearArb: [
+      "渦輪爆發、低轉大扭力和電動瞬間扭力型若後防傾太硬，補油時車尾會更容易突然滑開。",
+      "高轉馬力型和機械增壓線性型可用後防傾提高中高速旋轉，但仍要留意高速彎車尾安定。",
+    ],
+    frontSpring: [
+      "高轉馬力型高速負載和煞車速度較高，前彈簧需要足夠支撐車頭。",
+      "渦輪爆發或低轉大扭力車若出彎一補油就推頭，前彈簧過硬可能讓前輪更難貼地。",
+    ],
+    rearSpring: [
+      "低轉大扭力、渦輪爆發和電動瞬間扭力型最怕後彈簧過硬，因為補油瞬間會直接破壞後輪牽引。",
+      "高轉馬力型可用稍高後彈簧支撐高速姿態，但如果出彎轉速掉太多，後端太硬仍會拖慢回速。",
+    ],
+    frontRideHeight: [
+      "高轉馬力型和高速取向車對前端空力與壓縮行程更敏感，前車高太低觸底會讓高速前端突然失效。",
+      "低轉大扭力或渦輪爆發型低速出彎負載轉移明顯，前車高要保留足夠行程避免補油時車頭浮動。",
+    ],
+    rearRideHeight: [
+      "高扭力與電動瞬間扭力型加速蹲伏明顯，後車高太低容易壓縮到底，太高則高速車尾不穩。",
+      "高轉馬力型長時間高速負載較多，後車高要兼顧空力姿態和壓縮行程。",
+    ],
+    frontRebound: [
+      "高轉馬力型連續高速彎需要穩定前端平台，但前回彈過高會讓前輪在顛簸後貼不回地面。",
+      "低轉大扭力、渦輪爆發或電動瞬間扭力型出彎補油時，前回彈太高可能讓車頭更難重新抓住路面。",
+    ],
+    rearRebound: [
+      "渦輪爆發、低轉大扭力和電動瞬間扭力型對後回彈很敏感，太高會在補油和顛簸時中斷後輪牽引。",
+      "高轉馬力型可以用後回彈穩住高速車尾，但過高會讓連續彎後段變得僵硬。",
+    ],
+    frontBump: [
+      "高轉馬力型高速煞車與高速壓縮較強，前壓縮要支撐車頭但不能硬到彈開路面。",
+      "渦輪爆發或低轉大扭力型如果低速彎一補油就推頭，前壓縮過硬可能讓前輪更難吸收轉移。",
+    ],
+    rearBump: [
+      "低轉大扭力、渦輪爆發和電動瞬間扭力型可用後壓縮控制加速蹲伏，但過硬會直接犧牲出彎牽引。",
+      "機械增壓線性型和平坦扭力型較容易用後壓縮細修姿態，不需要一次下太重。",
+    ],
+    frontAero: [
+      "高轉馬力型和高速延伸車更依賴前空力維持高速入彎指向。",
+      "低轉大扭力或渦輪爆發型若主要問題在低速補油推頭，前空力幫助有限，應優先看機械抓地與差速器。",
+    ],
+    rearAero: [
+      "高馬力、高轉或半英里取向車需要後空力穩住高速尾部，但過多會吃掉尾速。",
+      "渦輪爆發、低轉大扭力和電動瞬間扭力型若高速補油車尾不安定，後空力可以增加安全感，但低速打滑仍要靠機械抓地處理。",
+    ],
+    brake: [
+      "高轉馬力型通常進彎速度高，煞車壓力和前後平衡要保守，避免高速入彎不穩。",
+      "低轉大扭力、渦輪爆發或電動瞬間扭力型出彎速度變化大，煞車設定要避免讓車尾在重煞後接補油時過度敏感。",
+    ],
+    frontDiff: [
+      "FWD/AWD 搭配渦輪爆發或低轉大扭力時，前差加速太高會讓補油推頭非常明顯。",
+      "平坦扭力或機械增壓線性型較容易承受較高前差鎖定；電動瞬間扭力型則要更保守避免前輪拉扯。",
+    ],
+    rearDiff: [
+      "低轉大扭力、渦輪爆發和電動瞬間扭力型通常需要較保守後差加速，避免油門一開就雙輪一起滑。",
+      "高轉馬力型可接受較積極後差來維持高速出彎推進，但仍要確認低檔不會突然甩尾。",
+    ],
+    centerDiff: [
+      "渦輪爆發、低轉大扭力和電動瞬間扭力 AWD 若太偏後，補油時會更像 RWD，車尾更容易滑。",
+      "高轉馬力型 AWD 可以用較後偏的中央差速提升旋轉和高速出彎，但低速彎仍要保留牽引餘裕。",
+    ],
+  },
+  en: {
+    default: ["Engine type changes when torque arrives, how abrupt throttle response feels, and how much stability the car needs on exit or at speed."],
+    tirePressure: [
+      "Turbo-hit, low-end torque, and instant-torque builds can break tire grip as soon as throttle is applied, so driven tire pressure should move in smaller steps.",
+      "High-RPM and flat-torque engines are more predictable, so tire pressure mainly trims steering response and high-speed support instead of masking wheelspin.",
+    ],
+    finalDrive: [
+      "High-RPM engines usually need gearing that keeps RPM in the upper power range. Low-end torque engines can use longer gearing to avoid excessive wheel torque.",
+      "Turbo-hit engines should avoid falling below boost after shifts. Instant-torque builds often need longer or calmer gearing for launch and slow exits.",
+    ],
+    frontAlignment: [
+      "High-RPM and flat-torque engines have more predictable front load changes, so front alignment can prioritize mid-corner support and precision.",
+      "Turbo-hit, low-end torque, and instant-torque builds can push the nose wide under throttle, especially on FWD/AWD, so aggressive front toe and camber need care.",
+    ],
+    rearAlignment: [
+      "On high-torque or turbo-hit cars, excessive rear camber can reduce straight-line contact and worsen exit traction, while rear toe should preserve stability.",
+      "High-RPM cars can prioritize fast-corner rear support. Flat-torque cars usually respond well to smaller alignment trims.",
+    ],
+    caster: [
+      "High-RPM and high-speed builds can use more caster for mid-corner support and self-centering.",
+      "Low-end torque, turbo-hit, and instant-torque cars may already feel sharp on throttle, so caster should not make the front end overly eager.",
+    ],
+    frontArb: [
+      "High-RPM cars carry more speed into fast corners, so front ARB can control roll, but excessive stiffness sacrifices mid-corner front grip.",
+      "If a low-end torque, turbo-hit, or instant-torque car pushes on exit, do not only stiffen the front ARB. Check traction and diff behavior first.",
+    ],
+    rearArb: [
+      "Turbo-hit, low-end torque, and instant-torque cars can snap the rear loose if rear ARB is too stiff on throttle.",
+      "High-RPM and linear supercharged builds can use rear ARB for mid/high-speed rotation, but high-speed rear stability still matters.",
+    ],
+    frontSpring: [
+      "High-RPM cars often brake and corner faster, so front springs need enough support.",
+      "On turbo-hit or low-end torque cars that push when throttle is added, overly stiff front springs can make it harder for the front tires to stay loaded.",
+    ],
+    rearSpring: [
+      "Low-end torque, turbo-hit, and instant-torque builds dislike overly stiff rear springs because throttle arrives hard and breaks rear traction.",
+      "High-RPM builds can use slightly firmer rear springs for speed support, but if RPM drops too far on exit, an overly stiff rear still hurts recovery.",
+    ],
+    frontRideHeight: [
+      "High-RPM and high-speed builds are more sensitive to front aero posture and compression travel. Bottoming makes the front suddenly lose effectiveness.",
+      "Low-end torque and turbo-hit builds create strong load transfer on exit, so front height needs enough travel to avoid nose lift and vague steering.",
+    ],
+    rearRideHeight: [
+      "High-torque and instant-torque builds squat harder. Rear height that is too low can bottom, while too high can make the rear unstable at speed.",
+      "High-RPM cars carry more sustained high-speed load, so rear height must balance aero posture and compression travel.",
+    ],
+    frontRebound: [
+      "High-RPM cars need a steady front platform in fast linked corners, but too much front rebound keeps the tire from returning over bumps.",
+      "On low-end torque, turbo-hit, or instant-torque cars, excessive front rebound can make the front end harder to regain under power.",
+    ],
+    rearRebound: [
+      "Turbo-hit, low-end torque, and instant-torque builds are very sensitive to rear rebound. Too much interrupts rear traction over bumps and throttle inputs.",
+      "High-RPM builds can use rear rebound for high-speed rear stability, but too much makes linked-corner behavior stiff.",
+    ],
+    frontBump: [
+      "High-RPM cars create stronger high-speed braking and compression loads, so front bump must support the nose without skipping off the road.",
+      "If a turbo-hit or low-end torque car pushes on slow exit, overly stiff front bump can stop the front tires from absorbing load transfer.",
+    ],
+    rearBump: [
+      "Low-end torque, turbo-hit, and instant-torque builds can use rear bump to control squat, but too much directly reduces exit traction.",
+      "Linear supercharged and flat-torque engines are easier to trim with rear bump because throttle arrival is more progressive.",
+    ],
+    frontAero: [
+      "High-RPM and high-speed builds rely more on front aero for fast-corner direction.",
+      "If a low-end torque or turbo-hit build mainly pushes on slow throttle exits, front aero has limited effect. Mechanical grip and diff behavior come first.",
+    ],
+    rearAero: [
+      "High-power, high-RPM, or half-mile builds often need rear aero for high-speed rear stability, but too much costs terminal speed.",
+      "Turbo-hit, low-end torque, and instant-torque builds can use rear aero for high-speed throttle confidence, but low-speed wheelspin still needs mechanical grip.",
+    ],
+    brake: [
+      "High-RPM builds usually arrive with higher entry speed, so brake pressure and balance should stay conservative enough for stable high-speed entry.",
+      "Low-end torque, turbo-hit, and instant-torque builds have large speed changes between braking and throttle, so avoid brake setups that make the rear nervous before power is applied.",
+    ],
+    frontDiff: [
+      "On FWD/AWD turbo-hit or low-end torque builds, too much front accel lock creates strong power understeer.",
+      "Flat-torque and linear supercharged builds tolerate more front lock. Instant-torque builds should stay conservative to avoid front tire binding.",
+    ],
+    rearDiff: [
+      "Low-end torque, turbo-hit, and instant-torque builds usually need conservative rear accel lock so both rear tires do not slide together immediately.",
+      "High-RPM builds can accept more rear lock for fast exit drive, but low-gear snap oversteer still needs checking.",
+    ],
+    centerDiff: [
+      "Turbo-hit, low-end torque, and instant-torque AWD cars become more RWD-like when biased rearward, making the rear easier to slide on throttle.",
+      "High-RPM AWD builds can use more rear bias for rotation and fast exits, but slow corners still need traction reserve.",
+    ],
+  },
+};
+
+const encyclopediaEngineContextAliases = {
+  frontTirePressure: "tirePressure",
+  rearTirePressure: "tirePressure",
+  frontCamber: "frontAlignment",
+  frontToe: "frontAlignment",
+  rearCamber: "rearAlignment",
+  rearToe: "rearAlignment",
+  frontRideHeight: "frontRideHeight",
+  rearRideHeight: "rearRideHeight",
+  brakeBalance: "brake",
+  brakePressure: "brake",
+  frontDiffAccel: "frontDiff",
+  frontDiffDecel: "frontDiff",
+  rearDiffAccel: "rearDiff",
+  rearDiffDecel: "rearDiff",
+};
+
+function encyclopediaEngineContextFor(item) {
+  const language = currentLanguage();
+  const notes = encyclopediaEngineContextNotes[language] ?? encyclopediaEngineContextNotes.zh;
+  const key = encyclopediaEngineContextAliases[item.id] ?? item.id;
+  return notes[key] ?? notes[item.category] ?? notes.default ?? [];
+}
+
+const encyclopediaInteractionNotes = {
+  zh: {
+    default: [
+      "單一部件通常不會獨立造成完整手感，真正影響車輛的是輪胎、懸吊、空力、煞車、齒比和差速器之間的平衡。",
+      "調整時先找主要症狀，再判斷是哪一組部件在同一個時機互相放大或互相抵消。",
+    ],
+    tirePressure: [
+      "胎壓會改變接地面與胎壁支撐，所以外傾角、防傾桿、彈簧或車高改過後，都應重新確認熱胎胎壓。",
+      "驅動輪胎壓會放大或緩和齒比與差速器造成的輪上扭力；出彎打滑時不要只看差速器。",
+    ],
+    finalDrive: [
+      "終傳比會把引擎扭力轉成輪上扭力，會直接放大胎壓、差速器和驅動形式帶來的牽引問題。",
+      "輪胎外徑、終傳比、紅線 RPM 和目標終端速度是一整條鏈；換輪胎尺寸後，實際齒比感受也會一起變。",
+    ],
+    frontAlignment: [
+      "前外傾與前束會改變前胎接地方式，若前防傾或前彈簧太硬，定位調整可能只是把前輪過載掩蓋起來。",
+      "煞車平衡偏前時，前輪定位會更影響入彎穩定；前束太激進會讓煞車時車頭更不安定。",
+    ],
+    rearAlignment: [
+      "後外傾與後束會和後彈簧、後防傾、後差速器一起決定車尾是穩定跟上，還是突然旋轉。",
+      "如果後胎牽引不足，過多後外傾、太硬後彈簧和過高後差鎖定常會一起放大問題。",
+    ],
+    caster: [
+      "後傾會增加轉向時的動態外傾，會和前外傾角、前胎壓、前防傾一起影響彎中前端支撐。",
+      "後傾提高後，方向盤回正和高速穩定會變強，但前束或前防傾太激進時也可能讓車頭反應過尖。",
+    ],
+    frontArb: [
+      "前防傾和後防傾是一組平衡，單純加硬前防傾通常會提高反應，但也可能減少前輪機械抓地。",
+      "前防傾需要和前彈簧、前回彈與前胎壓一起看；若路面顛簸，太硬會讓前輪更容易離地。",
+    ],
+    rearArb: [
+      "後防傾會影響車尾旋轉，會和後彈簧、後回彈、後胎壓與後差速器一起決定出彎穩定。",
+      "當後差速器已經很積極時，再加硬後防傾可能讓油門一開就變成突然甩尾。",
+    ],
+    spring: [
+      "彈簧決定車身平台支撐，阻尼決定車身移動速度，車高決定可用行程，防傾桿負責左右側傾分配。",
+      "如果彈簧基礎太硬或太軟，胎壓、外傾角和阻尼常只能短暫修飾，無法真正修正抓地窗口。",
+    ],
+    rideHeight: [
+      "車高會同時影響懸吊行程、觸底風險和空力姿態；太低會讓彈簧、阻尼和空力表現變得不穩定。",
+      "前後車高差會改變重量轉移感，調整後通常要回頭檢查彈簧、壓縮阻尼和空力平衡。",
+    ],
+    rebound: [
+      "回彈阻尼控制彈簧被壓縮後回復的速度，會直接影響連續彎、路肩和出彎後輪是否貼地。",
+      "回彈要和彈簧硬度、壓縮阻尼和車高一起看；太高會讓輪胎伸不回地面，太低會讓車身晃動拖慢反應。",
+    ],
+    bump: [
+      "壓縮阻尼控制煞車點頭、撞路肩、落地和加速蹲伏時車身吸收路面的速度。",
+      "壓縮太高會把輪胎彈離路面，太低會讓車身行程用太快，因此要搭配彈簧、車高和回彈一起調整。",
+    ],
+    aero: [
+      "空力下壓會增加高速輪胎負載，所以車高、彈簧和阻尼要支撐得住，否則高速時可能觸底或姿態飄移。",
+      "前後空力平衡會改變高速推頭或甩尾，若只加一端，通常需要回頭修正車高、彈簧或防傾桿。",
+    ],
+    brake: [
+      "煞車平衡會和前胎胎壓、前彈簧、前壓縮阻尼一起決定煞車入彎時前輪能不能承受負載。",
+      "後煞比例提高會幫助入彎旋轉，但也會和後差速器減速、後束與後胎壓一起影響車尾穩定。",
+    ],
+    frontDiff: [
+      "前差速器會和前胎胎壓、前束、終傳比及中央差速器一起決定補油時車頭是拉出去還是推出去。",
+      "前差鎖定提高後，如果前防傾或前彈簧太硬，前輪更容易同時失去轉向與牽引。",
+    ],
+    rearDiff: [
+      "後差速器會和後胎胎壓、後彈簧、後防傾與終傳比一起決定出彎時後輪是抓住還是一起滑。",
+      "後差加速太高時，降低齒比攻擊性、放軟後端支撐或調整後胎壓，可能比單純降低差速器更有效。",
+    ],
+    centerDiff: [
+      "中央差速器會把 AWD 的牽引分配到前後軸，會同時影響前差、後差、前後防傾和胎壓調整結果。",
+      "往後偏會提高旋轉但也放大後輪負擔；如果後端已經不穩，應先看後胎、後彈簧和後差速器。",
+    ],
+  },
+  en: {
+    default: [
+      "A single part rarely creates the full handling feel by itself. The car reacts to the balance between tires, suspension, aero, brakes, gearing, and differentials.",
+      "Start from the main symptom, then identify which parts are amplifying or cancelling each other at the same moment.",
+    ],
+    tirePressure: [
+      "Tire pressure changes contact patch and sidewall support, so recheck warm pressure after camber, anti-roll bar, spring, or ride-height changes.",
+      "Driven tire pressure can amplify or calm the wheel torque created by gearing and differential settings. Do not blame only the diff for exit wheelspin.",
+    ],
+    finalDrive: [
+      "Final drive converts engine torque into wheel torque, so it directly magnifies traction issues from tire pressure, differentials, and drivetrain layout.",
+      "Tire diameter, final drive, redline RPM, and target terminal speed are one chain. Changing tire size changes how the gearing feels.",
+    ],
+    frontAlignment: [
+      "Front camber and toe change how the front tires contact the road. If front ARB or front springs are too stiff, alignment may only hide front overload.",
+      "With more front brake bias, front alignment affects entry stability more. Aggressive front toe can make the nose nervous under braking.",
+    ],
+    rearAlignment: [
+      "Rear camber and toe work with rear springs, rear ARB, and rear diff to decide whether the rear follows calmly or rotates suddenly.",
+      "When rear traction is weak, excessive rear camber, stiff rear springs, and high rear diff lock often amplify the same problem.",
+    ],
+    caster: [
+      "Caster adds dynamic camber while steering, so it interacts with front camber, front pressure, and front ARB for mid-corner support.",
+      "More caster improves self-centering and speed confidence, but aggressive toe or front ARB can make the nose too sharp.",
+    ],
+    frontArb: [
+      "Front and rear anti-roll bars are a balance pair. Stiffening the front often improves response but can reduce front mechanical grip.",
+      "Front ARB should be judged with front springs, front rebound, and front tire pressure. On bumps, too much stiffness makes the front skip.",
+    ],
+    rearArb: [
+      "Rear ARB affects rotation and works with rear springs, rear rebound, rear pressure, and rear diff to decide exit stability.",
+      "If the rear diff is already aggressive, stiffening the rear ARB can turn throttle application into snap oversteer.",
+    ],
+    spring: [
+      "Springs set platform support, damping controls body-motion speed, ride height sets available travel, and anti-roll bars distribute roll stiffness.",
+      "If spring rate is fundamentally too hard or too soft, pressure, camber, and damping can only mask the grip-window issue.",
+    ],
+    rideHeight: [
+      "Ride height affects suspension travel, bottoming risk, and aero posture. Too low makes spring, damping, and aero behavior inconsistent.",
+      "Front/rear ride-height split changes weight-transfer feel, so spring, bump damping, and aero balance should be checked after height changes.",
+    ],
+    rebound: [
+      "Rebound controls how quickly the spring extends after compression, affecting linked corners, curbs, and whether tires return to the road on exit.",
+      "Rebound must match spring rate, bump damping, and ride height. Too high keeps the tire from extending; too low lets the body float.",
+    ],
+    bump: [
+      "Bump damping controls how the car absorbs brake dive, curbs, landings, and throttle squat.",
+      "Too much bump bounces the tire off the road, while too little uses travel too quickly, so it must match springs, ride height, and rebound.",
+    ],
+    aero: [
+      "Aero adds high-speed tire load, so ride height, springs, and damping must support it or the car can bottom or lose posture at speed.",
+      "Front/rear aero balance changes high-speed understeer or oversteer. If only one end changes, ride height, springs, or ARBs may need review.",
+    ],
+    brake: [
+      "Brake balance works with front pressure, front springs, and front bump damping to decide whether the front tires can carry entry load.",
+      "More rear bias can help entry rotation, but it also interacts with rear diff decel, rear toe, and rear pressure for rear stability.",
+    ],
+    frontDiff: [
+      "Front diff works with front pressure, front toe, final drive, and center diff to decide whether throttle pulls the nose or pushes it wide.",
+      "With more front lock, stiff front ARB or front springs can make the front tires lose steering and drive at the same time.",
+    ],
+    rearDiff: [
+      "Rear diff works with rear pressure, rear springs, rear ARB, and final drive to decide whether rear tires hook up or slide together.",
+      "When rear accel lock is too high, calmer gearing, softer rear support, or pressure changes may help more than only lowering diff lock.",
+    ],
+    centerDiff: [
+      "Center diff distributes AWD traction between axles, so it changes the result of front diff, rear diff, ARB, and pressure adjustments.",
+      "More rear bias improves rotation but adds rear-tire load. If the rear is already unstable, check rear tires, rear springs, and rear diff first.",
+    ],
+  },
+};
+
+const encyclopediaInteractionAliases = {
+  frontTirePressure: "tirePressure",
+  rearTirePressure: "tirePressure",
+  frontCamber: "frontAlignment",
+  frontToe: "frontAlignment",
+  rearCamber: "rearAlignment",
+  rearToe: "rearAlignment",
+  frontSpring: "spring",
+  rearSpring: "spring",
+  frontRideHeight: "rideHeight",
+  rearRideHeight: "rideHeight",
+  frontRebound: "rebound",
+  rearRebound: "rebound",
+  frontBump: "bump",
+  rearBump: "bump",
+  frontAero: "aero",
+  rearAero: "aero",
+  brakeBalance: "brake",
+  brakePressure: "brake",
+  frontDiffAccel: "frontDiff",
+  frontDiffDecel: "frontDiff",
+  rearDiffAccel: "rearDiff",
+  rearDiffDecel: "rearDiff",
+};
+
+function encyclopediaInteractionFor(item) {
+  const language = currentLanguage();
+  const notes = encyclopediaInteractionNotes[language] ?? encyclopediaInteractionNotes.zh;
+  const key = encyclopediaInteractionAliases[item.id] ?? item.id;
+  return notes[key] ?? notes[item.category] ?? notes.default ?? [];
+}
+
+const encyclopediaTireTemperatureNotes = {
+  zh: {
+    shared: {
+      summary:
+        "胎溫要看外側、中央、內側的相對溫度，而不是只看單一數字。冷代表輪胎沒有被有效使用，工作溫度代表負載分布接近合理，過熱代表該區域長時間超出抓地窗口。",
+      zones: [
+        {
+          label: "外側",
+          cold: "外側偏冷通常代表過彎時外肩沒有被充分壓上，可能入彎負載不足或外傾角過多。",
+          hot: "外側偏熱多半出現在入彎與彎中，常見原因是外傾角不足、胎壓偏低、側傾過大或防傾/彈簧支撐不足。",
+          adjust: "優先檢查外傾角與胎壓，再看防傾桿、彈簧和回彈阻尼是否讓車身側傾太多。",
+        },
+        {
+          label: "中央",
+          cold: "中央偏冷且兩側較熱時，胎面可能被胎壁變形吃掉，常見於胎壓偏低。",
+          hot: "中央偏熱通常代表胎壓偏高，接地面集中在中間，轉向或出彎會變銳但抓地窗口變窄。",
+          adjust: "先修胎壓；如果中央溫度正常但兩側過熱，再回頭檢查外傾角和車身支撐。",
+        },
+        {
+          label: "內側",
+          cold: "內側偏冷可能代表外傾角不足，彎中外側胎肩負擔較重。",
+          hot: "內側偏熱常見於外傾角過多或束角拖磨，直線、煞車或出彎接地面可能不足。",
+          adjust: "檢查外傾角與束角；如果只在長直線後內側熱，通常先減少外傾或束角，而不是改彈簧。",
+        },
+      ],
+      adjustmentOrder: [
+        "先看胎壓：中央過熱先降壓，兩側比中央熱先升壓或檢查胎壁變形。",
+        "再看外傾角：外側長期過熱多半需要更多負外傾，內側長期過熱則可能負外傾過多。",
+        "接著看支撐：同一側外肩過熱又伴隨側傾，才檢查防傾桿、彈簧、回彈與車高。",
+        "最後看動力與煞車：後胎出彎過熱看差速器與齒比，前胎煞車過熱看煞車平衡與前端壓縮支撐。",
+      ],
+    },
+    front: {
+      title: "前胎重點",
+      focus: "前胎胎溫主要用來判斷煞車、入彎、彎中推頭與轉向反應。讀取時要特別注意煞車後到入彎、以及彎中長時間負載的溫度變化。",
+      moments: [
+        {
+          label: "煞車時",
+          read: "前中央或內側快速升溫，可能是胎壓偏高、前外傾過多或煞車平衡太偏前。",
+          adjust: "先檢查前胎壓與前外傾，再微調煞車平衡、前壓縮阻尼和前彈簧支撐。",
+        },
+        {
+          label: "入彎時",
+          read: "前外側快速過熱且車頭推，通常代表前輪被外肩吃住。",
+          adjust: "可增加前負外傾、略降前胎壓，或用後防傾/後彈簧增加旋轉，避免只加硬前端。",
+        },
+        {
+          label: "彎中時",
+          read: "前外側持續過熱代表長時間側向負載過高；前內側過熱則可能是外傾角太多，低速彎接地不足。",
+          adjust: "外側熱先看外傾與側傾控制；內側熱先減少外傾或束角，再看前防傾是否過硬。",
+        },
+        {
+          label: "出彎加速時",
+          read: "FWD/AWD 前胎整體升溫且推頭，常是前輪同時負責轉向和輸出，輪上扭力過大。",
+          adjust: "檢查前胎壓、前差速器加速鎖定、終傳比與前束；不要只用胎壓壓制油門推頭。",
+        },
+      ],
+    },
+    rear: {
+      title: "後胎重點",
+      focus: "後胎胎溫主要用來判斷出彎牽引、車尾穩定與高速姿態。RWD/AWD 要特別看補油後溫度是否瞬間升高。",
+      moments: [
+        {
+          label: "入彎收油 / 重煞時",
+          read: "後內側或整體溫度突然升高且車尾不穩，可能是後束太少、後外傾過多或後差減速太低。",
+          adjust: "先檢查後束與後外傾，再看後差速器減速鎖定、煞車平衡與後回彈。",
+        },
+        {
+          label: "彎中時",
+          read: "後外側過熱且車尾慢慢滑開，常見於後防傾或後彈簧太硬、後胎壓偏低或後外傾不足。",
+          adjust: "先修後胎壓與後外傾，再檢查後防傾、後彈簧和後回彈是否讓外側後輪過載。",
+        },
+        {
+          label: "出彎加速時",
+          read: "後中央或整體快速過熱，通常是輪上扭力太大或後胎接地不足，車尾會空轉或滑動。",
+          adjust: "檢查後胎壓、後差加速鎖定、低檔齒比與後彈簧；高扭力車要避免只靠加大後差鎖定。",
+        },
+        {
+          label: "高速長彎時",
+          read: "後胎外側或整體過熱且車尾漂，可能是後空力不足、後車高姿態不穩或後端支撐不合理。",
+          adjust: "檢查後空力、後車高、後回彈和後彈簧；如果前端太強，也可能需要重新平衡前後空力。",
+        },
+      ],
+    },
+  },
+  en: {
+    shared: {
+      summary:
+        "Read tire temperature by comparing the outer, center, and inner bands rather than chasing one number. Cold means that section is not being used enough, working temperature means load is reasonably distributed, and overheated means that section has stayed beyond the grip window.",
+      zones: [
+        {
+          label: "Outer",
+          cold: "A cold outer band usually means the shoulder is not being loaded enough in corners, often from too much camber or low corner load.",
+          hot: "A hot outer band usually appears on entry and mid-corner from too little camber, low pressure, excessive roll, or weak platform support.",
+          adjust: "Check camber and pressure first, then anti-roll bars, springs, and rebound if the car rolls too much.",
+        },
+        {
+          label: "Center",
+          cold: "A cold center with hotter shoulders usually points to low pressure and sidewall deformation.",
+          hot: "A hot center usually means pressure is too high, concentrating load in the middle and narrowing the grip window.",
+          adjust: "Adjust pressure first. If the center is normal but both shoulders overheat, then inspect camber and platform support.",
+        },
+        {
+          label: "Inner",
+          cold: "A cold inner band may mean there is not enough camber and the outside shoulder is carrying most of the corner load.",
+          hot: "A hot inner band often means too much camber or toe scrub, reducing straight-line, braking, or exit contact.",
+          adjust: "Check camber and toe. If the inner band heats mainly after straights, reduce camber or toe before changing springs.",
+        },
+      ],
+      adjustmentOrder: [
+        "Start with pressure: hot center usually means lower pressure; hot shoulders with a cold center usually means raise pressure or reduce carcass flex.",
+        "Then check camber: long-term outer heat usually needs more negative camber, while long-term inner heat may mean too much negative camber.",
+        "Then inspect support: if outer shoulder heat comes with body roll, check ARBs, springs, rebound, and ride height.",
+        "Finally check torque and braking: rear exit heat points to diff and gearing; front braking heat points to brake balance and front compression support.",
+      ],
+    },
+    front: {
+      title: "Front Tire Focus",
+      focus: "Front tire temperature is best for reading braking, turn-in, mid-corner understeer, and steering response. Watch the change from braking into entry, then through sustained mid-corner load.",
+      moments: [
+        {
+          label: "Under Braking",
+          read: "Fast center or inner front heat can mean high pressure, too much front camber, or too much front brake bias.",
+          adjust: "Check front pressure and camber first, then brake balance, front bump damping, and front spring support.",
+        },
+        {
+          label: "On Entry",
+          read: "Fast outer-front overheating with understeer usually means the tire is leaning onto the outside shoulder.",
+          adjust: "Add front negative camber, lower front pressure slightly, or add rear rotation with rear ARB/spring instead of only stiffening the front.",
+        },
+        {
+          label: "Mid-Corner",
+          read: "Sustained outer-front heat means high lateral load. Inner-front heat can mean too much camber and poor low-speed contact.",
+          adjust: "For outer heat, check camber and roll control. For inner heat, reduce camber or toe, then inspect if front ARB is too stiff.",
+        },
+        {
+          label: "On Exit",
+          read: "On FWD/AWD, front tires heating as a pair with power understeer means the front axle is steering and driving beyond its grip window.",
+          adjust: "Check front pressure, front diff accel lock, final drive, and front toe. Do not use pressure alone to hide power understeer.",
+        },
+      ],
+    },
+    rear: {
+      title: "Rear Tire Focus",
+      focus: "Rear tire temperature is best for reading exit traction, rear stability, and high-speed posture. On RWD/AWD, watch whether temperature spikes right after throttle.",
+      moments: [
+        {
+          label: "Lift / Heavy Braking",
+          read: "Inner-rear or full-rear heat with instability can point to too little rear toe, too much rear camber, or low rear diff decel.",
+          adjust: "Check rear toe and camber first, then rear diff decel, brake balance, and rear rebound.",
+        },
+        {
+          label: "Mid-Corner",
+          read: "Outer-rear overheating with the rear slowly sliding usually means rear ARB/spring is too stiff, pressure is low, or rear camber is insufficient.",
+          adjust: "Correct rear pressure and camber first, then check rear ARB, rear springs, and rear rebound for outside-rear overload.",
+        },
+        {
+          label: "On Exit",
+          read: "Center or full-rear heat rising quickly usually means too much wheel torque or not enough rear contact, causing wheelspin or slide.",
+          adjust: "Check rear pressure, rear diff accel lock, low-gear ratio, and rear springs. High-torque cars should not rely only on more diff lock.",
+        },
+        {
+          label: "Fast Sweepers",
+          read: "Outer or full-rear overheating with rear float can mean weak rear aero, unstable rear ride height, or poor rear support.",
+          adjust: "Check rear aero, rear ride height, rear rebound, and rear springs. If the front is too strong, rebalance front/rear aero.",
+        },
+      ],
+    },
+  },
+};
+
+function encyclopediaTireTemperatureFor(item) {
+  if (item.id !== "frontTirePressure" && item.id !== "rearTirePressure") return null;
+  const language = currentLanguage();
+  const notes = encyclopediaTireTemperatureNotes[language] ?? encyclopediaTireTemperatureNotes.zh;
+  const axleKey = item.id === "frontTirePressure" ? "front" : "rear";
+  return {
+    shared: notes.shared,
+    axle: notes[axleKey],
+  };
+}
+
+const encyclopediaLearningNotes = {
+  zh: {
+    default: {
+      timing: ["當症狀穩定重複出現，且輪胎、路線和駕駛輸入都排除後，再調整這個部件。"],
+      mistakes: ["一次改太多項目會讓你不知道真正有效的是哪一個調整。"],
+      related: ["胎壓", "防傾桿", "彈簧", "阻尼"],
+    },
+    tirePressure: {
+      timing: ["用來做第一層手感微調，特別是轉向初段、出彎牽引、熱胎後抓地感不穩定時。", "適合在大改彈簧、防傾或差速器之前先做小幅修正。"],
+      mistakes: ["把胎壓當成萬用解法，結果用過低胎壓掩蓋懸吊或差速器問題。", "冷胎數值看起來正常，但熱胎後壓力過高或過低才是真正問題。"],
+      related: ["外傾角", "前後束", "防傾桿", "差速器", "彈簧"],
+    },
+    finalDrive: {
+      timing: ["當車輛出彎轉速太低、直線拉不動、或最後一檔用不到時，才優先檢查齒比。", "適合先決定終端速度與主要檔位區間，再細修單檔銜接。"],
+      mistakes: ["只看尾速數字而把齒比拉太長，實際賽道上反而進不到有效轉速。", "低檔太短會讓起步或慢彎出彎打滑，不能只用加速感判斷好壞。"],
+      related: ["紅線 RPM", "最高馬力 RPM", "輪胎尺寸", "差速器", "後胎胎壓"],
+    },
+    frontAlignment: {
+      timing: ["當入彎和彎中前輪抓地不足，但胎壓和防傾桿已接近合理時，再微調前輪定位。", "適合修正轉向初段、彎中推頭、直線穩定和前輪溫度分布。"],
+      mistakes: ["用過多外傾角修正推頭，導致煞車和低速彎接地變差。", "前束調太多會讓車很靈敏，但高速飄、拖速和胎溫都會惡化。"],
+      related: ["前胎胎壓", "主銷後傾", "前防傾桿", "前彈簧", "煞車平衡"],
+    },
+    rearAlignment: {
+      timing: ["當高速車尾漂、出彎牽引不足或車尾旋轉太突然時，檢查後輪定位。", "適合用來建立車尾安全感，尤其是 RWD、中置和後置車。"],
+      mistakes: ["後束太少讓車尾靈活，但高速和重煞入彎會變得不安心。", "後外傾過多會看起來穩，實際卻犧牲直線接地和出彎牽引。"],
+      related: ["後胎胎壓", "後防傾桿", "後彈簧", "後回彈阻尼", "後差速器"],
+    },
+    caster: {
+      timing: ["當你想微調方向盤回正、彎中前輪支撐和高速信心時再調後傾。", "適合在外傾角和胎壓大致正確後，用來修飾前端手感。"],
+      mistakes: ["把後傾當成解決推頭的主要工具，忽略胎壓、前防傾和外傾角。", "後傾過高會讓低速轉向變重，車頭反應不一定更快。"],
+      related: ["前外傾角", "前束", "前胎胎壓", "前防傾桿"],
+    },
+    frontArb: {
+      timing: ["當車身側傾太多、轉向初段太慢，或需要控制前端平台時使用。", "如果問題是彎中推頭，通常先避免繼續加硬前防傾。"],
+      mistakes: ["以為加硬前防傾一定會更會轉，實際上前輪抓地常會下降。", "在顛簸路線加太硬，會讓前輪更容易跳離路面。"],
+      related: ["後防傾桿", "前彈簧", "前回彈阻尼", "前外傾角", "前胎胎壓"],
+    },
+    rearArb: {
+      timing: ["當車輛彎中或出彎太推、車尾太穩、需要更多旋轉時使用。", "適合微調 AWD 或前置車的轉向意願，但要觀察出彎車尾。"],
+      mistakes: ["後防傾加太多會讓車尾突然滑，不等於真正增加抓地。", "用後防傾修正所有推頭，可能掩蓋前輪抓地或差速器問題。"],
+      related: ["前防傾桿", "後彈簧", "後回彈阻尼", "後胎胎壓", "後差速器"],
+    },
+    spring: {
+      timing: ["當車身支撐、煞車點頭、加速蹲伏或大起伏到底明顯時，再調彈簧。", "適合用來決定車輛平台基調，之後再用阻尼修飾速度。"],
+      mistakes: ["以為越硬越穩，但過硬會讓輪胎離地、彎中抓地下降。", "只調彈簧不調阻尼，容易出現支撐變了但車身回復速度不對。"],
+      related: ["車高", "回彈阻尼", "壓縮阻尼", "防傾桿", "胎壓"],
+    },
+    rideHeight: {
+      timing: ["當車輛觸底、高速姿態不穩、或越野跳躍落地不穩時檢查車高。", "適合搭配彈簧和阻尼一起看，不能只追求最低。"],
+      mistakes: ["把車高降到最低就以為一定最快，實際觸底會瞬間失去抓地。", "只調一端車高會改變車身姿態，可能同時影響入彎和出彎。"],
+      related: ["彈簧", "壓縮阻尼", "回彈阻尼", "空力", "輪胎尺寸"],
+    },
+    rebound: {
+      timing: ["當車身在壓縮後回復太快或太慢、連續彎晃動、顛簸後貼地不足時調回彈。", "適合在彈簧硬度確定後，用來修飾車身轉移速度。"],
+      mistakes: ["回彈調太高會讓輪胎伸不回地面，看似穩定但實際抓地變差。", "用回彈壓住所有晃動，可能讓車在路肩和顛簸上失去接地。"],
+      related: ["彈簧", "壓縮阻尼", "車高", "防傾桿", "胎壓"],
+    },
+    bump: {
+      timing: ["當煞車點頭、撞路肩、落地、加速蹲伏或高速壓縮太明顯時調壓縮阻尼。", "適合控制輪胎遇到路面輸入時的吸收速度。"],
+      mistakes: ["壓縮阻尼太高會讓車彈開路面，不是所有不穩都該加硬。", "壓縮高過回彈太多，常會讓車在連續顛簸中失去節奏。"],
+      related: ["回彈阻尼", "彈簧", "車高", "路肩/路面", "胎壓"],
+    },
+    aero: {
+      timing: ["當問題出現在高速彎、高速煞車或尾速段穩定時，空力才是優先工具。", "低速彎推頭或出彎打滑通常先看機械抓地，不要先加空力。"],
+      mistakes: ["用空力修低速問題，結果增加阻力但症狀沒有改善。", "只加後空力會讓高速更穩，但可能讓前端相對不足而推頭。"],
+      related: ["車高", "彈簧", "高速穩定", "齒比", "前後空力平衡"],
+    },
+    brake: {
+      timing: ["當煞車距離、入彎穩定、ABS 介入或煞車時車尾反應不對時調煞車。", "適合在輪胎和車身支撐大致正確後再細修。"],
+      mistakes: ["只加煞車壓力追求短距離，結果更容易鎖死或破壞入彎姿態。", "平衡太偏後會幫助旋轉，但也可能讓重煞入彎很危險。"],
+      related: ["前胎胎壓", "前彈簧", "前壓縮阻尼", "後差速器減速", "前後配重"],
+    },
+    frontDiff: {
+      timing: ["FWD/AWD 補油推頭、內側前輪空轉或出彎拉力不足時，檢查前差速器。", "適合在齒比和前胎抓地合理後再調整。"],
+      mistakes: ["前差加速太高會讓車頭被油門拉直，不一定代表前輪抓地不夠。", "前差太低會讓內側前輪空轉，出彎看似安全但效率變差。"],
+      related: ["前胎胎壓", "前束", "終傳比", "中央差速器", "前防傾桿"],
+    },
+    rearDiff: {
+      timing: ["RWD/AWD 出彎打滑、油門旋轉不足或入彎收油車尾不穩時，檢查後差速器。", "適合在後胎、後彈簧和齒比合理後再細修。"],
+      mistakes: ["後差加速太高會讓兩側後輪一起滑，不等於牽引更好。", "後差減速太低會讓入彎很會轉，但重煞時車尾可能不安全。"],
+      related: ["後胎胎壓", "後彈簧", "後回彈阻尼", "終傳比", "中央差速器"],
+    },
+    centerDiff: {
+      timing: ["AWD 出彎推頭、車尾不願意旋轉，或高馬力補油不穩時調中央差速器。", "適合先決定車子要偏安全牽引還是偏後驅旋轉。"],
+      mistakes: ["過度後偏會讓 AWD 失去穩定優勢，變成容易甩的 RWD 感。", "過度前偏雖然穩，但油門推頭會明顯加重。"],
+      related: ["前差速器", "後差速器", "前後防傾桿", "後胎胎壓", "齒比"],
+    },
+  },
+  en: {
+    default: {
+      timing: ["Adjust this part only after the symptom repeats consistently and tire state, route, and driving input are not the main cause."],
+      mistakes: ["Changing too many parts at once makes it impossible to know which change actually helped."],
+      related: ["Tire pressure", "Anti-roll bars", "Springs", "Damping"],
+    },
+    tirePressure: {
+      timing: ["Use it as the first layer of feel tuning, especially for initial steering, exit traction, or inconsistent warm-tire grip.", "It is often worth a small pressure change before large spring, ARB, or diff changes."],
+      mistakes: ["Using very low pressure to hide suspension or differential problems.", "Judging only cold pressure when the real issue appears after tires warm up."],
+      related: ["Camber", "Toe", "Anti-roll bars", "Differential", "Springs"],
+    },
+    finalDrive: {
+      timing: ["Check gearing when exit RPM is too low, straights feel flat, or top gear is never usable.", "Set target terminal speed and key gear range first, then refine spacing."],
+      mistakes: ["Making gearing too long because the displayed top speed looks better, even though the car cannot pull into the useful RPM range.", "Making low gears too short can create launch or slow-exit wheelspin."],
+      related: ["Redline RPM", "Peak HP RPM", "Tire size", "Differential", "Rear tire pressure"],
+    },
+    frontAlignment: {
+      timing: ["Tune front alignment when entry or mid-corner front grip is lacking after pressure and ARB are already reasonable.", "Use it to refine turn-in, mid-corner push, straight stability, and front tire loading."],
+      mistakes: ["Adding too much camber to fix understeer, then losing braking and low-speed contact.", "Using too much front toe for sharpness, which adds wander, drag, and tire heat."],
+      related: ["Front tire pressure", "Caster", "Front anti-roll bar", "Front springs", "Brake balance"],
+    },
+    rearAlignment: {
+      timing: ["Check rear alignment when the rear floats at speed, lacks exit traction, or rotates too suddenly.", "It is especially important for RWD, mid-engine, and rear-engine stability."],
+      mistakes: ["Too little rear toe can feel agile but unsafe under fast braking and high speed.", "Too much rear camber may look stable but hurts straight contact and exit drive."],
+      related: ["Rear tire pressure", "Rear anti-roll bar", "Rear springs", "Rear rebound damping", "Rear differential"],
+    },
+    caster: {
+      timing: ["Use caster to refine self-centering, mid-corner front support, and high-speed confidence.", "It works best after camber and tire pressure are already close."],
+      mistakes: ["Treating caster as the main fix for understeer while ignoring pressure, front ARB, and camber.", "Too much caster can make low-speed steering heavy without making the car faster."],
+      related: ["Front camber", "Front toe", "Front tire pressure", "Front anti-roll bar"],
+    },
+    frontArb: {
+      timing: ["Use it when roll is excessive, initial response is lazy, or the front platform needs control.", "If the main issue is mid-corner understeer, avoid stiffening the front first."],
+      mistakes: ["Assuming a stiffer front bar always turns better, when it often reduces front grip.", "Too much front bar on bumpy routes makes the front tire skip."],
+      related: ["Rear anti-roll bar", "Front springs", "Front rebound damping", "Front camber", "Front tire pressure"],
+    },
+    rearArb: {
+      timing: ["Use it when the car pushes mid-corner or exit, feels too safe at the rear, or needs more rotation.", "It is useful for AWD or front-engine rotation, but watch exit stability."],
+      mistakes: ["Too much rear bar creates sudden oversteer instead of real grip.", "Using rear bar to fix every understeer case can hide front grip or diff issues."],
+      related: ["Front anti-roll bar", "Rear springs", "Rear rebound damping", "Rear tire pressure", "Rear differential"],
+    },
+    spring: {
+      timing: ["Adjust springs when platform support, brake dive, squat, or bottoming is clearly visible.", "Use springs to set the platform, then damping to tune the speed of motion."],
+      mistakes: ["Believing stiffer always means more stable. Too stiff lifts tires and reduces corner grip.", "Changing springs without damping often fixes support but leaves the body motion wrong."],
+      related: ["Ride height", "Rebound damping", "Bump damping", "Anti-roll bars", "Tire pressure"],
+    },
+    rideHeight: {
+      timing: ["Check ride height when the car bottoms, feels unstable at speed, or lands poorly off-road.", "It should be judged together with springs and damping, not simply minimized."],
+      mistakes: ["Dropping height to minimum because lower seems faster, then losing grip from bottoming.", "Changing only one end alters rake and can affect both entry and exit."],
+      related: ["Springs", "Bump damping", "Rebound damping", "Aero", "Tire size"],
+    },
+    rebound: {
+      timing: ["Adjust rebound when the body returns too fast or too slowly, linked corners feel floaty, or tires do not return after bumps.", "Use it after spring rate is close to tune weight-transfer speed."],
+      mistakes: ["Too much rebound keeps the tire from extending back to the road, feeling stable but losing grip.", "Using rebound to suppress all motion can make curbs and bumps worse."],
+      related: ["Springs", "Bump damping", "Ride height", "Anti-roll bars", "Tire pressure"],
+    },
+    bump: {
+      timing: ["Adjust bump damping for brake dive, curb hits, landings, squat, and high-speed compression.", "It controls how the tire absorbs surface input."],
+      mistakes: ["Too much bump makes the car bounce off the road. Not every instability needs more stiffness.", "Bump that is too high relative to rebound can ruin rhythm over repeated bumps."],
+      related: ["Rebound damping", "Springs", "Ride height", "Road surface", "Tire pressure"],
+    },
+    aero: {
+      timing: ["Use aero first when the problem happens in fast corners, fast braking, or top-speed stability.", "For low-speed understeer or exit wheelspin, mechanical grip usually comes first."],
+      mistakes: ["Using aero to fix low-speed problems adds drag without solving the cause.", "Adding only rear aero calms the rear but can create relative front weakness and high-speed understeer."],
+      related: ["Ride height", "Springs", "High-speed stability", "Gearing", "Front/rear aero balance"],
+    },
+    brake: {
+      timing: ["Tune brakes when stopping distance, entry stability, ABS intervention, or rear behavior under braking feels wrong.", "Refine it after tires and platform support are close."],
+      mistakes: ["Raising pressure only for shorter stopping distance can increase lockup and damage entry posture.", "Too much rear bias helps rotation but can make heavy braking dangerous."],
+      related: ["Front tire pressure", "Front springs", "Front bump damping", "Rear diff decel", "Weight distribution"],
+    },
+    frontDiff: {
+      timing: ["On FWD/AWD, check front diff for power understeer, inside-front spin, or weak exit pull.", "Adjust it after gearing and front tire grip are reasonable."],
+      mistakes: ["Too much front accel lock pulls the nose straight under throttle.", "Too little front lock can spin the inside tire and waste exit drive."],
+      related: ["Front tire pressure", "Front toe", "Final drive", "Center differential", "Front anti-roll bar"],
+    },
+    rearDiff: {
+      timing: ["On RWD/AWD, check rear diff for exit wheelspin, weak throttle rotation, or lift-off/braking rear instability.", "Tune it after rear tires, rear springs, and gearing are reasonable."],
+      mistakes: ["Too much rear accel lock makes both rear tires slide together instead of adding traction.", "Too little rear decel can rotate well on entry but become unsafe under braking."],
+      related: ["Rear tire pressure", "Rear springs", "Rear rebound damping", "Final drive", "Center differential"],
+    },
+    centerDiff: {
+      timing: ["On AWD, tune center diff for exit understeer, reluctant rotation, or unstable high-power throttle.", "Decide whether the car should favor safe traction or rear-drive rotation."],
+      mistakes: ["Too much rear bias removes much of AWD's stability advantage.", "Too much front bias is safe but increases power understeer."],
+      related: ["Front differential", "Rear differential", "Anti-roll bars", "Rear tire pressure", "Gearing"],
+    },
+  },
+};
+
+const encyclopediaLearningAliases = {
+  frontTirePressure: "tirePressure",
+  rearTirePressure: "tirePressure",
+  frontCamber: "frontAlignment",
+  frontToe: "frontAlignment",
+  rearCamber: "rearAlignment",
+  rearToe: "rearAlignment",
+  frontSpring: "spring",
+  rearSpring: "spring",
+  frontRideHeight: "rideHeight",
+  rearRideHeight: "rideHeight",
+  frontRebound: "rebound",
+  rearRebound: "rebound",
+  frontBump: "bump",
+  rearBump: "bump",
+  frontAero: "aero",
+  rearAero: "aero",
+  brakeBalance: "brake",
+  brakePressure: "brake",
+  frontDiffAccel: "frontDiff",
+  frontDiffDecel: "frontDiff",
+  rearDiffAccel: "rearDiff",
+  rearDiffDecel: "rearDiff",
+};
+
+function encyclopediaLearningFor(item) {
+  const language = currentLanguage();
+  const notes = encyclopediaLearningNotes[language] ?? encyclopediaLearningNotes.zh;
+  const key = encyclopediaLearningAliases[item.id] ?? item.id;
+  return notes[key] ?? notes[item.category] ?? notes.default;
+}
+
 const settingCards = [
   ["前胎胎壓", "tireFront", "BAR", "熱胎後落在 2.20 到 2.35 BAR 附近為目標"],
   ["後胎胎壓", "tireRear", "BAR", "驅動輪可略低，換取出彎牽引"],
@@ -4780,6 +5814,98 @@ function encyclopediaList(items) {
   return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
 }
 
+function encyclopediaLearningBlock(titleKey, items, modifier) {
+  if (!items?.length) return "";
+  return `
+    <section class="encyclopedia-learning-block is-${modifier}">
+      <h4>${escapeHtml(t(titleKey))}</h4>
+      ${encyclopediaList(items)}
+    </section>
+  `;
+}
+
+function encyclopediaContextBlock(titleKey, items, className) {
+  if (!items?.length) return "";
+  return `
+    <section class="${className}">
+      <h4>${escapeHtml(t(titleKey))}</h4>
+      ${encyclopediaList(items)}
+    </section>
+  `;
+}
+
+function encyclopediaTireTemperatureMarkup(item) {
+  const tireTemperature = encyclopediaTireTemperatureFor(item);
+  if (!tireTemperature) return "";
+
+  const zoneMarkup = tireTemperature.shared.zones
+    .map(
+      (zone) => `
+        <article class="tire-temp-card">
+          <h5>${escapeHtml(zone.label)}</h5>
+          <p><strong>${escapeHtml(t("tireTempCold"))}</strong>${escapeHtml(zone.cold)}</p>
+          <p><strong>${escapeHtml(t("tireTempOverheated"))}</strong>${escapeHtml(zone.hot)}</p>
+          <p><strong>${escapeHtml(t("tireTempAdjust"))}</strong>${escapeHtml(zone.adjust)}</p>
+        </article>
+      `,
+    )
+    .join("");
+  const momentMarkup = tireTemperature.axle.moments
+    .map(
+      (moment) => `
+        <article class="tire-temp-moment">
+          <h5>${escapeHtml(moment.label)}</h5>
+          <p><strong>${escapeHtml(t("tireTempRead"))}</strong>${escapeHtml(moment.read)}</p>
+          <p><strong>${escapeHtml(t("tireTempAdjust"))}</strong>${escapeHtml(moment.adjust)}</p>
+        </article>
+      `,
+    )
+    .join("");
+
+  return `
+    <section class="encyclopedia-tire-temperature">
+      <div class="tire-temp-head">
+        <h4>${escapeHtml(t("encyclopediaTireTemperature"))}</h4>
+        <p>${escapeHtml(tireTemperature.shared.summary)}</p>
+      </div>
+      <div class="tire-temp-zone-grid">
+        ${zoneMarkup}
+      </div>
+      <div class="tire-temp-focus">
+        <h5>${escapeHtml(tireTemperature.axle.title)}</h5>
+        <p>${escapeHtml(tireTemperature.axle.focus)}</p>
+        <div class="tire-temp-moment-grid">
+          ${momentMarkup}
+        </div>
+      </div>
+      <div class="tire-temp-order">
+        <h5>${escapeHtml(t("encyclopediaAdjustmentTiming"))}</h5>
+        ${encyclopediaList(tireTemperature.shared.adjustmentOrder)}
+      </div>
+    </section>
+  `;
+}
+
+function encyclopediaDeepContentMarkup(item) {
+  const vehicleContext = encyclopediaVehicleContextFor(item);
+  const engineContext = encyclopediaEngineContextFor(item);
+  const interactionContext = encyclopediaInteractionFor(item);
+  const learningContext = encyclopediaLearningFor(item);
+
+  return `
+    <div class="encyclopedia-deep-content">
+      ${encyclopediaContextBlock("encyclopediaVehicleContext", vehicleContext, "encyclopedia-context")}
+      ${encyclopediaContextBlock("encyclopediaEngineContext", engineContext, "encyclopedia-engine-context")}
+      ${encyclopediaContextBlock("encyclopediaPartInteractions", interactionContext, "encyclopedia-interaction")}
+      ${encyclopediaTireTemperatureMarkup(item)}
+      <div class="encyclopedia-learning-grid">
+        ${encyclopediaLearningBlock("encyclopediaAdjustmentTiming", learningContext.timing, "timing")}
+        ${encyclopediaLearningBlock("encyclopediaCommonMistakes", learningContext.mistakes, "mistakes")}
+      </div>
+    </div>
+  `;
+}
+
 function renderEncyclopediaDetail(item) {
   const detail = document.getElementById("encyclopediaDetail");
   if (!detail) return;
@@ -4804,10 +5930,7 @@ function renderEncyclopediaDetail(item) {
           ${encyclopediaList(localizedItem.decrease)}
         </section>
       </div>
-      <section class="encyclopedia-tips">
-        <h4>${escapeHtml(t("encyclopediaTips"))}</h4>
-        ${encyclopediaList(localizedItem.tips)}
-      </section>
+      ${encyclopediaDeepContentMarkup(item)}
     </article>
   `;
 }

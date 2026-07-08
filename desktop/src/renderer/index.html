@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FH6 Telemetry</title>
+    <link rel="stylesheet" href="renderer.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <section class="toolbar primary-toolbar" aria-label="Telemetry controls">
+          <label class="field">
+            <span>UDP Port</span>
+            <input id="portInput" type="number" min="1" max="65535" value="5300" />
+          </label>
+          <button class="primary" id="startListenerButton" type="button">Start Listener</button>
+          <button id="stopListenerButton" type="button">Stop Listener</button>
+          <button class="primary" id="startSessionButton" type="button">Record</button>
+          <button id="stopSessionButton" type="button">Stop Session</button>
+          <div class="toolbar-fill" aria-hidden="true"></div>
+          <div class="topbar-actions">
+            <div class="mode-switch" role="tablist" aria-label="Telemetry mode">
+              <button class="mode-button is-active" id="liveModeButton" type="button" role="tab" aria-selected="true">Live Monitor</button>
+              <button class="mode-button" id="reviewModeButton" type="button" role="tab" aria-selected="false">Race Review</button>
+            </div>
+            <div class="status-pill" id="connectionStatus">Idle</div>
+          </div>
+        </section>
+      </header>
+
+      <section class="mode-view is-active" id="liveMode" aria-label="Realtime vehicle monitor">
+        <section class="status-grid" aria-label="Listener and session status">
+          <div class="status-cell">
+            <span>Packets</span>
+            <strong id="packetsValue">0</strong>
+          </div>
+          <div class="status-cell">
+            <span>Decoded</span>
+            <strong id="decodedValue">0</strong>
+          </div>
+          <div class="status-cell">
+            <span>Errors</span>
+            <strong id="errorsValue">0</strong>
+          </div>
+          <div class="status-cell">
+            <span>Last Packet</span>
+            <strong id="lastPacketValue">-</strong>
+          </div>
+          <div class="status-cell">
+            <span>Recording</span>
+            <strong id="recordingValue">No</strong>
+          </div>
+          <div class="status-cell">
+            <span>Samples</span>
+            <strong id="sampleCountValue">0</strong>
+          </div>
+        </section>
+      </section>
+
+      <section class="mode-view" id="reviewMode" aria-label="Race history review">
+        <section class="history-grid">
+          <article class="panel session-browser">
+            <div class="panel-header compact">
+              <div>
+                <h2>Race History</h2>
+                <p id="historyMeta">Load a recorded session for lap review.</p>
+              </div>
+              <button id="refreshSessionsButton" type="button">Refresh</button>
+            </div>
+            <div class="session-list" id="sessionList"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header compact">
+              <div>
+                <h2>Loaded Session</h2>
+                <p id="loadedSessionMeta">No session loaded.</p>
+              </div>
+              <button id="openFolderButton" type="button" disabled>Open Folder</button>
+            </div>
+            <div class="rename-row">
+              <label class="field grow">
+                <span>Record Name</span>
+                <input id="reviewNameInput" type="text" maxlength="80" placeholder="Add a name after driving" disabled />
+              </label>
+              <button id="saveSessionNameButton" type="button" disabled>Save Name</button>
+            </div>
+            <dl class="file-list">
+              <div>
+                <dt>Folder</dt>
+                <dd id="folderValue">-</dd>
+              </div>
+            </dl>
+          </article>
+        </section>
+
+        <section class="replay-panel" aria-label="Lap replay">
+          <div class="panel-header">
+            <div>
+              <h2>Lap Replay</h2>
+              <p id="replayMeta">Waiting for recorded FH6 telemetry.</p>
+            </div>
+            <label class="field lap-field">
+              <span>Lap</span>
+              <select id="lapSelect" disabled>
+                <option value="all">Session</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="elevation-strip" aria-label="Elevation profile">
+            <div class="elevation-meta">
+              <span>Elevation</span>
+              <strong id="elevationValue">-</strong>
+              <span id="slopeValue">No height data</span>
+            </div>
+            <div class="elevation-wrap">
+              <canvas id="elevationCanvas" width="1200" height="180"></canvas>
+              <p id="elevationEmptyState">Elevation profile appears after FH6 position height data is decoded.</p>
+            </div>
+          </div>
+
+          <div class="timeline">
+            <span id="replayStartLabel">0:00.000</span>
+            <input id="replaySlider" type="range" min="0" max="0" value="0" disabled />
+            <span id="replayEndLabel">0:00.000</span>
+          </div>
+        </section>
+      </section>
+
+      <section class="data-panel" aria-label="Vehicle telemetry data">
+        <div class="panel-header">
+          <div>
+            <h2 id="dataPanelTitle">Realtime Vehicle Monitor</h2>
+            <p id="channelAvailability">FH6 Data Out availability will appear after telemetry is decoded.</p>
+          </div>
+          <span class="source-pill" id="sourceModeLabel">Live</span>
+        </div>
+
+        <div class="workbench-grid">
+          <article class="map-panel">
+            <div class="map-header">
+              <h3 id="mapTitle">Live Route</h3>
+              <div class="map-actions">
+                <div class="metric-switch" role="group" aria-label="Track color channel">
+                  <button class="metric-button is-active" data-map-metric="speed" type="button">Speed</button>
+                  <button class="metric-button" data-map-metric="throttle" type="button">Throttle</button>
+                  <button class="metric-button" data-map-metric="brake" type="button">Brake</button>
+                  <button class="metric-button" data-map-metric="line" type="button">Line</button>
+                </div>
+                <span id="currentFrameLabel">Frame 0</span>
+              </div>
+            </div>
+            <div class="track-wrap">
+              <canvas id="trackCanvas" width="960" height="620"></canvas>
+              <p id="routeEmptyState">Route appears after FH6 position data is decoded.</p>
+            </div>
+          </article>
+
+          <article class="snapshot-panel">
+            <h3>Vehicle State</h3>
+            <dl class="snapshot-grid">
+              <div>
+                <dt>Speed</dt>
+                <dd><span id="speedValue">-</span> km/h</dd>
+              </div>
+              <div>
+                <dt>Gear</dt>
+                <dd id="gearValue">-</dd>
+              </div>
+              <div>
+                <dt>RPM</dt>
+                <dd id="rpmValue">-</dd>
+              </div>
+              <div>
+                <dt>RPM Load</dt>
+                <dd><span id="rpmPctValue">-</span>%</dd>
+              </div>
+              <div>
+                <dt>Power</dt>
+                <dd><span id="powerValue">-</span> hp</dd>
+              </div>
+              <div>
+                <dt>Torque</dt>
+                <dd><span id="torqueValue">-</span> Nm</dd>
+              </div>
+              <div>
+                <dt>Boost</dt>
+                <dd id="boostValue">-</dd>
+              </div>
+              <div>
+                <dt>Fuel</dt>
+                <dd id="fuelValue">-</dd>
+              </div>
+            </dl>
+          </article>
+
+          <article class="snapshot-panel">
+            <h3>Inputs and Attitude</h3>
+            <dl class="snapshot-grid">
+              <div>
+                <dt>Throttle</dt>
+                <dd><span id="throttleValue">-</span>%</dd>
+              </div>
+              <div>
+                <dt>Brake</dt>
+                <dd><span id="brakeValue">-</span>%</dd>
+              </div>
+              <div>
+                <dt>Steer</dt>
+                <dd><span id="steerValue">-</span>%</dd>
+              </div>
+              <div>
+                <dt>Handbrake</dt>
+                <dd><span id="handbrakeValue">-</span>%</dd>
+              </div>
+              <div>
+                <dt>Lat G</dt>
+                <dd id="latGValue">-</dd>
+              </div>
+              <div>
+                <dt>Long G</dt>
+                <dd id="longGValue">-</dd>
+              </div>
+              <div>
+                <dt>Yaw</dt>
+                <dd id="yawValue">-</dd>
+              </div>
+              <div>
+                <dt>Pitch Roll</dt>
+                <dd id="pitchRollValue">-</dd>
+              </div>
+            </dl>
+          </article>
+        </div>
+      </section>
+
+      <section class="wheel-section" aria-label="Tire and suspension telemetry">
+        <div class="panel-header">
+          <div>
+            <h2>Tires, Grip and Suspension</h2>
+            <p>Tire pressure and inner middle outer temperatures are shown when FH6 exposes those channels.</p>
+          </div>
+        </div>
+        <div class="wheel-grid" id="wheelGrid">
+          <article class="wheel-card" data-wheel="frontLeft">
+            <h3>Front Left</h3>
+            <dl></dl>
+          </article>
+          <article class="wheel-card" data-wheel="frontRight">
+            <h3>Front Right</h3>
+            <dl></dl>
+          </article>
+          <article class="wheel-card" data-wheel="rearLeft">
+            <h3>Rear Left</h3>
+            <dl></dl>
+          </article>
+          <article class="wheel-card" data-wheel="rearRight">
+            <h3>Rear Right</h3>
+            <dl></dl>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel findings" aria-label="Rule summary">
+        <h2>Rule Summary</h2>
+        <ul id="findingsList"></ul>
+      </section>
+
+      <footer class="log" id="messageLog" aria-live="polite"></footer>
+    </main>
+    <script src="renderer.js"></script>
+  </body>
+</html>
