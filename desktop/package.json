@@ -1,0 +1,14 @@
+{
+  "name": "fh6-tune-helper-telemetry-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop UDP telemetry recorder for FH6 Tune Lab.",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "electron": "^37.0.0"
+  }
+}
