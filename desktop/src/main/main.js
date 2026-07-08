@@ -20,7 +20,7 @@ function createWindow() {
     height: 760,
     minWidth: 720,
     minHeight: 640,
-    title: "FH6 Telemetry",
+    title: "FH6 遙測工具",
     webPreferences: {
       preload: path.join(__dirname, "../preload/telemetry-api.js"),
       contextIsolation: true,

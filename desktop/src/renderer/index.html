@@ -1,72 +1,71 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FH6 Telemetry</title>
+    <title>FH6 遙測工具</title>
     <link rel="stylesheet" href="renderer.css" />
   </head>
   <body>
     <main class="shell">
       <header class="topbar">
-        <section class="toolbar primary-toolbar" aria-label="Telemetry controls">
+        <section class="toolbar primary-toolbar" aria-label="遙測控制">
           <label class="field">
-            <span>UDP Port</span>
+            <span>UDP 連接埠</span>
             <input id="portInput" type="number" min="1" max="65535" value="5300" />
           </label>
-          <button class="primary" id="startListenerButton" type="button">Start Listener</button>
-          <button id="stopListenerButton" type="button">Stop Listener</button>
-          <button class="primary" id="startSessionButton" type="button">Record</button>
-          <button id="stopSessionButton" type="button">Stop Session</button>
+          <button class="primary" id="startListenerButton" type="button">開始接收</button>
+          <button id="stopListenerButton" type="button">停止接收</button>
+          <label class="toggle-field">
+            <input id="autoRecordToggle" type="checkbox" checked />
+            <span>自動錄製</span>
+          </label>
           <div class="toolbar-fill" aria-hidden="true"></div>
           <div class="topbar-actions">
-            <div class="mode-switch" role="tablist" aria-label="Telemetry mode">
-              <button class="mode-button is-active" id="liveModeButton" type="button" role="tab" aria-selected="true">Live Monitor</button>
-              <button class="mode-button" id="reviewModeButton" type="button" role="tab" aria-selected="false">Race Review</button>
+            <div class="mode-switch" role="tablist" aria-label="遙測模式">
+              <button class="mode-button is-active" id="liveModeButton" type="button" role="tab" aria-selected="true">即時監控</button>
+              <button class="mode-button" id="reviewModeButton" type="button" role="tab" aria-selected="false">賽事回放</button>
             </div>
-            <div class="status-pill" id="connectionStatus">Idle</div>
+            <div class="status-pill" id="connectionStatus">待命</div>
+            <div class="status-pill recording-pill" id="recordingStatus">錄製中</div>
           </div>
         </section>
       </header>
 
-      <section class="mode-view is-active" id="liveMode" aria-label="Realtime vehicle monitor">
-        <section class="status-grid" aria-label="Listener and session status">
-          <div class="status-cell">
-            <span>Packets</span>
+      <section class="mode-view is-active" id="liveMode" aria-label="即時車輛監控">
+        <section class="status-strip" aria-label="接收與賽事狀態">
+          <div class="status-chip">
+            <span>封包</span>
             <strong id="packetsValue">0</strong>
           </div>
-          <div class="status-cell">
-            <span>Decoded</span>
+          <div class="status-chip">
+            <span>解碼</span>
             <strong id="decodedValue">0</strong>
           </div>
-          <div class="status-cell">
-            <span>Errors</span>
+          <div class="status-chip">
+            <span>錯誤</span>
             <strong id="errorsValue">0</strong>
           </div>
-          <div class="status-cell">
-            <span>Last Packet</span>
+          <div class="status-chip is-wide">
+            <span>最後封包</span>
             <strong id="lastPacketValue">-</strong>
           </div>
-          <div class="status-cell">
-            <span>Recording</span>
-            <strong id="recordingValue">No</strong>
-          </div>
-          <div class="status-cell">
-            <span>Samples</span>
+          <div class="status-chip">
+            <span>樣本</span>
             <strong id="sampleCountValue">0</strong>
           </div>
         </section>
       </section>
 
-      <section class="mode-view" id="reviewMode" aria-label="Race history review">
+      <section class="mode-view" id="reviewMode" aria-label="賽事紀錄回放">
         <section class="history-grid">
           <article class="panel session-browser">
             <div class="panel-header compact">
               <div>
-                <h2>Race History</h2>
-                <p id="historyMeta">Load a recorded session for lap review.</p>
+                <h2>賽事紀錄</h2>
+                <p id="historyMeta">載入已錄製賽事來檢視單圈與路線。</p>
               </div>
-              <button id="refreshSessionsButton" type="button">Refresh</button>
+              <button id="refreshSessionsButton" type="button">重新整理</button>
             </div>
             <div class="session-list" id="sessionList"></div>
           </article>
@@ -74,50 +73,50 @@
           <article class="panel">
             <div class="panel-header compact">
               <div>
-                <h2>Loaded Session</h2>
-                <p id="loadedSessionMeta">No session loaded.</p>
+                <h2>已載入賽事</h2>
+                <p id="loadedSessionMeta">尚未載入賽事。</p>
               </div>
-              <button id="openFolderButton" type="button" disabled>Open Folder</button>
+              <button id="openFolderButton" type="button" disabled>開啟資料夾</button>
             </div>
             <div class="rename-row">
               <label class="field grow">
-                <span>Record Name</span>
-                <input id="reviewNameInput" type="text" maxlength="80" placeholder="Add a name after driving" disabled />
+                <span>紀錄名稱</span>
+                <input id="reviewNameInput" type="text" maxlength="80" placeholder="試跑後可加入名稱" disabled />
               </label>
-              <button id="saveSessionNameButton" type="button" disabled>Save Name</button>
+              <button id="saveSessionNameButton" type="button" disabled>儲存名稱</button>
             </div>
             <dl class="file-list">
               <div>
-                <dt>Folder</dt>
+                <dt>資料夾</dt>
                 <dd id="folderValue">-</dd>
               </div>
             </dl>
           </article>
         </section>
 
-        <section class="replay-panel" aria-label="Lap replay">
+        <section class="replay-panel" aria-label="單圈回放">
           <div class="panel-header">
             <div>
-              <h2>Lap Replay</h2>
-              <p id="replayMeta">Waiting for recorded FH6 telemetry.</p>
+              <h2>單圈回放</h2>
+              <p id="replayMeta">等待已錄製的 FH6 遙測資料。</p>
             </div>
             <label class="field lap-field">
-              <span>Lap</span>
+              <span>圈數</span>
               <select id="lapSelect" disabled>
-                <option value="all">Session</option>
+                <option value="all">全場</option>
               </select>
             </label>
           </div>
 
-          <div class="elevation-strip" aria-label="Elevation profile">
+          <div class="elevation-strip" aria-label="高度剖面">
             <div class="elevation-meta">
-              <span>Elevation</span>
+              <span>高度</span>
               <strong id="elevationValue">-</strong>
-              <span id="slopeValue">No height data</span>
+              <span id="slopeValue">沒有高度資料</span>
             </div>
             <div class="elevation-wrap">
               <canvas id="elevationCanvas" width="1200" height="180"></canvas>
-              <p id="elevationEmptyState">Elevation profile appears after FH6 position height data is decoded.</p>
+              <p id="elevationEmptyState">解碼到 FH6 位置高度資料後，這裡會顯示高度剖面。</p>
             </div>
           </div>
 
@@ -129,143 +128,205 @@
         </section>
       </section>
 
-      <section class="data-panel" aria-label="Vehicle telemetry data">
-        <div class="panel-header">
-          <div>
-            <h2 id="dataPanelTitle">Realtime Vehicle Monitor</h2>
-            <p id="channelAvailability">FH6 Data Out availability will appear after telemetry is decoded.</p>
+      <section class="dashboard-grid" aria-label="遙測儀表板">
+        <section class="data-panel" aria-label="車輛遙測資料">
+          <div class="panel-header">
+            <div>
+              <h2 id="dataPanelTitle">即時車輛監控</h2>
+              <p id="channelAvailability">解碼遙測後會顯示目前 FH6 Data Out 可用資料。</p>
+            </div>
+            <span class="source-pill" id="sourceModeLabel">即時</span>
           </div>
-          <span class="source-pill" id="sourceModeLabel">Live</span>
-        </div>
 
-        <div class="workbench-grid">
-          <article class="map-panel">
-            <div class="map-header">
-              <h3 id="mapTitle">Live Route</h3>
-              <div class="map-actions">
-                <div class="metric-switch" role="group" aria-label="Track color channel">
-                  <button class="metric-button is-active" data-map-metric="speed" type="button">Speed</button>
-                  <button class="metric-button" data-map-metric="throttle" type="button">Throttle</button>
-                  <button class="metric-button" data-map-metric="brake" type="button">Brake</button>
-                  <button class="metric-button" data-map-metric="line" type="button">Line</button>
+          <div class="workbench-grid">
+            <article class="map-panel">
+              <div class="map-header">
+                <h3 id="mapTitle">即時路線</h3>
+                <div class="map-actions">
+                  <div class="metric-switch" role="group" aria-label="路線顏色通道">
+                    <button class="metric-button is-active" data-map-metric="speed" type="button">速度</button>
+                    <button class="metric-button" data-map-metric="throttle" type="button">油門</button>
+                    <button class="metric-button" data-map-metric="brake" type="button">煞車</button>
+                    <button class="metric-button" data-map-metric="line" type="button">路線</button>
+                  </div>
+                  <span id="currentFrameLabel">影格 0</span>
                 </div>
-                <span id="currentFrameLabel">Frame 0</span>
               </div>
-            </div>
-            <div class="track-wrap">
-              <canvas id="trackCanvas" width="960" height="620"></canvas>
-              <p id="routeEmptyState">Route appears after FH6 position data is decoded.</p>
-            </div>
-          </article>
+              <div class="track-wrap">
+                <canvas id="trackCanvas" width="960" height="620"></canvas>
+                <p id="routeEmptyState">解碼到 FH6 位置資料後會顯示路線。</p>
+              </div>
+            </article>
 
-          <article class="snapshot-panel">
-            <h3>Vehicle State</h3>
-            <dl class="snapshot-grid">
-              <div>
-                <dt>Speed</dt>
-                <dd><span id="speedValue">-</span> km/h</dd>
-              </div>
-              <div>
-                <dt>Gear</dt>
-                <dd id="gearValue">-</dd>
-              </div>
-              <div>
-                <dt>RPM</dt>
-                <dd id="rpmValue">-</dd>
-              </div>
-              <div>
-                <dt>RPM Load</dt>
-                <dd><span id="rpmPctValue">-</span>%</dd>
-              </div>
-              <div>
-                <dt>Power</dt>
-                <dd><span id="powerValue">-</span> hp</dd>
-              </div>
-              <div>
-                <dt>Torque</dt>
-                <dd><span id="torqueValue">-</span> Nm</dd>
-              </div>
-              <div>
-                <dt>Boost</dt>
-                <dd id="boostValue">-</dd>
-              </div>
-              <div>
-                <dt>Fuel</dt>
-                <dd id="fuelValue">-</dd>
-              </div>
-            </dl>
-          </article>
+            <article class="snapshot-panel vehicle-panel">
+              <h3>車輛狀態</h3>
+              <dl class="snapshot-grid">
+                <div>
+                  <dt>速度</dt>
+                  <dd><span id="speedValue">-</span> km/h</dd>
+                </div>
+                <div>
+                  <dt>檔位</dt>
+                  <dd id="gearValue">-</dd>
+                </div>
+                <div>
+                  <dt>RPM</dt>
+                  <dd id="rpmValue">-</dd>
+                </div>
+                <div>
+                  <dt>轉速負載</dt>
+                  <dd><span id="rpmPctValue">-</span>%</dd>
+                </div>
+                <div>
+                  <dt>馬力</dt>
+                  <dd><span id="powerValue">-</span> hp</dd>
+                </div>
+                <div>
+                  <dt>扭力</dt>
+                  <dd><span id="torqueValue">-</span> Nm</dd>
+                </div>
+                <div>
+                  <dt>增壓</dt>
+                  <dd id="boostValue">-</dd>
+                </div>
+                <div>
+                  <dt>燃油</dt>
+                  <dd id="fuelValue">-</dd>
+                </div>
+              </dl>
+            </article>
 
-          <article class="snapshot-panel">
-            <h3>Inputs and Attitude</h3>
-            <dl class="snapshot-grid">
-              <div>
-                <dt>Throttle</dt>
-                <dd><span id="throttleValue">-</span>%</dd>
-              </div>
-              <div>
-                <dt>Brake</dt>
-                <dd><span id="brakeValue">-</span>%</dd>
-              </div>
-              <div>
-                <dt>Steer</dt>
-                <dd><span id="steerValue">-</span>%</dd>
-              </div>
-              <div>
-                <dt>Handbrake</dt>
-                <dd><span id="handbrakeValue">-</span>%</dd>
-              </div>
-              <div>
-                <dt>Lat G</dt>
-                <dd id="latGValue">-</dd>
-              </div>
-              <div>
-                <dt>Long G</dt>
-                <dd id="longGValue">-</dd>
-              </div>
-              <div>
-                <dt>Yaw</dt>
-                <dd id="yawValue">-</dd>
-              </div>
-              <div>
-                <dt>Pitch Roll</dt>
-                <dd id="pitchRollValue">-</dd>
-              </div>
-            </dl>
-          </article>
-        </div>
-      </section>
+            <article class="snapshot-panel input-panel">
+              <h3>操作輸入</h3>
+              <dl class="snapshot-grid">
+                <div>
+                  <dt>油門</dt>
+                  <dd><span id="throttleValue">-</span>%</dd>
+                </div>
+                <div>
+                  <dt>煞車</dt>
+                  <dd><span id="brakeValue">-</span>%</dd>
+                </div>
+                <div>
+                  <dt>離合器</dt>
+                  <dd><span id="clutchValue">-</span>%</dd>
+                </div>
+                <div>
+                  <dt>手煞車</dt>
+                  <dd><span id="handbrakeValue">-</span>%</dd>
+                </div>
+                <div>
+                  <dt>轉向</dt>
+                  <dd><span id="steerValue">-</span>%</dd>
+                </div>
+                <div>
+                  <dt>駕駛線</dt>
+                  <dd id="drivingLineValue">-</dd>
+                </div>
+                <div>
+                  <dt>AI 煞車差</dt>
+                  <dd id="aiBrakeValue">-</dd>
+                </div>
+              </dl>
+            </article>
 
-      <section class="wheel-section" aria-label="Tire and suspension telemetry">
-        <div class="panel-header">
-          <div>
-            <h2>Tires, Grip and Suspension</h2>
-            <p>Tire pressure and inner middle outer temperatures are shown when FH6 exposes those channels.</p>
+            <article class="snapshot-panel race-panel">
+              <h3>賽事與車輛資料</h3>
+              <dl class="snapshot-grid compact-grid">
+                <div>
+                  <dt>圈數 / 名次</dt>
+                  <dd id="lapRaceValue">-</dd>
+                </div>
+                <div>
+                  <dt>目前單圈</dt>
+                  <dd id="currentLapValue">-</dd>
+                </div>
+                <div>
+                  <dt>最佳 / 上一圈</dt>
+                  <dd id="bestLastLapValue">-</dd>
+                </div>
+                <div>
+                  <dt>賽事時間</dt>
+                  <dd id="raceTimeValue">-</dd>
+                </div>
+                <div>
+                  <dt>行駛距離</dt>
+                  <dd id="distanceValue">-</dd>
+                </div>
+                <div>
+                  <dt>等級 / PI</dt>
+                  <dd id="carClassValue">-</dd>
+                </div>
+                <div>
+                  <dt>傳動 / 汽缸</dt>
+                  <dd id="drivetrainValue">-</dd>
+                </div>
+              </dl>
+            </article>
+
+            <article class="snapshot-panel motion-panel">
+              <h3>動態與姿態</h3>
+              <dl class="snapshot-grid compact-grid">
+                <div>
+                  <dt>橫向 / 縱向 G</dt>
+                  <dd id="latLongGValue">-</dd>
+                </div>
+                <div>
+                  <dt>垂直 G</dt>
+                  <dd id="verticalGValue">-</dd>
+                </div>
+                <div>
+                  <dt>速度向量</dt>
+                  <dd id="velocityValue">-</dd>
+                </div>
+                <div>
+                  <dt>角速度</dt>
+                  <dd id="angularVelocityValue">-</dd>
+                </div>
+                <div>
+                  <dt>偏航</dt>
+                  <dd id="yawValue">-</dd>
+                </div>
+                <div>
+                  <dt>俯仰 / 側傾</dt>
+                  <dd id="pitchRollValue">-</dd>
+                </div>
+              </dl>
+            </article>
           </div>
-        </div>
-        <div class="wheel-grid" id="wheelGrid">
-          <article class="wheel-card" data-wheel="frontLeft">
-            <h3>Front Left</h3>
-            <dl></dl>
-          </article>
-          <article class="wheel-card" data-wheel="frontRight">
-            <h3>Front Right</h3>
-            <dl></dl>
-          </article>
-          <article class="wheel-card" data-wheel="rearLeft">
-            <h3>Rear Left</h3>
-            <dl></dl>
-          </article>
-          <article class="wheel-card" data-wheel="rearRight">
-            <h3>Rear Right</h3>
-            <dl></dl>
-          </article>
-        </div>
-      </section>
+        </section>
 
-      <section class="panel findings" aria-label="Rule summary">
-        <h2>Rule Summary</h2>
-        <ul id="findingsList"></ul>
+        <section class="wheel-section" aria-label="輪胎與懸吊遙測">
+          <div class="panel-header">
+            <div>
+              <h2>輪胎、抓地與懸吊</h2>
+              <p>顯示 FH6 Data Out 會提供的胎面溫度、輪速、滑移、路肩、積水、路面震動與懸吊行程。</p>
+            </div>
+          </div>
+          <div class="wheel-grid" id="wheelGrid">
+            <article class="wheel-card" data-wheel="frontLeft">
+              <h3>左前</h3>
+              <dl></dl>
+            </article>
+            <article class="wheel-card" data-wheel="frontRight">
+              <h3>右前</h3>
+              <dl></dl>
+            </article>
+            <article class="wheel-card" data-wheel="rearLeft">
+              <h3>左後</h3>
+              <dl></dl>
+            </article>
+            <article class="wheel-card" data-wheel="rearRight">
+              <h3>右後</h3>
+              <dl></dl>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel findings" aria-label="規則判讀摘要">
+          <h2>判讀摘要</h2>
+          <ul id="findingsList"></ul>
+        </section>
       </section>
 
       <footer class="log" id="messageLog" aria-live="polite"></footer>

@@ -30,7 +30,8 @@ class UdpTelemetryListener extends EventEmitter {
       return Promise.resolve(this.getStatus());
     }
 
-    this.port = Number(options.port ?? this.port) || 5300;
+    const requestedPort = Number(options.port ?? this.port);
+    this.port = Number.isFinite(requestedPort) && requestedPort >= 0 ? requestedPort : 5300;
     this.host = options.host ?? this.host;
     this.status.port = this.port;
     this.status.host = this.host;

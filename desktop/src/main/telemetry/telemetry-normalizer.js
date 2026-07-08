@@ -68,6 +68,7 @@ function normalizeForzaTelemetry(raw) {
     schema: "fh6-tune-helper.telemetry.sample.v1",
     gameId: raw.gameId ?? "fh6",
     packetFormat: raw.packetFormat,
+    packetLayout: raw.packetLayout ?? raw.packetFormat,
     packetLength: raw.packetLength,
     receivedAt: raw.receivedAt,
     source: raw.source ?? null,

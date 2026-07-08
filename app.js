@@ -373,14 +373,14 @@ const translations = {
     adviceAlternativeText: "原本可調整「{target}」，但目前標記為不可調。先改用 {fallbacks} 小幅補償，試車後再微調。",
     gearboxUnavailableMessage: "齒輪箱目前標記為不可調，無法產生終傳比或各檔齒比。請先使用其他仍可調項目做保守補償。",
     gearRpmNote: "紅線決定各檔最大拉轉速度，最高馬力 RPM 用來校準升檔後落點與延伸餘裕。",
-    gearTopSpeedNote: "輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留 power band 餘裕。",
+    gearTopSpeedNote: "輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留動力帶餘裕。",
     gearSpacingModeNote: "進入齒比頁時會先套入目前設定建議方案，可再自行切換。",
     gearTerminalModeNote: "終端上限會讓目標速度碰到紅線；延伸餘裕會讓目標速度落在最高馬力 RPM 到紅線之間。",
     gearEmpty: "填入檔位數、紅線 RPM、最高馬力 RPM 與目標終端速度後，這裡會依基礎配置、建議終傳比與胎規格自動計算齒比。",
     gearSummaryFinal: "建議終傳比",
     gearSummaryTop: "最高檔紅線速度",
     gearSummaryUsable: "目標終端 RPM",
-    gearSummaryUsableValue: "Power band {percent}%",
+    gearSummaryUsableValue: "動力帶 {percent}%",
     gearSummaryFirst: "1 檔紅線目標",
     gearSummaryRpmWindow: "馬力轉速區",
     gearSummaryShiftDrop: "升檔落點",
@@ -588,11 +588,11 @@ const translations = {
 Object.assign(translations.zh, {
   labelTopSpeed: "目標終端速度",
   gearRpmNote: "紅線決定各檔最大拉轉速度，最高馬力 RPM 用來校準升檔後落點與延伸餘裕。",
-  gearTopSpeedNote: "輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留 power band 餘裕。",
+  gearTopSpeedNote: "輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留動力帶餘裕。",
   gearEmpty: "填入檔位數、紅線 RPM、最高馬力 RPM 與目標終端速度後，這裡會依基礎配置、建議終傳比與胎規格自動計算齒比。",
   gearSummaryTop: "最高檔齒比上限",
   gearSummaryUsable: "目標終端 RPM",
-  gearSummaryUsableValue: "Power band {percent}%",
+  gearSummaryUsableValue: "動力帶 {percent}%",
   gearTerminalLong: "終端檔偏長，目標速度時 RPM 低於最高馬力區。",
   gearTerminalShort: "終端檔偏短，目標速度前可能太早接近紅線。",
   gearTerminalOk: "終端檔已對齊最高馬力 RPM 到紅線之間。",
@@ -613,7 +613,7 @@ Object.assign(translations.en, {
 
 Object.assign(translations.zh, {
   buttonTuneEncyclopedia: "調校百科",
-  encyclopediaEyebrow: "Tune Wiki",
+  encyclopediaEyebrow: "調校百科",
   encyclopediaTitle: "調校百科",
   encyclopediaIntro: "選擇右側部件，查看數值增加或減少會如何影響車輛動態。",
   encyclopediaPartsLabel: "改車部件",
@@ -4120,9 +4120,9 @@ const settingCards = [
   ["前胎胎壓", "tireFront", "BAR", "熱胎後落在 2.20 到 2.35 BAR 附近為目標"],
   ["後胎胎壓", "tireRear", "BAR", "驅動輪可略低，換取出彎牽引"],
   ["終傳比", "finalDrive", "", "數值越高越偏加速，越低越偏尾速"],
-  ["外傾角", "camber", "deg", "前輪通常比後輪更負"],
-  ["前後束", "toe", "deg", "前外八提升反應，後內八提升穩定"],
-  ["主銷後傾", "caster", "deg", "高角度提升回正與彎中支撐"],
+  ["外傾角", "camber", "度", "前輪通常比後輪更負"],
+  ["前後束", "toe", "度", "前外八提升反應，後內八提升穩定"],
+  ["主銷後傾", "caster", "度", "高角度提升回正與彎中支撐"],
   ["防傾桿", "arb", "", "統一換算為 1 到 65 的遊戲可調數值"],
   ["彈簧", "spring", "%", "越野偏軟，公路與高速偏硬"],
   ["車高", "ride", "%", "公路越低越穩，越野需要行程"],
@@ -4281,7 +4281,7 @@ function optionById(collection, id) {
 }
 
 function currentLanguage() {
-  return state.language === "en" ? "en" : "zh";
+  return "zh";
 }
 
 function t(key, values = {}) {
@@ -4294,13 +4294,6 @@ function t(key, values = {}) {
 }
 
 function preferredLanguage() {
-  try {
-    const savedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if (savedLanguage === "en" || savedLanguage === "zh") return savedLanguage;
-  } catch {
-    // Language persistence is optional.
-  }
-
   return "zh";
 }
 
@@ -4449,26 +4442,13 @@ function refreshLanguageUi() {
 }
 
 function setLanguage(language) {
-  state.language = language === "en" ? "en" : "zh";
-  try {
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, state.language);
-  } catch {
-    // Language persistence is optional.
-  }
+  state.language = "zh";
   refreshLanguageUi();
 }
 
 function bindLanguageSelect() {
-  state.language = preferredLanguage();
+  state.language = "zh";
   applyStaticTranslations();
-
-  const languageSelect = document.getElementById("languageSelect");
-  if (!languageSelect) return;
-
-  languageSelect.value = currentLanguage();
-  languageSelect.addEventListener("change", () => {
-    setLanguage(languageSelect.value);
-  });
 }
 
 const raceRecommendations = {

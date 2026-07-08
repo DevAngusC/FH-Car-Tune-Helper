@@ -10,19 +10,12 @@
     <main class="app-shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Unofficial Forza Horizon 6 tuner</p>
+          <p class="eyebrow">非官方 Forza Horizon 6 調校工具</p>
           <h1>FH6 Tune Lab</h1>
         </div>
         <div class="topbar-controls">
           <button class="utility-button ghost topbar-solution-button" id="solutionButton" type="button" data-i18n="buttonTuneSolutions">調校應對方案</button>
           <button class="utility-button ghost topbar-solution-button" id="encyclopediaButton" type="button" data-i18n="buttonTuneEncyclopedia">調校百科</button>
-          <label class="language-toggle" for="languageSelect">
-            <span class="sr-only" data-i18n="languageLabel">語言</span>
-            <select id="languageSelect" aria-label="語言">
-              <option value="zh">繁中</option>
-              <option value="en">EN</option>
-            </select>
-          </label>
           <label class="theme-toggle" for="themeToggle" title="切換深色模式">
             <input id="themeToggle" type="checkbox" aria-label="切換深色模式" />
             <span class="theme-toggle-track" aria-hidden="true">
@@ -34,10 +27,10 @@
         </div>
       </header>
 
-      <section class="config-page is-hidden" id="configPage" aria-label="Tune configuration">
+      <section class="config-page is-hidden" id="configPage" aria-label="調校配置">
         <div class="config-intro">
           <div>
-            <p class="eyebrow">Step 1</p>
+            <p class="eyebrow">步驟 1</p>
             <h2 data-i18n="configIntroTitle">先選你的車輛配置</h2>
           </div>
           <p>
@@ -46,7 +39,7 @@
         </div>
 
         <div class="config-layout">
-          <section class="choice-panel" aria-label="Race type">
+          <section class="choice-panel" aria-label="比賽類型">
             <div class="panel-heading">
               <span class="step-badge">01</span>
               <h3 data-i18n="labelRace">目標比賽</h3>
@@ -54,7 +47,7 @@
             <div class="option-grid" id="raceOptions"></div>
           </section>
 
-          <section class="choice-panel" aria-label="Engine curve">
+          <section class="choice-panel" aria-label="引擎曲線">
             <div class="panel-heading">
               <span class="step-badge">02</span>
               <h3 data-i18n="labelEngine">引擎曲線</h3>
@@ -62,7 +55,7 @@
             <div class="option-grid compact" id="engineOptions"></div>
           </section>
 
-          <section class="choice-panel" aria-label="Drive type">
+          <section class="choice-panel" aria-label="驅動類型">
             <div class="panel-heading">
               <span class="step-badge">03</span>
               <h3 data-i18n="labelDrive">驅動類型</h3>
@@ -70,7 +63,7 @@
             <div class="option-grid drive-grid" id="driveOptions"></div>
           </section>
 
-          <section class="choice-panel vehicle-panel" aria-label="Vehicle weight and balance">
+          <section class="choice-panel vehicle-panel" aria-label="車重與重心">
             <div class="panel-heading">
               <span class="step-badge">04</span>
               <h3 data-i18n="labelWeightBalance">車重與重心</h3>
@@ -113,7 +106,7 @@
         </div>
       </section>
 
-      <section class="result-page" id="resultPage" aria-label="Recommended tune">
+      <section class="result-page" id="resultPage" aria-label="建議調校">
         <div class="result-toolbar">
           <button class="utility-button ghost is-hidden" id="backButton" type="button" data-i18n="buttonBackConfig">返回配置</button>
           <div class="toolbar-secondary">
@@ -133,7 +126,7 @@
           </div>
         </div>
 
-        <section class="inline-config" aria-label="Live tune configuration">
+        <section class="inline-config" aria-label="即時調校配置">
           <div class="selected-tags" id="liveConfigTags"></div>
 
           <div class="tune-config-grid">
@@ -211,7 +204,7 @@
             </label>
           </div>
 
-          <div class="availability-panel" aria-label="Adjustable tune parts">
+          <div class="availability-panel" aria-label="可調校部件">
             <div class="availability-heading">
               <div>
                 <h3 data-i18n="availabilityTitle">可調項目</h3>
@@ -223,7 +216,7 @@
           </div>
         </section>
 
-        <section class="tune-stage" aria-label="Recommended tune values">
+        <section class="tune-stage" aria-label="建議調校數值">
           <div class="stage-header stage-tags-only">
             <div class="selected-tags" id="resultTags"></div>
           </div>
@@ -232,10 +225,10 @@
             <div class="meter-grid" id="meterGrid"></div>
           </div>
 
-          <div class="adjustment-range-panel" aria-label="Tune adjustment ranges">
+          <div class="adjustment-range-panel" aria-label="調校可調範圍">
             <div class="adjustment-range-heading">
               <div>
-                <p class="eyebrow">Range</p>
+                <p class="eyebrow">範圍</p>
                 <h3 data-i18n="rangeTitle">彈簧 / 空力範圍</h3>
               </div>
               <button class="utility-button ghost compact-button" id="resetAdjustmentRangesButton" type="button" data-i18n="buttonResetRange">重設範圍</button>
@@ -247,13 +240,13 @@
         </section>
       </section>
 
-      <section class="gear-page is-hidden" id="gearPage" aria-label="Gear ratio calculator">
+      <section class="gear-page is-hidden" id="gearPage" aria-label="齒比計算器">
         <div class="result-toolbar">
           <button class="utility-button ghost" id="backFromGearButton" type="button" data-i18n="buttonBackBase">返回基礎數值</button>
           <div class="selected-tags" id="gearTags"></div>
         </div>
 
-        <section class="gear-stage" aria-label="Recommended gear ratios">
+        <section class="gear-stage" aria-label="建議齒比">
           <div class="gear-calculator-layout">
             <div class="gear-input-panel">
               <label class="gear-field" for="gearCountInput">
@@ -281,7 +274,7 @@
                   <input id="gearTopSpeedInput" type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="例如 312" data-i18n-placeholder="placeholderExample312" />
                   <span class="spec-unit">km/h</span>
                 </span>
-                <span class="spec-note compact" data-i18n="gearTopSpeedNote">輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留 power band 餘裕。</span>
+                <span class="spec-note compact" data-i18n="gearTopSpeedNote">輸入你希望最高檔支援的目標速度，再用下方模式決定要貼近紅線或保留動力帶餘裕。</span>
               </label>
               <label class="gear-field" for="gearSpacingModeSelect">
                 <span class="spec-label" data-i18n="labelGearSpacingMode">齒比分布方式</span>
@@ -311,15 +304,15 @@
         </section>
       </section>
 
-      <section class="symptom-page is-hidden" id="symptomPage" aria-label="Road test symptoms">
+      <section class="symptom-page is-hidden" id="symptomPage" aria-label="試車症狀">
         <div class="result-toolbar">
           <button class="utility-button ghost" id="backToResultButton" type="button" data-i18n="buttonBackBase">返回基礎數值</button>
           <div class="selected-tags" id="symptomTags"></div>
         </div>
-        <section class="feedback-stage" aria-label="Road test feedback">
+        <section class="feedback-stage" aria-label="試車回饋">
           <div class="stage-header">
             <div>
-              <p class="eyebrow">Step 3</p>
+              <p class="eyebrow">步驟 3</p>
               <h2 id="symptomPageTitle" data-i18n="roadTestTitle">車況調校</h2>
             </div>
             <button class="utility-button ghost" id="clearIssuesButton" type="button" data-i18n="buttonClearIssues">清除狀況</button>
@@ -354,12 +347,12 @@
         </section>
       </section>
 
-      <section class="encyclopedia-page is-hidden" id="encyclopediaPage" aria-label="Tuning encyclopedia">
+      <section class="encyclopedia-page is-hidden" id="encyclopediaPage" aria-label="調校百科">
         <div class="result-toolbar">
           <button class="utility-button ghost" id="backFromEncyclopediaButton" type="button" data-i18n="buttonBackBase">返回基礎數值</button>
           <div class="selected-tags" id="encyclopediaTags"></div>
         </div>
-        <section class="encyclopedia-stage" aria-label="Tuning part encyclopedia">
+        <section class="encyclopedia-stage" aria-label="調校部件百科">
           <div class="encyclopedia-layout">
             <div class="encyclopedia-detail-panel">
               <div class="encyclopedia-detail" id="encyclopediaDetail"></div>

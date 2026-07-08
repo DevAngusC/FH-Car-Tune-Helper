@@ -37,8 +37,11 @@ select {
 }
 
 .shell {
+  width: min(100%, calc(100dvh * 16 / 9));
+  max-width: 2560px;
   min-height: 100dvh;
-  padding: 20px;
+  margin: 0 auto;
+  padding: 14px;
 }
 
 .panel-header,
@@ -51,7 +54,7 @@ select {
 }
 
 .topbar {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .topbar-actions,
@@ -189,9 +192,28 @@ p {
   color: var(--ok);
 }
 
+.recording-pill {
+  min-width: 112px;
+  opacity: 0.62;
+}
+
+.recording-pill.is-on {
+  opacity: 1;
+}
+
+.recording-pill.is-waiting {
+  border-color: rgba(232, 188, 85, 0.55);
+  color: var(--warning);
+  opacity: 1;
+}
+
+.recording-pill.is-off {
+  opacity: 0.45;
+}
+
 .toolbar {
   display: grid;
-  grid-template-columns: 120px repeat(4, max-content) minmax(0, 1fr);
+  grid-template-columns: 120px repeat(3, max-content) minmax(0, 1fr);
   gap: 12px;
   align-items: end;
   border: 1px solid var(--line);
@@ -201,7 +223,7 @@ p {
 }
 
 .primary-toolbar {
-  grid-template-columns: 120px repeat(4, max-content) minmax(16px, 1fr) max-content;
+  grid-template-columns: 120px repeat(3, max-content) minmax(16px, 1fr) max-content;
 }
 
 .primary-toolbar .topbar-actions {
@@ -221,9 +243,30 @@ p {
   gap: 6px;
 }
 
+.toggle-field {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.toggle-field input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
 .field span,
 dt,
-.status-cell span {
+.status-chip span {
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
@@ -273,14 +316,14 @@ button.primary {
   color: #061014;
 }
 
-.status-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 12px;
+.status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
 
-.status-cell,
+.status-chip,
 .panel,
 .replay-panel,
 .wheel-section,
@@ -293,23 +336,59 @@ button.primary {
   background: var(--panel);
 }
 
-.status-cell {
+.status-chip {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 30px;
+  min-width: 116px;
+  padding: 5px 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-chip.is-wide {
+  min-width: 164px;
+}
+
+.status-chip strong {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+
+.dashboard-grid {
   display: grid;
-  gap: 4px;
-  min-height: 68px;
+  grid-template-columns: minmax(0, 1.42fr) minmax(360px, 0.58fr);
+  grid-template-areas:
+    "data data"
+    "wheels findings";
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.dashboard-grid > .data-panel,
+.dashboard-grid > .wheel-section,
+.dashboard-grid > .panel {
+  margin-top: 0;
   padding: 12px;
 }
 
-.status-cell strong {
-  overflow-wrap: anywhere;
-  font-size: 20px;
+.data-panel {
+  grid-area: data;
+}
+
+.wheel-section {
+  grid-area: wheels;
+}
+
+.findings {
+  grid-area: findings;
+  overflow: hidden;
 }
 
 .replay-panel,
 .wheel-section,
 .data-panel,
 .panel {
-  margin-top: 14px;
   padding: 16px;
 }
 
@@ -448,22 +527,47 @@ input[type="range"] {
 
 .workbench-grid {
   display: grid;
-  grid-template-columns: minmax(460px, 1.5fr) minmax(260px, 0.8fr) minmax(260px, 0.8fr);
-  gap: 14px;
-  margin-top: 14px;
+  grid-template-columns: minmax(560px, 1.28fr) repeat(2, minmax(270px, 0.46fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    "map vehicle input"
+    "map race motion";
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.map-panel {
+  grid-area: map;
+}
+
+.vehicle-panel {
+  grid-area: vehicle;
+}
+
+.input-panel {
+  grid-area: input;
+}
+
+.race-panel {
+  grid-area: race;
+}
+
+.motion-panel {
+  grid-area: motion;
 }
 
 .map-panel,
 .snapshot-panel {
-  padding: 14px;
+  padding: 12px;
 }
 
 .track-wrap {
   position: relative;
   overflow: hidden;
   width: 100%;
-  aspect-ratio: 16 / 10;
-  margin-top: 12px;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  margin-top: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background:
@@ -496,7 +600,7 @@ input[type="range"] {
 .file-list,
 .wheel-card dl {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   margin: 0;
 }
 
@@ -504,13 +608,30 @@ input[type="range"] {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.snapshot-grid.compact-grid div {
+  min-height: 50px;
+  padding: 8px;
+}
+
+.snapshot-grid.compact-grid dd {
+  margin-top: 3px;
+  font-size: 15px;
+}
+
 .snapshot-grid div,
-.file-list div,
-.wheel-card dl div {
+.file-list div {
   min-height: 58px;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 10px;
+  background: var(--panel-3);
+}
+
+.wheel-card dl div {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
   background: var(--panel-3);
 }
 
@@ -525,24 +646,29 @@ dd {
 .wheel-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 14px;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .wheel-card {
-  padding: 14px;
+  padding: 10px;
 }
 
 .wheel-card h3 {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .wheel-card dl {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.wheel-card dt {
+  font-size: 10px;
+}
+
 .wheel-card dd {
-  font-size: 15px;
+  margin-top: 2px;
+  font-size: 13px;
 }
 
 .unavailable {
@@ -560,9 +686,11 @@ dd {
 
 #findingsList {
   display: grid;
-  gap: 10px;
-  margin: 14px 0 0;
+  gap: 8px;
+  max-height: 210px;
+  margin: 10px 0 0;
   padding: 0;
+  overflow: auto;
   list-style: none;
 }
 
@@ -570,7 +698,7 @@ dd {
   border: 1px solid var(--line);
   border-left: 4px solid var(--warning);
   border-radius: 8px;
-  padding: 12px;
+  padding: 10px;
   background: var(--panel-3);
 }
 
@@ -595,19 +723,41 @@ dd {
     min-width: 720px;
   }
 
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "data"
+      "wheels"
+      "findings";
+  }
+
   .toolbar:not(.primary-toolbar),
-  .status-grid,
   .history-grid,
   .rename-row,
   .workbench-grid,
   .wheel-grid {
     grid-template-columns: 1fr;
   }
+
+  .workbench-grid {
+    grid-template-rows: auto;
+    grid-template-areas:
+      "map"
+      "vehicle"
+      "input"
+      "race"
+      "motion";
+  }
+
+  .track-wrap {
+    aspect-ratio: 16 / 9;
+    height: auto;
+  }
 }
 
 @media (max-width: 980px) {
   .primary-toolbar {
-    grid-template-columns: 120px repeat(4, max-content);
+    grid-template-columns: 120px repeat(3, max-content);
   }
 
   .primary-toolbar .topbar-actions {

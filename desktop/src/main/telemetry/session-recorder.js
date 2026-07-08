@@ -21,7 +21,7 @@ class SessionRecorder {
 
   async start(metadata = {}) {
     if (this.activeSession) {
-      throw new Error("A telemetry session is already recording.");
+      throw new Error("目前已有遙測賽事正在錄製。");
     }
 
     const started = new Date();

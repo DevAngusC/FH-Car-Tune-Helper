@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld("fh6Telemetry", {
   getState: () => ipcRenderer.invoke("telemetry:get-state"),
   startListener: (options) => ipcRenderer.invoke("telemetry:start-listener", options),
   stopListener: () => ipcRenderer.invoke("telemetry:stop-listener"),
+  setAutoRecordEnabled: (enabled) => ipcRenderer.invoke("telemetry:set-auto-record", enabled),
   startSession: (metadata) => ipcRenderer.invoke("telemetry:start-session", metadata),
   stopSession: () => ipcRenderer.invoke("telemetry:stop-session"),
   listSessions: () => ipcRenderer.invoke("telemetry:list-sessions"),

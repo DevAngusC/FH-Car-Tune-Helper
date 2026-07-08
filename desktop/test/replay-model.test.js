@@ -25,9 +25,16 @@ test("creates replay frames, lap segments and route bounds", () => {
   assert.equal(replay.channels.position, true);
   assert.equal(replay.channels.elevation, true);
   assert.equal(replay.channels.tireSurfaceTemp, true);
-  assert.equal(replay.channels.tirePressure, false);
-  assert.equal(replay.channels.tireInnerMiddleOuterTemps, false);
+  assert.equal(replay.channels.racePosition, true);
+  assert.equal(replay.channels.carInfo, true);
+  assert.equal(replay.channels.fuel, true);
+  assert.equal(replay.channels.inputs, true);
+  assert.equal(replay.channels.wheelRotation, true);
+  assert.equal(replay.channels.wheelSurface, true);
   assert.equal(replay.frames[0].engine.powerHp > 100, true);
+  assert.equal(replay.frames[0].racePosition, 2);
+  assert.equal(replay.frames[0].inputs.normalizedDrivingLine, -1);
+  assert.equal(replay.frames[0].wheels.frontLeft.onRumbleStrip, true);
 });
 
 function sample({ index, lapNumber, lapTime, x, y, z }) {
@@ -35,7 +42,11 @@ function sample({ index, lapNumber, lapTime, x, y, z }) {
     receivedAt: new Date(Date.UTC(2026, 6, 8, 0, 0, index)).toISOString(),
     dash: {
       lapNumber,
+      racePosition: 2,
       currentLapSeconds: lapTime,
+      bestLapSeconds: 72,
+      lastLapSeconds: 74,
+      currentRaceTimeSeconds: 125,
       distanceTraveledM: index * 100,
       powerW: 120000,
       torqueNm: 360,
@@ -51,7 +62,17 @@ function sample({ index, lapNumber, lapTime, x, y, z }) {
       angularVelocity: { x: 0, y: 0.1, z: 0 }
     },
     engine: { rpm: 6200, maxRpm: 8000, idleRpm: 900, rpmPct: 77.5 },
-    inputs: { throttlePct: 80, brakePct: 0, clutchPct: 0, handbrakePct: 0, steerPct: 14, gear: 4 },
+    car: { class: 4, performanceIndex: 900, drivetrainType: 2, numCylinders: 6 },
+    inputs: {
+      throttlePct: 80,
+      brakePct: 0,
+      clutchPct: 0,
+      handbrakePct: 0,
+      steerPct: 14,
+      gear: 4,
+      normalizedDrivingLine: -1,
+      normalizedAIBrakeDifference: 0
+    },
     wheels: {
       frontLeft: wheel(82),
       frontRight: wheel(83),
@@ -68,6 +89,9 @@ function wheel(temp) {
     slipAngle: 2.1,
     combinedSlip: 0.34,
     rotationSpeed: 22,
+    onRumbleStrip: true,
+    puddleDepth: 0.1,
+    surfaceRumble: 0.2,
     suspensionTravelNormalized: 0.45,
     suspensionTravelMeters: 0.04
   };

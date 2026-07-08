@@ -4,6 +4,7 @@ function registerTelemetryIpc({ ipcMain, telemetryService, shell }) {
   ipcMain.handle("telemetry:get-state", () => telemetryService.getState());
   ipcMain.handle("telemetry:start-listener", async (_event, options) => telemetryService.startListener(options));
   ipcMain.handle("telemetry:stop-listener", async () => telemetryService.stopListener());
+  ipcMain.handle("telemetry:set-auto-record", async (_event, enabled) => telemetryService.setAutoRecordEnabled(enabled));
   ipcMain.handle("telemetry:start-session", async (_event, metadata) => telemetryService.startSession(metadata));
   ipcMain.handle("telemetry:stop-session", async () => telemetryService.stopSession());
   ipcMain.handle("telemetry:list-sessions", async () => telemetryService.listSessions());

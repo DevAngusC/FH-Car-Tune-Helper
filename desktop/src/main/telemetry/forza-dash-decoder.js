@@ -2,6 +2,8 @@
 
 const SLED_PACKET_LENGTH = 232;
 const DASH_MIN_PACKET_LENGTH = 311;
+const HORIZON_DASH_MIN_PACKET_LENGTH = 323;
+const HORIZON_DASH_EXTRA_BYTES = 12;
 
 const WHEEL_KEYS = ["frontLeft", "frontRight", "rearLeft", "rearRight"];
 
@@ -89,6 +91,7 @@ function decodeForzaPacket(buffer, options = {}) {
     gameId: options.gameId ?? "fh6",
     packetLength: buffer.length,
     packetFormat: buffer.length >= DASH_MIN_PACKET_LENGTH ? "dash" : "sled",
+    packetLayout: buffer.length >= HORIZON_DASH_MIN_PACKET_LENGTH ? "horizon-dash" : buffer.length >= DASH_MIN_PACKET_LENGTH ? "classic-dash" : "sled",
     receivedAt,
     source: options.source ?? null,
     isRaceOn: readInt32(buffer, offset) === 1
@@ -141,6 +144,10 @@ function decodeForzaPacket(buffer, options = {}) {
   sample.wheels = wheels;
 
   if (buffer.length >= DASH_MIN_PACKET_LENGTH) {
+    if (buffer.length >= HORIZON_DASH_MIN_PACKET_LENGTH) {
+      offset += HORIZON_DASH_EXTRA_BYTES;
+    }
+
     sample.position = readFloatVector(buffer, offset);
     offset += 12;
 
@@ -188,6 +195,7 @@ function decodeForzaPacket(buffer, options = {}) {
 
 module.exports = {
   DASH_MIN_PACKET_LENGTH,
+  HORIZON_DASH_MIN_PACKET_LENGTH,
   SLED_PACKET_LENGTH,
   WHEEL_KEYS,
   UnsupportedForzaPacketError,

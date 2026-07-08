@@ -3,16 +3,16 @@
 const api = window.fh6Telemetry;
 
 const WHEEL_FIELDS = [
-  ["tireTempC", "Surface", "C", 1],
-  ["tirePressure", "Pressure", "", 1],
-  ["tireTempInnerC", "Inner", "C", 1],
-  ["tireTempMiddleC", "Middle", "C", 1],
-  ["tireTempOuterC", "Outer", "C", 1],
-  ["combinedSlip", "Grip Slip", "", 2],
-  ["slipRatio", "Slip Ratio", "", 2],
-  ["slipAngle", "Slip Angle", "", 2],
-  ["suspensionTravelMeters", "Travel", "m", 3],
-  ["suspensionTravelNormalized", "Travel Load", "", 2]
+  ["tireTempC", "胎面溫度", "C", 1],
+  ["combinedSlip", "綜合滑移", "", 2],
+  ["slipRatio", "滑移率", "", 2],
+  ["slipAngle", "滑移角", "", 2],
+  ["rotationSpeed", "輪速", "rad/s", 1],
+  ["onRumbleStrip", "路肩", "", 0, "boolean"],
+  ["puddleDepth", "積水深度", "", 2],
+  ["surfaceRumble", "路面震動", "", 2],
+  ["suspensionTravelMeters", "懸吊行程", "m", 3],
+  ["suspensionTravelNormalized", "行程負載", "", 2]
 ];
 
 const MAP_METRICS = new Set(["speed", "throttle", "brake", "line"]);
@@ -26,8 +26,7 @@ const elements = {
   portInput: document.querySelector("#portInput"),
   startListenerButton: document.querySelector("#startListenerButton"),
   stopListenerButton: document.querySelector("#stopListenerButton"),
-  startSessionButton: document.querySelector("#startSessionButton"),
-  stopSessionButton: document.querySelector("#stopSessionButton"),
+  autoRecordToggle: document.querySelector("#autoRecordToggle"),
   refreshSessionsButton: document.querySelector("#refreshSessionsButton"),
   reviewNameInput: document.querySelector("#reviewNameInput"),
   saveSessionNameButton: document.querySelector("#saveSessionNameButton"),
@@ -45,17 +44,29 @@ const elements = {
   gearValue: document.querySelector("#gearValue"),
   throttleValue: document.querySelector("#throttleValue"),
   brakeValue: document.querySelector("#brakeValue"),
+  clutchValue: document.querySelector("#clutchValue"),
   handbrakeValue: document.querySelector("#handbrakeValue"),
   steerValue: document.querySelector("#steerValue"),
+  drivingLineValue: document.querySelector("#drivingLineValue"),
+  aiBrakeValue: document.querySelector("#aiBrakeValue"),
   powerValue: document.querySelector("#powerValue"),
   torqueValue: document.querySelector("#torqueValue"),
   boostValue: document.querySelector("#boostValue"),
   fuelValue: document.querySelector("#fuelValue"),
-  latGValue: document.querySelector("#latGValue"),
-  longGValue: document.querySelector("#longGValue"),
+  lapRaceValue: document.querySelector("#lapRaceValue"),
+  currentLapValue: document.querySelector("#currentLapValue"),
+  bestLastLapValue: document.querySelector("#bestLastLapValue"),
+  raceTimeValue: document.querySelector("#raceTimeValue"),
+  distanceValue: document.querySelector("#distanceValue"),
+  carClassValue: document.querySelector("#carClassValue"),
+  drivetrainValue: document.querySelector("#drivetrainValue"),
+  latLongGValue: document.querySelector("#latLongGValue"),
+  verticalGValue: document.querySelector("#verticalGValue"),
+  velocityValue: document.querySelector("#velocityValue"),
+  angularVelocityValue: document.querySelector("#angularVelocityValue"),
   yawValue: document.querySelector("#yawValue"),
   pitchRollValue: document.querySelector("#pitchRollValue"),
-  recordingValue: document.querySelector("#recordingValue"),
+  recordingStatus: document.querySelector("#recordingStatus"),
   sampleCountValue: document.querySelector("#sampleCountValue"),
   folderValue: document.querySelector("#folderValue"),
   findingsList: document.querySelector("#findingsList"),
@@ -102,12 +113,20 @@ refreshSessions();
 elements.liveModeButton.addEventListener("click", () => setMode("live"));
 elements.reviewModeButton.addEventListener("click", () => setMode("review"));
 elements.refreshSessionsButton.addEventListener("click", refreshSessions);
+elements.autoRecordToggle.addEventListener("change", async () => {
+  try {
+    updateState(await api.setAutoRecordEnabled(elements.autoRecordToggle.checked));
+    log(elements.autoRecordToggle.checked ? "已啟用自動錄製。" : "已停用自動錄製。");
+  } catch (error) {
+    log(error.message, true);
+  }
+});
 
 elements.startListenerButton.addEventListener("click", async () => {
   try {
     const port = Number(elements.portInput.value || 5300);
     updateState(await api.startListener({ port }));
-    log(`Listening on UDP ${port}.`);
+    log(`正在接收 UDP ${port}。`);
   } catch (error) {
     log(error.message, true);
   }
@@ -116,41 +135,7 @@ elements.startListenerButton.addEventListener("click", async () => {
 elements.stopListenerButton.addEventListener("click", async () => {
   try {
     updateState(await api.stopListener());
-    log("Listener stopped.");
-  } catch (error) {
-    log(error.message, true);
-  }
-});
-
-elements.startSessionButton.addEventListener("click", async () => {
-  try {
-    state.liveFrames = [];
-    state.latestLiveFrame = null;
-    state.replay = null;
-    state.selectedFrameIndex = 0;
-    clearReplayControls();
-    const session = await api.startSession({
-      gameId: "fh6"
-    });
-    updateSession(session);
-    renderFindings([]);
-    setMode("live");
-    log("Recording started.");
-  } catch (error) {
-    log(error.message, true);
-  }
-});
-
-elements.stopSessionButton.addEventListener("click", async () => {
-  try {
-    const session = await api.stopSession();
-    state.loadedSessionId = session?.id ?? state.loadedSessionId;
-    updateSession(session);
-    renderFindings(session?.summary?.findings ?? []);
-    setReplay(session?.summary?.replay ?? null);
-    await refreshSessions();
-    setMode("review");
-    log("Session stopped and loaded for review.");
+    log("已停止接收。");
   } catch (error) {
     log(error.message, true);
   }
@@ -189,7 +174,7 @@ api.onSample((sample) => {
   rememberLiveFrame(frame);
 
   if (state.mode === "live") {
-    renderFrame(frame, "Live");
+    renderFrame(frame, "即時");
     drawCurrentMap();
   }
 
@@ -199,7 +184,7 @@ api.onSample((sample) => {
 });
 
 api.onStatus(updateState);
-api.onSession(updateSession);
+api.onSession(handleSessionEvent);
 api.onError((message) => log(message, true));
 
 api.getState().then(updateState).catch((error) => log(error.message, true));
@@ -226,12 +211,12 @@ function setMode(mode) {
   elements.reviewModeButton.classList.toggle("is-active", !isLive);
   elements.liveModeButton.setAttribute("aria-selected", String(isLive));
   elements.reviewModeButton.setAttribute("aria-selected", String(!isLive));
-  elements.dataPanelTitle.textContent = isLive ? "Realtime Vehicle Monitor" : "Race History Review";
-  elements.sourceModeLabel.textContent = isLive ? "Live" : "Review";
-  elements.mapTitle.textContent = isLive ? "Live Route" : "Lap Map";
+  elements.dataPanelTitle.textContent = isLive ? "即時車輛監控" : "賽事紀錄回放";
+  elements.sourceModeLabel.textContent = isLive ? "即時" : "回放";
+  elements.mapTitle.textContent = isLive ? "即時路線" : "單圈地圖";
 
   if (isLive) {
-    renderFrame(state.latestLiveFrame ?? emptyFrame(), state.latestLiveFrame ? "Live" : "No live sample");
+    renderFrame(state.latestLiveFrame ?? emptyFrame(), state.latestLiveFrame ? "即時" : "尚無即時樣本");
   } else if (state.replay?.frames?.length) {
     renderReplayFrame(state.selectedFrameIndex);
   } else {
@@ -259,14 +244,16 @@ function updateState(nextState) {
   }
 
   const listener = nextState.listener ?? nextState;
+  const autoRecord = nextState.autoRecord ?? {};
   state.recording = Boolean(nextState.recording);
-  elements.connectionStatus.textContent = listener.listening ? "Listening" : "Idle";
+  elements.autoRecordToggle.checked = autoRecord.enabled !== false;
+  elements.connectionStatus.textContent = listener.listening ? "接收中" : "待命";
   elements.connectionStatus.classList.toggle("is-on", Boolean(listener.listening));
   elements.packetsValue.textContent = String(listener.packetsReceived ?? 0);
   elements.decodedValue.textContent = String(listener.packetsDecoded ?? 0);
   elements.errorsValue.textContent = String(listener.decodeErrors ?? 0);
   elements.lastPacketValue.textContent = formatClock(listener.lastPacketAt);
-  elements.recordingValue.textContent = state.recording ? "Yes" : "No";
+  setRecordingStatus(autoRecord.state ?? (state.recording ? "recording" : "idle"));
 
   if (nextState.session) {
     updateSession(nextState.session);
@@ -276,7 +263,7 @@ function updateState(nextState) {
     const frame = sampleToFrame(nextState.lastSample);
     state.latestLiveFrame = frame;
     if (state.mode === "live") {
-      renderFrame(frame, "Live");
+      renderFrame(frame, "即時");
       drawCurrentMap();
     }
   }
@@ -284,7 +271,6 @@ function updateState(nextState) {
 
 function updateSession(session) {
   if (!session) {
-    elements.recordingValue.textContent = "No";
     elements.reviewNameInput.disabled = true;
     elements.saveSessionNameButton.disabled = true;
     return;
@@ -293,7 +279,6 @@ function updateSession(session) {
   state.currentSessionId = session.id ?? state.currentSessionId;
   state.currentSessionDirectory = session.directory;
   const displayName = session.metadata?.name || session.metadata?.defaultName || session.id || "";
-  elements.recordingValue.textContent = session.endedAt ? "No" : "Yes";
   elements.sampleCountValue.textContent = String(session.sampleCount ?? 0);
   elements.folderValue.textContent = session.directory ?? "-";
   elements.openFolderButton.disabled = !session.directory;
@@ -301,14 +286,61 @@ function updateSession(session) {
   elements.reviewNameInput.disabled = !session.id;
   elements.saveSessionNameButton.disabled = !session.id;
   elements.loadedSessionMeta.textContent = session.id
-    ? `${displayName} ${session.sampleCount ?? 0} samples`
-    : "No session loaded.";
+    ? `${displayName}，${session.sampleCount ?? 0} 筆樣本`
+    : "尚未載入賽事。";
+}
+
+async function handleSessionEvent(session) {
+  if (!session) {
+    updateSession(session);
+    return;
+  }
+
+  const isNewActiveSession = !session.endedAt && session.id !== state.currentSessionId;
+  if (isNewActiveSession) {
+    state.liveFrames = [];
+    state.latestLiveFrame = null;
+    state.replay = null;
+    state.selectedFrameIndex = 0;
+    clearReplayControls();
+    renderFindings([]);
+    setMode("live");
+    log("自動錄製已開始。");
+  }
+
+  state.loadedSessionId = session.endedAt ? session.id : state.loadedSessionId;
+  updateSession(session);
+
+  if (session.endedAt) {
+    renderFindings(session.summary?.findings ?? []);
+    setReplay(session.summary?.replay ?? null);
+    await refreshSessions();
+    setMode("review");
+    log("自動錄製已儲存。");
+  }
+}
+
+function setRecordingStatus(recordState) {
+  const labels = {
+    idle: "待命",
+    off: "自動關閉",
+    waiting: "等待比賽",
+    starting: "啟動中",
+    recording: "錄製中",
+    saving: "儲存中"
+  };
+  const stateName = recordState ?? "idle";
+  elements.recordingStatus.textContent = labels[stateName] ?? labels.idle;
+  elements.recordingStatus.classList.toggle("is-on", stateName === "recording");
+  elements.recordingStatus.classList.toggle("is-waiting", stateName === "waiting" || stateName === "starting" || stateName === "saving");
+  elements.recordingStatus.classList.toggle("is-off", stateName === "off" || stateName === "idle");
+  elements.recordingStatus.setAttribute("aria-label", `自動錄製狀態：${elements.recordingStatus.textContent}`);
 }
 
 async function saveLoadedSessionName() {
   const sessionId = state.loadedSessionId ?? state.currentSessionId;
   if (!sessionId) {
-    log("Load a session before saving a name.", true);
+    log("請先載入賽事，再儲存名稱。", true);
     return;
   }
 
@@ -318,7 +350,7 @@ async function saveLoadedSessionName() {
     updateSession(session);
     await refreshSessions();
     renderSessionList();
-    log("Record name saved.");
+    log("紀錄名稱已儲存。");
   } catch (error) {
     log(error.message, true);
   }
@@ -335,11 +367,11 @@ async function refreshSessions() {
 
 function renderSessionList() {
   elements.sessionList.replaceChildren();
-  elements.historyMeta.textContent = `${state.sessions.length} recorded sessions available.`;
+  elements.historyMeta.textContent = `目前有 ${state.sessions.length} 筆已錄製賽事。`;
 
   if (!state.sessions.length) {
     const empty = document.createElement("p");
-    empty.textContent = "No recorded sessions yet.";
+    empty.textContent = "尚無已錄製賽事。";
     elements.sessionList.append(empty);
     return;
   }
@@ -355,8 +387,8 @@ function renderSessionList() {
     const meta = document.createElement("span");
     const time = document.createElement("span");
     title.textContent = session.metadata?.name || session.id;
-    meta.textContent = `${session.sampleCount ?? 0} samples ${session.hasSummary ? "summary ready" : "raw only"}`;
-    time.textContent = `${formatDateTime(session.startedAt)} ${session.endedAt ? "completed" : "open"}`;
+    meta.textContent = `${session.sampleCount ?? 0} 筆樣本，${session.hasSummary ? "摘要完成" : "僅原始資料"}`;
+    time.textContent = `${formatDateTime(session.startedAt)} ${session.endedAt ? "已完成" : "錄製中"}`;
     item.append(title, meta, time);
     item.addEventListener("click", () => loadHistorySession(session.id));
     elements.sessionList.append(item);
@@ -372,7 +404,7 @@ async function loadHistorySession(sessionId) {
     setReplay(session.summary?.replay ?? null);
     renderSessionList();
     setMode("review");
-    log(`Loaded ${session.id}.`);
+    log(`已載入 ${session.id}。`);
   } catch (error) {
     log(error.message, true);
   }
@@ -389,9 +421,9 @@ function setReplay(replay) {
   }
 
   elements.lapSelect.replaceChildren();
-  elements.lapSelect.append(new Option("Session", "all"));
+  elements.lapSelect.append(new Option("全場", "all"));
   for (const [index, lap] of replay.laps.entries()) {
-    elements.lapSelect.append(new Option(`${lap.label} ${formatLapDuration(lap)}`, String(index)));
+    elements.lapSelect.append(new Option(`${formatLapLabel(lap)} ${formatLapDuration(lap)}`, String(index)));
   }
   elements.lapSelect.disabled = replay.laps.length === 0;
 
@@ -402,10 +434,10 @@ function setReplay(replay) {
 
 function renderReplayEmpty() {
   clearReplayControls();
-  elements.replayMeta.textContent = "Waiting for recorded FH6 telemetry.";
-  elements.currentFrameLabel.textContent = "Frame 0";
+  elements.replayMeta.textContent = "等待已錄製的 FH6 遙測資料。";
+  elements.currentFrameLabel.textContent = "影格 0";
   if (state.mode === "review") {
-    renderFrame(emptyFrame(), "No frame");
+    renderFrame(emptyFrame(), "無影格");
   }
   drawCurrentMap();
   drawCurrentElevation();
@@ -419,9 +451,9 @@ function clearReplayControls() {
   elements.replayStartLabel.textContent = "0:00.000";
   elements.replayEndLabel.textContent = "0:00.000";
   elements.lapSelect.disabled = true;
-  elements.lapSelect.replaceChildren(new Option("Session", "all"));
+  elements.lapSelect.replaceChildren(new Option("全場", "all"));
   elements.elevationValue.textContent = "-";
-  elements.slopeValue.textContent = "No height data";
+  elements.slopeValue.textContent = "沒有高度資料";
 }
 
 function updateTimelineRange() {
@@ -449,9 +481,9 @@ function renderReplayFrame(frameIndex) {
   const frame = state.replay.frames[clampedIndex];
   state.selectedFrameIndex = clampedIndex;
   elements.replaySlider.value = String(clampedIndex);
-  elements.currentFrameLabel.textContent = `Frame ${frame.sourceIndex}`;
-  elements.replayMeta.textContent = `${frame.lapNumber ? `Lap ${frame.lapNumber}` : "Session"} ${formatDuration(frame.elapsedMs)} ${formatLapTime(frame.lapTimeSeconds)}`;
-  renderFrame(frame, "Review");
+  elements.currentFrameLabel.textContent = `影格 ${frame.sourceIndex}`;
+  elements.replayMeta.textContent = `${frame.lapNumber ? `第 ${frame.lapNumber} 圈` : "全場"} ${formatDuration(frame.elapsedMs)} ${formatLapTime(frame.lapTimeSeconds)}`;
+  renderFrame(frame, "回放");
   drawCurrentMap();
   drawCurrentElevation();
 }
@@ -468,20 +500,32 @@ function renderFrame(frame, modeLabel) {
   setText(elements.fuelValue, formatOptional(safeFrame.engine.fuel, 1));
   setText(elements.throttleValue, formatNumber(safeFrame.inputs.throttlePct, 0));
   setText(elements.brakeValue, formatNumber(safeFrame.inputs.brakePct, 0));
+  setText(elements.clutchValue, formatNumber(safeFrame.inputs.clutchPct, 0));
   setText(elements.handbrakeValue, formatNumber(safeFrame.inputs.handbrakePct, 0));
   setText(elements.steerValue, formatNumber(safeFrame.inputs.steerPct, 0));
-  setText(elements.latGValue, formatOptional(safeFrame.motion.accelerationG?.x, 2));
-  setText(elements.longGValue, formatOptional(safeFrame.motion.accelerationG?.z, 2));
+  setText(elements.drivingLineValue, formatSignedInteger(safeFrame.inputs.normalizedDrivingLine));
+  setText(elements.aiBrakeValue, formatSignedInteger(safeFrame.inputs.normalizedAIBrakeDifference));
+  setText(elements.lapRaceValue, formatLapRace(safeFrame));
+  setText(elements.currentLapValue, formatSeconds(safeFrame.lapTimeSeconds));
+  setText(elements.bestLastLapValue, `${formatSeconds(safeFrame.bestLapSeconds)} / ${formatSeconds(safeFrame.lastLapSeconds)}`);
+  setText(elements.raceTimeValue, formatSeconds(safeFrame.raceTimeSeconds));
+  setText(elements.distanceValue, formatDistance(safeFrame.distanceM));
+  setText(elements.carClassValue, formatCarClassAndPi(safeFrame.car));
+  setText(elements.drivetrainValue, formatDrivetrainAndCylinders(safeFrame.car));
+  setText(elements.latLongGValue, `${formatOptional(safeFrame.motion.accelerationG?.x, 2)} / ${formatOptional(safeFrame.motion.accelerationG?.z, 2)}`);
+  setText(elements.verticalGValue, formatOptional(safeFrame.motion.accelerationG?.y, 2));
+  setText(elements.velocityValue, formatVector(safeFrame.motion.velocity, 1));
+  setText(elements.angularVelocityValue, formatVector(safeFrame.motion.angularVelocity, 2));
   setText(elements.yawValue, formatDegrees(safeFrame.orientation.yaw));
   setText(elements.pitchRollValue, `${formatDegrees(safeFrame.orientation.pitch)} / ${formatDegrees(safeFrame.orientation.roll)}`);
 
   for (const card of wheelCards) {
     const wheelKey = card.dataset.wheel;
     const wheel = safeFrame.wheels[wheelKey] ?? {};
-    for (const [key, , unit, digits] of WHEEL_FIELDS) {
+    for (const [key, , unit, digits, type] of WHEEL_FIELDS) {
       const valueNode = card.querySelector(`[data-wheel-field="${key}"]`);
       const value = wheel[key];
-      valueNode.textContent = formatWheelValue(value, unit, digits);
+      valueNode.textContent = formatWheelValue(value, unit, digits, type);
       valueNode.classList.toggle("unavailable", value === null || value === undefined);
     }
   }
@@ -634,7 +678,7 @@ function drawEmptyElevation() {
   drawElevationGrid(ctx, canvas, null);
   elements.elevationEmptyState.classList.remove("is-hidden");
   elements.elevationValue.textContent = "-";
-  elements.slopeValue.textContent = "No height data";
+  elements.slopeValue.textContent = "沒有高度資料";
 }
 
 function elevationItems(range) {
@@ -774,7 +818,7 @@ function elevationPadding() {
 function updateElevationReadout(item, items) {
   if (!item) {
     elements.elevationValue.textContent = "-";
-    elements.slopeValue.textContent = "No height data";
+    elements.slopeValue.textContent = "沒有高度資料";
     return;
   }
 
@@ -1074,7 +1118,7 @@ function renderFindings(findings) {
 
   if (!findings.length) {
     const item = document.createElement("li");
-    item.textContent = "No rule findings for this session.";
+    item.textContent = "這次賽事沒有觸發明顯判讀項目。";
     elements.findingsList.append(item);
     return;
   }
@@ -1084,34 +1128,33 @@ function renderFindings(findings) {
     const title = document.createElement("strong");
     const detail = document.createElement("span");
     title.textContent = finding.title;
-    detail.textContent = `${finding.detail} Area: ${finding.suggestedArea}.`;
+    detail.textContent = `${finding.detail} 建議檢查：${finding.suggestedArea}。`;
     item.append(title, detail);
     elements.findingsList.append(item);
   }
 }
 
 function renderChannelAvailability(channels = {}) {
-  const missing = [];
-  if (!channels.tirePressure) {
-    missing.push("tire pressure");
-  }
-  if (!channels.tireInnerMiddleOuterTemps) {
-    missing.push("inner middle outer tire temps");
-  }
-
   const available = [
-    channels.position ? "route" : null,
-    channels.elevation ? "elevation" : null,
-    channels.lapTiming ? "lap time" : null,
-    channels.power ? "power" : null,
-    channels.tireSurfaceTemp ? "surface tire temp" : null,
-    channels.suspensionTravel ? "suspension travel" : null,
-    channels.wheelSlip ? "wheel slip" : null
+    channels.position ? "路線" : null,
+    channels.elevation ? "高度" : null,
+    channels.lapTiming ? "單圈時間" : null,
+    channels.racePosition ? "名次" : null,
+    channels.carInfo ? "車輛等級 / PI" : null,
+    channels.power ? "馬力" : null,
+    channels.torque ? "扭力" : null,
+    channels.boost ? "增壓" : null,
+    channels.fuel ? "燃油" : null,
+    channels.inputs ? "操作輸入" : null,
+    channels.tireSurfaceTemp ? "胎面溫度" : null,
+    channels.wheelRotation ? "輪速" : null,
+    channels.wheelSurface ? "路肩 / 積水 / 路面震動" : null,
+    channels.suspensionTravel ? "懸吊行程" : null,
+    channels.wheelSlip ? "輪胎滑移" : null
   ].filter(Boolean);
 
-  const availableText = available.length ? available.join(", ") : "core speed and input channels";
-  const missingText = missing.length ? ` Missing from Forza Data Out: ${missing.join(", ")}.` : "";
-  elements.channelAvailability.textContent = `Available: ${availableText}.${missingText}`;
+  const availableText = available.length ? available.join("、") : "基礎速度與操作通道";
+  elements.channelAvailability.textContent = `可用資料：${availableText}。FH6 Data Out 未提供胎壓與內側 / 中央 / 外側胎溫，已從介面移除。`;
 }
 
 function sampleToFrame(sample) {
@@ -1120,28 +1163,36 @@ function sampleToFrame(sample) {
     const wheel = sample.wheels?.[key] ?? {};
     wheels[key] = {
       tireTempC: wheel.tireTempC ?? null,
-      tirePressure: null,
-      tireTempInnerC: null,
-      tireTempMiddleC: null,
-      tireTempOuterC: null,
       combinedSlip: wheel.combinedSlip ?? null,
       slipRatio: wheel.slipRatio ?? null,
       slipAngle: wheel.slipAngle ?? null,
+      rotationSpeed: wheel.rotationSpeed ?? null,
+      onRumbleStrip: typeof wheel.onRumbleStrip === "boolean" ? wheel.onRumbleStrip : null,
+      puddleDepth: wheel.puddleDepth ?? null,
+      surfaceRumble: wheel.surfaceRumble ?? null,
       suspensionTravelMeters: wheel.suspensionTravelMeters ?? null,
       suspensionTravelNormalized: wheel.suspensionTravelNormalized ?? null
     };
   }
 
   return {
+    car: sample.car ?? null,
     sourceIndex: sample.timestampMs ?? 0,
     elapsedMs: 0,
     lapNumber: sample.dash?.lapNumber ?? null,
+    racePosition: sample.dash?.racePosition ?? null,
     lapTimeSeconds: sample.dash?.currentLapSeconds ?? null,
+    bestLapSeconds: sample.dash?.bestLapSeconds ?? null,
+    lastLapSeconds: sample.dash?.lastLapSeconds ?? null,
+    raceTimeSeconds: sample.dash?.currentRaceTimeSeconds ?? null,
+    distanceM: sample.dash?.distanceTraveledM ?? null,
     position: sample.motion?.position ?? { x: null, y: null, z: null },
     orientation: sample.motion?.orientation ?? { yaw: null, pitch: null, roll: null },
     motion: {
       speedKph: sample.motion?.speedKph ?? null,
-      accelerationG: sample.motion?.accelerationG ?? null
+      accelerationG: sample.motion?.accelerationG ?? null,
+      velocity: sample.motion?.velocity ?? null,
+      angularVelocity: sample.motion?.angularVelocity ?? null
     },
     engine: {
       rpm: sample.engine?.rpm ?? null,
@@ -1154,9 +1205,12 @@ function sampleToFrame(sample) {
     inputs: {
       throttlePct: sample.inputs?.throttlePct ?? null,
       brakePct: sample.inputs?.brakePct ?? null,
+      clutchPct: sample.inputs?.clutchPct ?? null,
       handbrakePct: sample.inputs?.handbrakePct ?? null,
       steerPct: sample.inputs?.steerPct ?? null,
-      gear: sample.inputs?.gear ?? null
+      gear: sample.inputs?.gear ?? null,
+      normalizedDrivingLine: sample.inputs?.normalizedDrivingLine ?? null,
+      normalizedAIBrakeDifference: sample.inputs?.normalizedAIBrakeDifference ?? null
     },
     wheels
   };
@@ -1210,11 +1264,73 @@ function formatOptional(value, digits) {
   return typeof value === "number" && Number.isFinite(value) ? value.toFixed(digits) : "-";
 }
 
-function formatWheelValue(value, unit, digits) {
+function formatWheelValue(value, unit, digits, type) {
+  if (type === "boolean") {
+    if (typeof value !== "boolean") {
+      return "-";
+    }
+    return value ? "是" : "否";
+  }
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return "-";
   }
   return `${value.toFixed(digits)}${unit ? ` ${unit}` : ""}`;
+}
+
+function formatSeconds(value) {
+  return typeof value === "number" && Number.isFinite(value) ? formatDuration(value * 1000) : "-";
+}
+
+function formatDistance(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "-";
+  }
+  return value >= 1000 ? `${(value / 1000).toFixed(2)} km` : `${value.toFixed(0)} m`;
+}
+
+function formatSignedInteger(value) {
+  return typeof value === "number" && Number.isFinite(value) ? signedNumber(value, 0) : "-";
+}
+
+function formatLapRace(frame) {
+  const lap = typeof frame.lapNumber === "number" ? `第 ${frame.lapNumber} 圈` : "圈數 -";
+  const position = typeof frame.racePosition === "number" ? `第 ${frame.racePosition} 名` : "名次 -";
+  return `${lap} / ${position}`;
+}
+
+function formatCarClassAndPi(car) {
+  if (!car) {
+    return "-";
+  }
+  const carClass = formatCarClass(car.class);
+  const pi = typeof car.performanceIndex === "number" ? car.performanceIndex : "-";
+  return `${carClass} / PI ${pi}`;
+}
+
+function formatCarClass(value) {
+  const labels = ["D", "C", "B", "A", "S1", "S2", "X"];
+  return typeof value === "number" && labels[value] ? labels[value] : "-";
+}
+
+function formatDrivetrainAndCylinders(car) {
+  if (!car) {
+    return "-";
+  }
+  const drivetrains = ["FWD", "RWD", "AWD"];
+  const drivetrain = typeof car.drivetrainType === "number" ? drivetrains[car.drivetrainType] ?? String(car.drivetrainType) : "-";
+  const cylinders = typeof car.numCylinders === "number" ? `${car.numCylinders} 缸` : "-";
+  return `${drivetrain} / ${cylinders}`;
+}
+
+function formatVector(vector, digits) {
+  if (!vector) {
+    return "-";
+  }
+  const values = [vector.x, vector.y, vector.z];
+  if (values.some((value) => typeof value !== "number" || !Number.isFinite(value))) {
+    return "-";
+  }
+  return values.map((value) => value.toFixed(digits)).join(" / ");
 }
 
 function formatClock(value) {
@@ -1243,7 +1359,18 @@ function formatDuration(milliseconds) {
 }
 
 function formatLapTime(seconds) {
-  return typeof seconds === "number" && Number.isFinite(seconds) ? `Lap time ${formatDuration(seconds * 1000)}` : "";
+  return typeof seconds === "number" && Number.isFinite(seconds) ? `單圈時間 ${formatDuration(seconds * 1000)}` : "";
+}
+
+function formatLapLabel(lap) {
+  if (typeof lap?.lapNumber === "number") {
+    return `第 ${lap.lapNumber} 圈`;
+  }
+  if (lap?.label === "Session") {
+    return "全場";
+  }
+  const detected = String(lap?.label ?? "").match(/^Lap (\d+)$/);
+  return detected ? `第 ${detected[1]} 圈` : lap?.label ?? "全場";
 }
 
 function formatLapDuration(lap) {
@@ -1252,7 +1379,7 @@ function formatLapDuration(lap) {
 
 function formatSlope(slope) {
   if (!slope || typeof slope.percent !== "number" || !Number.isFinite(slope.percent)) {
-    return "Slope unavailable";
+    return "坡度不可用";
   }
 
   const grade = slope.percent;
@@ -1260,10 +1387,10 @@ function formatSlope(slope) {
   const distanceText = typeof slope.distanceM === "number" ? `${slope.distanceM.toFixed(0)} m` : "-";
 
   if (Math.abs(grade) < 0.35) {
-    return `Level ${signedNumber(grade, 1)}% (${deltaText} / ${distanceText})`;
+    return `平路 ${signedNumber(grade, 1)}% (${deltaText} / ${distanceText})`;
   }
 
-  return `${grade > 0 ? "Uphill" : "Downhill"} ${signedNumber(grade, 1)}% (${deltaText} / ${distanceText})`;
+  return `${grade > 0 ? "上坡" : "下坡"} ${signedNumber(grade, 1)}% (${deltaText} / ${distanceText})`;
 }
 
 function signedNumber(value, digits) {
@@ -1277,7 +1404,7 @@ function formatDegrees(value) {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return "-";
   }
-  return `${((value * 180) / Math.PI).toFixed(1)} deg`;
+  return `${((value * 180) / Math.PI).toFixed(1)} 度`;
 }
 
 function wattsToHp(value) {

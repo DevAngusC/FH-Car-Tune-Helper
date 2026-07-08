@@ -52,10 +52,6 @@ function sampleToFrame(sample, sourceIndex, baseTime) {
     wheels[wheelKey] = {
       label: WHEEL_LABELS[wheelKey],
       tireTempC: numberOrNull(wheel.tireTempC),
-      tirePressure: null,
-      tireTempInnerC: null,
-      tireTempMiddleC: null,
-      tireTempOuterC: null,
       slipRatio: numberOrNull(wheel.slipRatio),
       slipAngle: numberOrNull(wheel.slipAngle),
       combinedSlip: numberOrNull(wheel.combinedSlip),
@@ -72,8 +68,13 @@ function sampleToFrame(sample, sourceIndex, baseTime) {
     sourceIndex,
     receivedAt: sample.receivedAt ?? null,
     elapsedMs,
+    car: sample.car ?? null,
     lapNumber: numberOrNull(sample.dash?.lapNumber),
+    racePosition: numberOrNull(sample.dash?.racePosition),
     lapTimeSeconds: numberOrNull(sample.dash?.currentLapSeconds),
+    bestLapSeconds: numberOrNull(sample.dash?.bestLapSeconds),
+    lastLapSeconds: numberOrNull(sample.dash?.lastLapSeconds),
+    raceTimeSeconds: numberOrNull(sample.dash?.currentRaceTimeSeconds),
     distanceM: numberOrNull(sample.dash?.distanceTraveledM),
     position: {
       x: numberOrNull(sample.motion?.position?.x),
@@ -108,7 +109,9 @@ function sampleToFrame(sample, sourceIndex, baseTime) {
       clutchPct: numberOrNull(sample.inputs?.clutchPct),
       handbrakePct: numberOrNull(sample.inputs?.handbrakePct),
       steerPct: numberOrNull(sample.inputs?.steerPct),
-      gear: sample.inputs?.gear ?? null
+      gear: sample.inputs?.gear ?? null,
+      normalizedDrivingLine: numberOrNull(sample.inputs?.normalizedDrivingLine),
+      normalizedAIBrakeDifference: numberOrNull(sample.inputs?.normalizedAIBrakeDifference)
     },
     wheels
   };
@@ -202,14 +205,27 @@ function detectChannels(samples) {
     position: samples.some((sample) => hasPosition(sample.motion?.position)),
     elevation: samples.some((sample) => hasElevation(sample.motion?.position)),
     lapTiming: samples.some((sample) => typeof sample.dash?.currentLapSeconds === "number"),
+    racePosition: samples.some((sample) => typeof sample.dash?.racePosition === "number"),
+    carInfo: samples.some((sample) => typeof sample.car?.performanceIndex === "number"),
     power: samples.some((sample) => typeof sample.dash?.powerW === "number"),
     torque: samples.some((sample) => typeof sample.dash?.torqueNm === "number"),
     boost: samples.some((sample) => typeof sample.dash?.boost === "number"),
+    fuel: samples.some((sample) => typeof sample.dash?.fuel === "number"),
+    inputs: samples.some((sample) => typeof sample.inputs?.throttlePct === "number"),
     tireSurfaceTemp: samples.some((sample) =>
       Object.values(sample.wheels ?? {}).some((wheel) => typeof wheel.tireTempC === "number")
     ),
-    tirePressure: false,
-    tireInnerMiddleOuterTemps: false,
+    wheelRotation: samples.some((sample) =>
+      Object.values(sample.wheels ?? {}).some((wheel) => typeof wheel.rotationSpeed === "number")
+    ),
+    wheelSurface: samples.some((sample) =>
+      Object.values(sample.wheels ?? {}).some(
+        (wheel) =>
+          typeof wheel.onRumbleStrip === "boolean" ||
+          typeof wheel.puddleDepth === "number" ||
+          typeof wheel.surfaceRumble === "number"
+      )
+    ),
     suspensionTravel: samples.some((sample) =>
       Object.values(sample.wheels ?? {}).some((wheel) => typeof wheel.suspensionTravelMeters === "number")
     ),

@@ -1,5 +1,6 @@
 "use strict";
 
+const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
 const { createTelemetrySummary } = require("../telemetry/rules-engine");
@@ -27,17 +28,19 @@ async function listSessions(sessionRoot) {
     const sessionFile = path.join(directory, "session.json");
     try {
       const session = JSON.parse(await fsp.readFile(sessionFile, "utf8"));
+      const samplesFile = path.join(directory, session.files?.samples ?? "samples.ndjson");
       const summaryFile = path.join(directory, session.files?.summary ?? "summary.json");
+      const sampleCount = await resolveSampleCount(session, samplesFile, summaryFile);
       sessions.push({
         id: session.id ?? entry.name,
         directory,
         startedAt: session.startedAt ?? null,
         endedAt: session.endedAt ?? null,
-        sampleCount: session.sampleCount ?? 0,
+        sampleCount,
         metadata: session.metadata ?? {},
         files: {
           session: sessionFile,
-          samples: path.join(directory, session.files?.samples ?? "samples.ndjson"),
+          samples: samplesFile,
           summary: summaryFile
         },
         hasSummary: await fileExists(summaryFile)
@@ -70,12 +73,17 @@ async function loadSession(sessionRoot, sessionId) {
     summary = createTelemetrySummary(await readNdjson(samplesFile), session.metadata ?? {});
   }
 
+  let sampleCount = Math.max(session.sampleCount ?? 0, summary?.sampleCount ?? 0);
+  if (sampleCount === 0 && (await fileExists(samplesFile))) {
+    sampleCount = await countNdjsonLines(samplesFile);
+  }
+
   return {
     id: session.id ?? sessionId,
     directory,
     startedAt: session.startedAt ?? null,
     endedAt: session.endedAt ?? null,
-    sampleCount: session.sampleCount ?? 0,
+    sampleCount,
     metadata: session.metadata ?? {},
     files: {
       session: sessionFile,
@@ -113,13 +121,13 @@ async function updateSessionName(sessionRoot, sessionId, name) {
 
 function resolveSessionDirectory(sessionRoot, sessionId) {
   if (!sessionId || sessionId.includes("/") || sessionId.includes("\\") || sessionId.includes("..")) {
-    throw new Error("Invalid session id.");
+    throw new Error("賽事 ID 無效。");
   }
 
   const root = path.resolve(sessionRoot);
   const directory = path.resolve(root, sessionId);
   if (!directory.toLowerCase().startsWith(`${root.toLowerCase()}${path.sep}`)) {
-    throw new Error("Session path escaped the session root.");
+    throw new Error("賽事路徑超出資料夾範圍。");
   }
 
   return directory;
@@ -135,6 +143,50 @@ async function readNdjson(filePath) {
     .split(/\r?\n/)
     .filter(Boolean)
     .map((line) => JSON.parse(line));
+}
+
+async function resolveSampleCount(session, samplesFile, summaryFile) {
+  if (typeof session.sampleCount === "number" && session.sampleCount > 0) {
+    return session.sampleCount;
+  }
+
+  if (await fileExists(summaryFile)) {
+    try {
+      const summary = JSON.parse(await fsp.readFile(summaryFile, "utf8"));
+      if (typeof summary.sampleCount === "number" && summary.sampleCount > 0) {
+        return summary.sampleCount;
+      }
+    } catch {
+      return session.sampleCount ?? 0;
+    }
+  }
+
+  if (await fileExists(samplesFile)) {
+    return countNdjsonLines(samplesFile);
+  }
+
+  return session.sampleCount ?? 0;
+}
+
+function countNdjsonLines(filePath) {
+  return new Promise((resolve, reject) => {
+    let lines = 0;
+    let hasBytes = false;
+    let lastByte = null;
+    const stream = fs.createReadStream(filePath);
+
+    stream.on("data", (chunk) => {
+      hasBytes = true;
+      lastByte = chunk[chunk.length - 1];
+      for (const byte of chunk) {
+        if (byte === 10) {
+          lines += 1;
+        }
+      }
+    });
+    stream.once("error", reject);
+    stream.once("end", () => resolve(lines + (hasBytes && lastByte !== 10 ? 1 : 0)));
+  });
 }
 
 async function writeJson(filePath, value) {

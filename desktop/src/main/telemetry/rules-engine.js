@@ -63,33 +63,33 @@ function createTelemetrySummary(samples, metadata = {}) {
   const findings = [];
   addRatioFinding(findings, counters.understeer, validSamples.length, {
     code: "understeer-mid-corner",
-    title: "Mid-corner understeer pattern",
-    detail: "Front combined slip is repeatedly higher than rear slip while steering input is large.",
-    suggestedArea: "front grip, aero balance, front spring/ARB, diff decel"
+    title: "彎中推頭傾向",
+    detail: "大角度轉向時，前輪綜合滑移反覆高於後輪。",
+    suggestedArea: "前輪抓地、空力平衡、前彈簧 / 防傾桿、差速減速"
   });
   addRatioFinding(findings, counters.powerOversteer, validSamples.length, {
     code: "power-oversteer-exit",
-    title: "Power oversteer pattern",
-    detail: "Rear combined slip rises above front slip during high throttle sections.",
-    suggestedArea: "rear grip, diff accel, rear spring/ARB, throttle discipline"
+    title: "補油甩尾傾向",
+    detail: "高油門區段中，後輪綜合滑移反覆高於前輪。",
+    suggestedArea: "後輪抓地、差速加速、後彈簧 / 防傾桿、油門控制"
   });
   addRatioFinding(findings, counters.brakeLockup, validSamples.length, {
     code: "brake-lockup",
-    title: "Brake lockup or brake instability pattern",
-    detail: "High brake input coincides with high combined tire slip.",
-    suggestedArea: "brake pressure, brake balance, front tire load"
+    title: "煞車鎖死或重煞不穩",
+    detail: "高煞車輸入時，輪胎綜合滑移也同步偏高。",
+    suggestedArea: "煞車壓力、煞車平衡、前輪負載"
   });
   addRatioFinding(findings, counters.redline, validSamples.length, {
     code: "gear-too-short",
-    title: "Frequent redline under throttle",
-    detail: "The engine spends repeated samples near max RPM while throttle is high.",
-    suggestedArea: "final drive, upper gear length"
+    title: "高油門頻繁撞紅線",
+    detail: "高油門時，引擎轉速反覆停留在接近紅線的位置。",
+    suggestedArea: "終傳比、高檔齒比延伸"
   });
   addRatioFinding(findings, counters.lowRpmExit, validSamples.length, {
     code: "gear-too-long",
-    title: "Low RPM during throttle application",
-    detail: "The engine repeatedly falls below the power band during high throttle sections.",
-    suggestedArea: "final drive, lower gear spacing"
+    title: "補油時轉速偏低",
+    detail: "高油門區段中，引擎轉速反覆掉到動力帶以下。",
+    suggestedArea: "終傳比、低檔齒比間距"
   });
 
   const frontRearTempDelta = nullableDelta(frontTempStats.average, rearTempStats.average);
@@ -97,9 +97,9 @@ function createTelemetrySummary(samples, metadata = {}) {
     findings.push({
       code: frontRearTempDelta > 0 ? "front-tires-hotter" : "rear-tires-hotter",
       severity: "info",
-      title: frontRearTempDelta > 0 ? "Front tires run hotter" : "Rear tires run hotter",
-      detail: "Average tire temperature differs by more than 12C front to rear.",
-      suggestedArea: "tire pressure, alignment, aero and roll stiffness balance",
+      title: frontRearTempDelta > 0 ? "前胎溫度偏高" : "後胎溫度偏高",
+      detail: "前後平均胎溫差距超過 12C。",
+      suggestedArea: "胎壓、定位角、空力與抗側傾平衡",
       sampleRatio: null
     });
   }
